@@ -1631,7 +1631,9 @@ class GameScene extends Phaser.Scene {
   updateStaffUI() {
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1';
-    const staff = this.playerRole === 'tester' || this.playerRole === 'creator' || isLocal;
+    const isBeta = host.includes('git-beta'); // тестовый деплой Vercel
+    const staff =
+      this.playerRole === 'tester' || this.playerRole === 'creator' || isLocal || isBeta;
     const show = staff && !this.isGameOver;
     if (this.cheatButton) this.cheatButton.setVisible(show);
     if (!show) {
