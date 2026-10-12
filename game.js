@@ -2673,11 +2673,13 @@ class GameScene extends Phaser.Scene {
           // Пушка облетает ЦЕНТР башни в сторону цели.
           const orbit = (type.gunOrbit || 0) * this.cellSize;
           const mount = type.gunMount || { x: 0, y: 0 };
-          tower.sprite.setPosition(
-            centerX + Math.cos(tower.aimAngle) * orbit + mount.x * this.cellSize,
-            centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize
-          );
+          const gunX = centerX + Math.cos(tower.aimAngle) * orbit + mount.x * this.cellSize;
+          const gunY = centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize;
+          tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
+          // Если пушка выше центра башни (цель «за» башней) — прячем её ЗА корпус.
+          const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
+          tower.sprite.setDepth(gunY < centerY ? baseDepth - 0.05 : baseDepth + 0.05);
         } else {
           tower.sprite.setPosition(pos.x, pos.y);
           tower.sprite.setRotation(tower.aimAngle);
