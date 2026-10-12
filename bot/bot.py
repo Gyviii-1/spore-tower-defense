@@ -301,7 +301,7 @@ def commands_text(role):
             "/untester @user или ID — забрать тестер",
             "/ban @user или ID — забанить",
             "/unban @user или ID — разбанить",
-            "/players — список пользователей (стр. 10, листание и поиск)",
+            "/players — список пользователей",
         ]
     return "\n".join(lines)
 
