@@ -33,6 +33,13 @@ module.exports = async (req, res) => {
 
     const db = getDb();
     const id = String(auth.user.id);
+
+    // Забаненным сохранять рекорды нельзя.
+    const userSnap = await db.collection('users').doc(id).get();
+    if (userSnap.exists && userSnap.data().banned) {
+      return res.status(403).json({ ok: false, error: 'banned' });
+    }
+
     const ref = db.collection('leaderboard').doc(id);
 
     const snapshot = await ref.get();
