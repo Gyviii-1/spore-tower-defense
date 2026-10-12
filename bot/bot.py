@@ -55,13 +55,10 @@ TOP_BUTTON = "🏆 Топ-10"
 ME_BUTTON = "📊 Мой рекорд"
 SETTINGS_BUTTON = "⚙ Настройки"
 HELP_BUTTON = "❓ Помощь"
-PLAY_BUTTON = "🎮 Играть"
 TEST_BUTTON = "🧪 Тест"
-GAME_URL = "https://gyviii-1.github.io/telegram-tower-defense/"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app"
 MENU_KEYBOARD = {
     "keyboard": [
-        [{"text": PLAY_BUTTON, "web_app": {"url": GAME_URL}}],
         [{"text": TOP_BUTTON}, {"text": ME_BUTTON}],
         [{"text": SETTINGS_BUTTON}, {"text": HELP_BUTTON}],
     ],
@@ -73,7 +70,6 @@ CURRENT_KEYBOARD = MENU_KEYBOARD
 def menu_keyboard(role):
     """Клавиатура внизу. Создателю/тестерам добавляем кнопку тестовой версии."""
     rows = [
-        [{"text": PLAY_BUTTON, "web_app": {"url": GAME_URL}}],
         [{"text": TOP_BUTTON}, {"text": ME_BUTTON}],
         [{"text": SETTINGS_BUTTON}, {"text": HELP_BUTTON}],
     ]
@@ -386,10 +382,11 @@ def handle_update(update):
     if text in ("/start", "/menu"):
         send_message(
             chat_id,
-            "👋 *Tower Defense*\n\n"
-            "Строй башни и не пусти врагов до конца дороги. "
-            "Личный рекорд и место в топе сохраняются автоматически.\n\n"
-            f"Нажми «{PLAY_BUTTON}», чтобы начать.",
+            "👋 Привет! Это бот в жанре игр Tower Defense.\n"
+            "Строй башни и не пусти врагов до конца дороги.\n"
+            "Личный рекорд и место в топе сохраняются автоматически.\n"
+            "Нажми «Играть» в левой части чтобы начать.",
+            markdown=False,
         )
     elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
