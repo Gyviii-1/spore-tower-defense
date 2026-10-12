@@ -302,6 +302,7 @@ def commands_text(role):
             "/ban @user или ID — забанить",
             "/unban @user или ID — разбанить",
             "/players — список пользователей",
+            "Перешли сообщение человека — бот покажет его ID",
         ]
     return "\n".join(lines)
 
@@ -571,6 +572,32 @@ def handle_update(update):
             if username:
                 set_ban(user_id, True)
             send_message(chat_id, "🚫 Доступ к боту закрыт.", markdown=False)
+            return
+
+    # Создатель переслал сообщение — достаём ID автора (даже если он боту не писал).
+    if is_creator:
+        origin = message.get("forward_origin") or {}
+        forwarded = (
+            origin.get("sender_user")
+            if origin.get("type") == "user"
+            else message.get("forward_from")
+        )
+        if forwarded and forwarded.get("id"):
+            fwd_id = forwarded["id"]
+            fwd_username = forwarded.get("username")
+            fwd_name = " ".join(
+                filter(None, [forwarded.get("first_name"), forwarded.get("last_name")])
+            ) or "без имени"
+            uname_line = f"\n@{fwd_username}" if fwd_username else ""
+            send_message(
+                chat_id,
+                f"🆔 ID: {fwd_id}{uname_line}\n{fwd_name}\n\n"
+                f"Забанить: /ban {fwd_id}\nРазбанить: /unban {fwd_id}",
+                markdown=False,
+            )
+            return
+        if origin.get("type") == "hidden_user" or message.get("forward_sender_name"):
+            send_message(chat_id, "Автор пересланного сообщения скрыл аккаунт — ID недоступен.", markdown=False)
             return
 
     # Создатель запросил поиск — следующее его сообщение это запрос.
