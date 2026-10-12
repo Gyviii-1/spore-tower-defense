@@ -301,6 +301,7 @@ def commands_text(role):
             "/untester @user или ID — забрать тестер",
             "/ban @user или ID — забанить",
             "/unban @user или ID — разбанить",
+            "/banlist — список забаненных",
             "/players — список пользователей",
             "Перешли сообщение человека — бот покажет его ID",
         ]
@@ -415,6 +416,36 @@ def render_users(page, mode, query=None):
     rows.append([{"text": "🔍 Поиск", "callback_data": "sr"}])
 
     return "\n".join(lines), {"inline_keyboard": rows}
+
+
+def render_banlist():
+    """Текст бан-листа: по ID и по @username."""
+    if db is None:
+        return "⚠️ Роли недоступны."
+
+    id_bans = []
+    try:
+        for document in db.collection("users").where("banned", "==", True).stream():
+            data = document.to_dict() or {}
+            nick = data.get("nick", "")
+            uname = data.get("username")
+            extra = f" @{uname}" if uname else ""
+            id_bans.append(f"{document.id} — {nick}{extra}")
+    except Exception as error:
+        print("banlist users error:", error)
+
+    name_bans = []
+    try:
+        for document in db.collection("banned_usernames").stream():
+            name_bans.append("@" + document.id)
+    except Exception as error:
+        print("banlist usernames error:", error)
+
+    lines = ["🚫 Бан-лист", "", "По ID:"]
+    lines += [f"• {item}" for item in id_bans] or ["• пусто"]
+    lines += ["", "По @username:"]
+    lines += [f"• {item}" for item in name_bans] or ["• пусто"]
+    return "\n".join(lines)
 
 
 def load_leaderboard():
@@ -677,6 +708,11 @@ def handle_update(update):
             return
         result_text, keyboard = render_users(0, "a")
         send_message(chat_id, result_text, markdown=False, keyboard=keyboard)
+    elif text == "/banlist":
+        if not is_creator:
+            send_message(chat_id, "⛔ Команда только для создателя.")
+            return
+        send_message(chat_id, render_banlist(), markdown=False)
     elif text.startswith("/ban") or text.startswith("/unban"):
         if not is_creator:
             send_message(chat_id, "⛔ Команда только для создателя.")
