@@ -382,11 +382,15 @@ def handle_update(update):
     if text in ("/start", "/menu"):
         send_message(
             chat_id,
-            "👋 Привет! Это бот в жанре игр Tower Defense.\n"
+            "🏰 *Tower Defense*\n"
+            "\n"
             "Строй башни и не пусти врагов до конца дороги.\n"
-            "Личный рекорд и место в топе сохраняются автоматически.\n"
-            "Нажми «Играть» в левой части чтобы начать.",
-            markdown=False,
+            "\n"
+            "• Личный рекорд\n"
+            "• Место в топе\n"
+            "• Автосохранение\n"
+            "\n"
+            "🎮 Нажми «Играть» слева, чтобы начать.",
         )
     elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
