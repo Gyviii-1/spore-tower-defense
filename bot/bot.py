@@ -78,7 +78,12 @@ def menu_keyboard(role):
     return {"keyboard": rows, "resize_keyboard": True}
 
 TOP_LIMIT = 10
+PAGE_SIZE = 10
 ROLE_LABELS = {"creator": "создатель", "tester": "тестер", "player": ""}
+
+# Состояние диалогов с создателем (по chat_id).
+search_pending = {}
+search_query = {}
 
 # --------------------------- Firebase Admin ---------------------------
 db = None
@@ -178,6 +183,27 @@ def set_role(user_id, role):
     return True
 
 
+def set_ban(user_id, value):
+    """Забанить/разбанить пользователя."""
+    if db is None:
+        return False
+    db.collection("users").document(str(user_id)).set(
+        {"banned": bool(value), "updatedAt": firestore.SERVER_TIMESTAMP}, merge=True
+    )
+    return True
+
+
+def toggle_ban(user_id):
+    """Переключает бан. Возвращает новое значение или None."""
+    if db is None:
+        return None
+    ref = db.collection("users").document(str(user_id))
+    snap = ref.get()
+    current = bool(snap.to_dict().get("banned")) if snap.exists else False
+    ref.set({"banned": not current, "updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
+    return not current
+
+
 def resolve_target(target):
     """Находит игрока по @username или числовому ID. Возвращает (doc_id, ошибка)."""
     if db is None:
@@ -250,7 +276,9 @@ def commands_text(role):
             "*Только для создателя:*",
             "/tester @user или ID — выдать тестер",
             "/untester @user или ID — забрать тестер",
-            "/players — список пользователей",
+            "/ban @user или ID — забанить",
+            "/unban @user или ID — разбанить",
+            "/players — список пользователей (стр. 10, листание и поиск)",
         ]
     return "\n".join(lines)
 
@@ -276,6 +304,101 @@ def load_hidden_ids():
         return set()
 
 
+def load_banned_ids():
+    """ID забаненных игроков."""
+    if db is None:
+        return set()
+    try:
+        return {document.id for document in db.collection("users").where("banned", "==", True).stream()}
+    except Exception as error:
+        print("Ошибка чтения банов:", error)
+        return set()
+
+
+def load_users():
+    """Все пользователи для списка/поиска."""
+    users = []
+    if db is None:
+        return users
+    try:
+        for document in db.collection("users").stream():
+            data = document.to_dict() or {}
+            users.append({
+                "id": document.id,
+                "role": data.get("role", "player"),
+                "nick": data.get("nick", ""),
+                "username": data.get("username"),
+                "hidden": bool(data.get("hidden")),
+                "banned": bool(data.get("banned")),
+            })
+    except Exception as error:
+        print("Ошибка чтения пользователей:", error)
+    users.sort(key=lambda u: u["id"])
+    return users
+
+
+def user_line(user):
+    """Строка пользователя: id — роль — ник (+метки)."""
+    nick = user.get("nick", "")
+    username = user.get("username")
+    if username and ("@" + username).lower() != (nick or "").lower():
+        nick = f"{nick} @{username}" if nick else f"@{username}"
+    tags = ""
+    if user.get("hidden"):
+        tags += " (скрыт)"
+    if user.get("banned"):
+        tags += " 🚫"
+    return f"{user['id']} — {user.get('role', 'player')} — {nick}{tags}"
+
+
+def render_users(page, mode, query=None):
+    """Текст + inline-клавиатура для страницы списка. mode: 'a' (все) или 's' (поиск)."""
+    if mode == "s":
+        query = (query or "").strip()
+        q = query.lower().lstrip("@")
+        users = [
+            u for u in load_users()
+            if not q
+            or q in u["id"].lower()
+            or q in (u.get("username") or "").lower()
+            or q in (u.get("nick") or "").lower()
+        ]
+        title = f"🔍 Поиск «{query}» — найдено: {len(users)}"
+    else:
+        users = load_users()
+        title = f"👥 Пользователи — всего: {len(users)}"
+
+    total_pages = max(1, (len(users) + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = max(0, min(page, total_pages - 1))
+    start = page * PAGE_SIZE
+    chunk = users[start:start + PAGE_SIZE]
+
+    lines = [title, ""]
+    if not chunk:
+        lines.append("Ничего не найдено.")
+    for user in chunk:
+        lines.append(user_line(user))
+
+    prefix = "sp" if mode == "s" else "pl"
+    rows = []
+    for user in chunk:
+        action = "✅ Разбанить" if user.get("banned") else "🚫 Забанить"
+        rows.append([{
+            "text": f"{action}: {user['id']}",
+            "callback_data": f"bt:{mode}:{page}:{user['id']}",
+        }])
+    nav = []
+    if page > 0:
+        nav.append({"text": "◀ Назад", "callback_data": f"{prefix}:{page - 1}"})
+    nav.append({"text": f"стр. {page + 1}/{total_pages}", "callback_data": "noop"})
+    if page < total_pages - 1:
+        nav.append({"text": "Вперёд ▶", "callback_data": f"{prefix}:{page + 1}"})
+    rows.append(nav)
+    rows.append([{"text": "🔍 Поиск", "callback_data": "sr"}])
+
+    return "\n".join(lines), {"inline_keyboard": rows}
+
+
 def load_leaderboard():
     response = requests.get(FIRESTORE_URL, timeout=30)
     response.raise_for_status()
@@ -292,9 +415,9 @@ def load_leaderboard():
             "gold": int(firestore_value(fields.get("gold")) or 0),
         })
 
-    # Скрытых игроков не показываем.
-    hidden = load_hidden_ids()
-    records = [record for record in records if record["id"] not in hidden]
+    # Скрытых и забаненных игроков не показываем.
+    excluded = load_hidden_ids() | load_banned_ids()
+    records = [record for record in records if record["id"] not in excluded]
 
     records.sort(key=lambda r: (r["wave"], r["gold"]), reverse=True)
     return records
@@ -326,12 +449,13 @@ def format_player(player_id, records):
 
 # ------------------------------ Обработка ------------------------------
 def handle_callback(callback):
-    """Нажатия на inline-кнопки (например, переключатель «скрыт из списка»)."""
+    """Нажатия на inline-кнопки."""
     data = callback.get("data", "")
     message = callback.get("message", {})
     chat_id = message.get("chat", {}).get("id")
     message_id = message.get("message_id")
     user_id = str(callback.get("from", {}).get("id", ""))
+    is_creator = str(user_id) == str(CREATOR_ID)
 
     if data == "toggle_hidden":
         new_value = toggle_hidden(user_id)
@@ -345,6 +469,49 @@ def handle_callback(callback):
             text=settings_text(user_id),
             reply_markup=settings_keyboard(user_id),
         )
+        return
+
+    # Остальные inline-кнопки (список, поиск, баны) — только для создателя.
+    if not is_creator:
+        api("answerCallbackQuery", callback_query_id=callback.get("id"), text="Только для создателя")
+        return
+
+    def edit(text, keyboard):
+        api(
+            "editMessageText",
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=keyboard,
+        )
+
+    if data == "noop":
+        api("answerCallbackQuery", callback_query_id=callback.get("id"))
+        return
+
+    if data == "sr":
+        search_pending[chat_id] = True
+        api("answerCallbackQuery", callback_query_id=callback.get("id"))
+        edit("🔍 Отправь @username, ник или ID для поиска.", {"inline_keyboard": []})
+        return
+
+    if data.startswith("bt:"):
+        _, mode, page, uid = data.split(":", 3)
+        toggle_ban(uid)
+        query = search_query.get(chat_id) if mode == "s" else None
+        text, keyboard = render_users(int(page), mode, query)
+        api("answerCallbackQuery", callback_query_id=callback.get("id"))
+        edit(text, keyboard)
+        return
+
+    if data.startswith("pl:") or data.startswith("sp:"):
+        mode = "a" if data.startswith("pl:") else "s"
+        page = int(data.split(":", 1)[1])
+        query = search_query.get(chat_id) if mode == "s" else None
+        text, keyboard = render_users(page, mode, query)
+        api("answerCallbackQuery", callback_query_id=callback.get("id"))
+        edit(text, keyboard)
+        return
 
 
 def handle_update(update):
@@ -378,6 +545,19 @@ def handle_update(update):
 
     # Клавиатура внизу (тестерам/создателю — с кнопкой тестовой версии).
     CURRENT_KEYBOARD = menu_keyboard(role)
+
+    # Забаненным (кроме создателя) доступ к боту закрыт.
+    if not is_creator and get_user_data(user_id).get("banned"):
+        send_message(chat_id, "🚫 Доступ к боту закрыт.", markdown=False)
+        return
+
+    # Создатель запросил поиск — следующее его сообщение это запрос.
+    if is_creator and search_pending.get(chat_id) and text:
+        search_pending[chat_id] = False
+        search_query[chat_id] = text
+        result_text, keyboard = render_users(0, "s", text)
+        send_message(chat_id, result_text, markdown=False, keyboard=keyboard)
+        return
 
     if text in ("/start", "/menu"):
         send_message(
@@ -448,17 +628,27 @@ def handle_update(update):
         if db is None:
             send_message(chat_id, "⚠️ Роли недоступны.")
             return
-        lines = ["👥 Пользователи", ""]
-        for document in db.collection("users").stream():
-            data = document.to_dict()
-            nick = data.get("nick", "")
-            username = data.get("username")
-            # Не дублируем, если ник уже содержит @username (без учёта регистра).
-            if username and ("@" + username).lower() != (nick or "").lower():
-                nick = f"{nick} @{username}" if nick else f"@{username}"
-            hidden = " (скрыт)" if data.get("hidden") else ""
-            lines.append(f"{document.id} — {data.get('role', 'player')} — {nick}{hidden}")
-        send_message(chat_id, "\n".join(lines[:40]), markdown=False)
+        result_text, keyboard = render_users(0, "a")
+        send_message(chat_id, result_text, markdown=False, keyboard=keyboard)
+    elif text.startswith("/ban") or text.startswith("/unban"):
+        if not is_creator:
+            send_message(chat_id, "⛔ Команда только для создателя.")
+            return
+        parts = text.split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            send_message(chat_id, "Укажи: `/ban @username` или `/ban 123456789`")
+            return
+        target = parts[1].strip()
+        want_ban = text.startswith("/ban")
+        doc_id, error = resolve_target(target)
+        if error:
+            send_message(chat_id, f"⚠️ {error}")
+            return
+        if set_ban(doc_id, want_ban):
+            verb = "🚫 Забанен" if want_ban else "✅ Разбанен"
+            send_message(chat_id, f"{verb}: `{target}`")
+        else:
+            send_message(chat_id, "⚠️ Не удалось сохранить.")
 
 
 def main():
