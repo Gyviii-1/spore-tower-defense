@@ -209,6 +209,42 @@ function angleToDir(angle, current) {
   return DIRECTIONS[idx];
 }
 
+// ----------------------------- Спрайт-лист (одна картинка на все позы) -----------------------------
+// Раскладка 4x2, порядок клеток (слева-вправо, сверху-вниз):
+//   ряд 1: вперёд, вперёд-право, вправо, назад-право
+//   ряд 2: назад, назад-лево, влево, вперёд-лево
+// Игра сама режет лист на 8 отдельных текстур вида "<prefix>_<dir>".
+const SHEET_ORDER = ['f', 'fr', 'r', 'br', 'b', 'bl', 'l', 'fl'];
+const SHEET_COLS = 4;
+const SHEET_ROWS = 2;
+
+function sliceSheet(scene, sheetKey, prefix) {
+  if (!scene.textures.exists(sheetKey)) return;
+  const source = scene.textures.get(sheetKey).getSourceImage();
+  const cellW = Math.floor(source.width / SHEET_COLS);
+  const cellH = Math.floor(source.height / SHEET_ROWS);
+  if (cellW < 1 || cellH < 1) return;
+  SHEET_ORDER.forEach((dir, index) => {
+    const key = `${prefix}_${dir}`;
+    if (scene.textures.exists(key)) return; // отдельный файл имеет приоритет
+    const canvas = document.createElement('canvas');
+    canvas.width = cellW;
+    canvas.height = cellH;
+    canvas.getContext('2d').drawImage(
+      source,
+      (index % SHEET_COLS) * cellW,
+      Math.floor(index / SHEET_COLS) * cellH,
+      cellW,
+      cellH,
+      0,
+      0,
+      cellW,
+      cellH
+    );
+    scene.textures.addCanvas(key, canvas);
+  });
+}
+
 // Непрерывный маршрут в world-координатах (центры клеток старого пути).
 const ROUTE_WAYPOINTS = [
   { x: 0.5, y: 0.5 },
@@ -617,6 +653,13 @@ class MenuScene extends Phaser.Scene {
           this.load.image(`${key}_${level}`, `assets/${key}_${level}.png${ASSET_VER}`);
       }
     }
+    // Спрайт-листы (одна картинка на все позы) — для иконок инвентаря.
+    for (const key in TOWER_TYPES) {
+      this.load.image(`${key}_base_sheet`, `assets/${key}_base_sheet.png${ASSET_VER}`);
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        this.load.image(`${key}_gun_${level}_sheet`, `assets/${key}_gun_${level}_sheet.png${ASSET_VER}`);
+      }
+    }
     this.load.on('loaderror', () => {});
   }
 
@@ -629,6 +672,14 @@ class MenuScene extends Phaser.Scene {
     this.topList = [];
 
     this.initTelegram();
+
+    // Нарезаем спрайт-листы (если есть) на отдельные направления (для иконок).
+    for (const key in TOWER_TYPES) {
+      sliceSheet(this, `${key}_base_sheet`, `${key}_base`);
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
+      }
+    }
 
     this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d1a, 1).setOrigin(0, 0);
 
@@ -1130,6 +1181,14 @@ class GameScene extends Phaser.Scene {
       }
     }
 
+    // Спрайт-листы (одна картинка на все позы, раскладка 4x2).
+    for (const key in TOWER_TYPES) {
+      this.load.image(`${key}_base_sheet`, `assets/${key}_base_sheet.png${ASSET_VER}`);
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        this.load.image(`${key}_gun_${level}_sheet`, `assets/${key}_gun_${level}_sheet.png${ASSET_VER}`);
+      }
+    }
+
     // Звуки (mp3). Если файла нет — игра просто идёт без этого звука.
     this.load.audio('sfx_shot', 'assets/shot.mp3' + ASSET_VER);
     this.load.audio('sfx_wave', 'assets/wave.mp3' + ASSET_VER);
@@ -1141,7 +1200,8 @@ class GameScene extends Phaser.Scene {
         file &&
         (/_\d+$/.test(file.key) ||
           /_base_[a-z]+$/.test(file.key) ||
-          /_gun_\d+_[a-z]+$/.test(file.key))
+          /_gun_\d+_[a-z]+$/.test(file.key) ||
+          /_sheet$/.test(file.key))
       ) {
         return;
       }
@@ -1214,6 +1274,14 @@ class GameScene extends Phaser.Scene {
     this.cellSize = ISO_HW;
     this.offsetX = 0;
     this.offsetY = 0;
+
+    // Нарезаем спрайт-листы (если есть) на отдельные направления.
+    for (const key in TOWER_TYPES) {
+      sliceSheet(this, `${key}_base_sheet`, `${key}_base`);
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
+      }
+    }
 
     // Создаём UI (тексты поверх всего).
     this.createUI();
