@@ -226,8 +226,7 @@ function sliceSheet(scene, sheetKey, prefix) {
   if (cellW < 1 || cellH < 1) return;
   SHEET_ORDER.forEach((dir, index) => {
     const key = `${prefix}_${dir}`;
-    // Лист имеет приоритет над отдельными файлами: старую текстуру убираем.
-    if (scene.textures.exists(key)) scene.textures.remove(key);
+    if (scene.textures.exists(key)) return; // отдельный файл имеет приоритет
     const canvas = document.createElement('canvas');
     canvas.width = cellW;
     canvas.height = cellH;
@@ -661,6 +660,7 @@ class MenuScene extends Phaser.Scene {
         this.load.image(`${key}_gun_${level}_sheet`, `assets/${key}_gun_${level}_sheet.png${ASSET_VER}`);
       }
     }
+    this.load.image('template_base_sheet', `assets/template_base_sheet.png${ASSET_VER}`);
     this.load.on('loaderror', () => {});
   }
 
@@ -681,6 +681,7 @@ class MenuScene extends Phaser.Scene {
         sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
       }
     }
+    sliceSheet(this, 'template_base_sheet', 'template_base');
 
     this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d1a, 1).setOrigin(0, 0);
 
@@ -1101,6 +1102,7 @@ class MenuScene extends Phaser.Scene {
     if (this.textures.exists(dirKey)) return dirKey;
     const key = `${typeKey}_base`;
     if (this.textures.exists(key)) return key;
+    if (this.textures.exists(`template_base_${DIR_FORWARD}`)) return `template_base_${DIR_FORWARD}`;
     const fallback = TOWER_TYPES[typeKey].baseTexture;
     return this.textures.exists(fallback) ? fallback : null;
   }
@@ -1189,6 +1191,8 @@ class GameScene extends Phaser.Scene {
         this.load.image(`${key}_gun_${level}_sheet`, `assets/${key}_gun_${level}_sheet.png${ASSET_VER}`);
       }
     }
+    // Общий шаблон-заглушка корпуса (для типов без своей модели).
+    this.load.image('template_base_sheet', `assets/template_base_sheet.png${ASSET_VER}`);
 
     // Звуки (mp3). Если файла нет — игра просто идёт без этого звука.
     this.load.audio('sfx_shot', 'assets/shot.mp3' + ASSET_VER);
@@ -1283,6 +1287,7 @@ class GameScene extends Phaser.Scene {
         sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
       }
     }
+    sliceSheet(this, 'template_base_sheet', 'template_base');
 
     // Создаём UI (тексты поверх всего).
     this.createUI();
@@ -2718,6 +2723,10 @@ class GameScene extends Phaser.Scene {
 
     const legacyKey = `${typeKey}_base`;
     if (this.textures.exists(legacyKey)) return { key: legacyKey, directional: false };
+
+    // Общий шаблон-заглушка (для типов без своей модели).
+    const templateKey = `template_base_${dir}`;
+    if (this.textures.exists(templateKey)) return { key: templateKey, directional: true };
 
     const fallback = TOWER_TYPES[typeKey].baseTexture;
     if (this.textures.exists(fallback)) return { key: fallback, directional: false };
