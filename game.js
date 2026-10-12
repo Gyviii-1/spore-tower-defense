@@ -46,7 +46,7 @@ const TOWER_TYPES = {
     color: 0x2ecc71,
     baseOrigin: { x: 0.5, y: 0.5 }, // опора корпуса — центр картинки
     gunOrigin: { x: 0.5, y: 0.5 },  // опора пушки — точка крепления в картинке
-    gunOrbit: 0.18,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
+    gunOrbit: 0.30,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
     gunMount: { x: 0, y: -0.05 },   // доп. сдвиг пушки (в долях клетки)
   },
   minigun: {
@@ -63,7 +63,7 @@ const TOWER_TYPES = {
     color: 0x3498db,
     baseOrigin: { x: 0.5, y: 0.5 },
     gunOrigin: { x: 0.5, y: 0.5 },
-    gunOrbit: 0.22,
+    gunOrbit: 0.36,
     gunMount: { x: 0, y: -0.05 },
   },
 };
