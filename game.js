@@ -226,7 +226,8 @@ function sliceSheet(scene, sheetKey, prefix) {
   if (cellW < 1 || cellH < 1) return;
   SHEET_ORDER.forEach((dir, index) => {
     const key = `${prefix}_${dir}`;
-    if (scene.textures.exists(key)) return; // отдельный файл имеет приоритет
+    // Лист имеет приоритет над отдельными файлами: старую текстуру убираем.
+    if (scene.textures.exists(key)) scene.textures.remove(key);
     const canvas = document.createElement('canvas');
     canvas.width = cellW;
     canvas.height = cellH;
