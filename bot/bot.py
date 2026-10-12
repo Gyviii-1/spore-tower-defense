@@ -381,12 +381,6 @@ def render_users(page, mode, query=None):
 
     prefix = "sp" if mode == "s" else "pl"
     rows = []
-    for user in chunk:
-        action = "✅ Разбанить" if user.get("banned") else "🚫 Забанить"
-        rows.append([{
-            "text": f"{action}: {user['id']}",
-            "callback_data": f"bt:{mode}:{page}:{user['id']}",
-        }])
     nav = []
     if page > 0:
         nav.append({"text": "◀ Назад", "callback_data": f"{prefix}:{page - 1}"})
