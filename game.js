@@ -2682,11 +2682,9 @@ class GameScene extends Phaser.Scene {
           const gunY = centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
-          // Пушка уходит ЗА корпус только когда цель явно ВЫШЕ башни.
-          // Вбок и вниз — всегда спереди.
+          // Пушка уходит ЗА корпус, когда она выше центра башни (цель сверху).
           const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
-          const behind = Math.sin(tower.aimAngle) < -0.5;
-          tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
+          tower.sprite.setDepth(gunY < centerY ? baseDepth - 0.05 : baseDepth + 0.05);
         } else {
           tower.sprite.setPosition(pos.x, pos.y);
           tower.sprite.setRotation(tower.aimAngle);
