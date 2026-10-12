@@ -204,6 +204,29 @@ def toggle_ban(user_id):
     return not current
 
 
+def is_username_banned(username):
+    """Забанен ли @username (срабатывает даже до первого входа в бота)."""
+    if db is None or not username:
+        return False
+    try:
+        return db.collection("banned_usernames").document(username.lstrip("@").lower()).get().exists
+    except Exception as error:
+        print("Ошибка чтения бан-ников:", error)
+        return False
+
+
+def set_username_ban(username, value):
+    """Добавить/убрать @username в список бан-ников."""
+    if db is None or not username:
+        return False
+    ref = db.collection("banned_usernames").document(username.lstrip("@").lower())
+    if value:
+        ref.set({"banned": True, "updatedAt": firestore.SERVER_TIMESTAMP})
+    else:
+        ref.delete()
+    return True
+
+
 def resolve_target(target):
     """Находит игрока по @username или числовому ID. Возвращает (doc_id, ошибка)."""
     if db is None:
@@ -541,9 +564,14 @@ def handle_update(update):
     CURRENT_KEYBOARD = menu_keyboard(role)
 
     # Забаненным (кроме создателя) доступ к боту закрыт.
-    if not is_creator and get_user_data(user_id).get("banned"):
-        send_message(chat_id, "🚫 Доступ к боту закрыт.", markdown=False)
-        return
+    # Бан по ID или по @username (второй работает даже до первого входа).
+    if not is_creator:
+        banned = bool(get_user_data(user_id).get("banned")) or is_username_banned(username)
+        if banned:
+            if username:
+                set_ban(user_id, True)
+            send_message(chat_id, "🚫 Доступ к боту закрыт.", markdown=False)
+            return
 
     # Создатель запросил поиск — следующее его сообщение это запрос.
     if is_creator and search_pending.get(chat_id) and text:
@@ -632,15 +660,22 @@ def handle_update(update):
             return
         target = parts[1].strip()
         want_ban = text.startswith("/ban")
-        doc_id, error = resolve_target(target)
-        if error:
-            send_message(chat_id, f"⚠️ {error}")
+        verb = "🚫 Забанен" if want_ban else "✅ Разбанен"
+
+        # По числовому ID.
+        if target.isdigit():
+            if set_ban(target, want_ban):
+                send_message(chat_id, f"{verb}: `{target}`")
+            else:
+                send_message(chat_id, "⚠️ Не удалось сохранить.")
             return
-        if set_ban(doc_id, want_ban):
-            verb = "🚫 Забанен" if want_ban else "✅ Разбанен"
-            send_message(chat_id, f"{verb}: `{target}`")
-        else:
-            send_message(chat_id, "⚠️ Не удалось сохранить.")
+
+        # По @username — работает и без входа в бота.
+        set_username_ban(target, want_ban)
+        doc_id, error = resolve_target(target)
+        if not error:
+            set_ban(doc_id, want_ban)
+        send_message(chat_id, f"{verb}: @{target.lstrip('@')} — сработает и до первого входа.")
 
 
 def main():

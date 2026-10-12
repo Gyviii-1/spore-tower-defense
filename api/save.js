@@ -39,6 +39,14 @@ module.exports = async (req, res) => {
     if (userSnap.exists && userSnap.data().banned) {
       return res.status(403).json({ ok: false, error: 'banned' });
     }
+    // Бан по @username (срабатывает даже без входа в бота).
+    const username = String(auth.user.username || '').toLowerCase();
+    if (username) {
+      const banSnap = await db.collection('banned_usernames').doc(username).get();
+      if (banSnap.exists) {
+        return res.status(403).json({ ok: false, error: 'banned' });
+      }
+    }
 
     const ref = db.collection('leaderboard').doc(id);
 
