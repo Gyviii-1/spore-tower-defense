@@ -54,10 +54,14 @@ FIRESTORE_URL = (
 TOP_BUTTON = "🏆 Топ-10"
 ME_BUTTON = "📊 Мой рекорд"
 SETTINGS_BUTTON = "⚙ Настройки"
+HELP_BUTTON = "❓ Помощь"
 TEST_BUTTON = "🧪 Тест"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app"
 MENU_KEYBOARD = {
-    "keyboard": [[{"text": TOP_BUTTON}, {"text": ME_BUTTON}], [{"text": SETTINGS_BUTTON}]],
+    "keyboard": [
+        [{"text": TOP_BUTTON}, {"text": ME_BUTTON}],
+        [{"text": SETTINGS_BUTTON}, {"text": HELP_BUTTON}],
+    ],
     "resize_keyboard": True,
 }
 CURRENT_KEYBOARD = MENU_KEYBOARD
@@ -65,7 +69,10 @@ CURRENT_KEYBOARD = MENU_KEYBOARD
 
 def menu_keyboard(role):
     """Клавиатура внизу. Создателю/тестерам добавляем кнопку тестовой версии."""
-    rows = [[{"text": TOP_BUTTON}, {"text": ME_BUTTON}], [{"text": SETTINGS_BUTTON}]]
+    rows = [
+        [{"text": TOP_BUTTON}, {"text": ME_BUTTON}],
+        [{"text": SETTINGS_BUTTON}, {"text": HELP_BUTTON}],
+    ]
     if role in ("creator", "tester"):
         rows.append([{"text": TEST_BUTTON, "web_app": {"url": BETA_URL}}])
     return {"keyboard": rows, "resize_keyboard": True}
@@ -377,7 +384,7 @@ def handle_update(update):
             chat_id,
             "👋 Привет! Это бот игры *Tower Defense*.\n\n" + commands_text(role),
         )
-    elif text in ("/help", "/commands"):
+    elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
     elif text in ("/settings", SETTINGS_BUTTON):
         send_message(
@@ -438,8 +445,8 @@ def handle_update(update):
             data = document.to_dict()
             nick = data.get("nick", "")
             username = data.get("username")
-            # Не дублируем, если ник уже содержит @username.
-            if username and ("@" + username) != nick:
+            # Не дублируем, если ник уже содержит @username (без учёта регистра).
+            if username and ("@" + username).lower() != (nick or "").lower():
                 nick = f"{nick} @{username}" if nick else f"@{username}"
             hidden = " (скрыт)" if data.get("hidden") else ""
             lines.append(f"{document.id} — {data.get('role', 'player')} — {nick}{hidden}")
