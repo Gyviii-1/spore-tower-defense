@@ -382,15 +382,13 @@ def handle_update(update):
     if text in ("/start", "/menu"):
         send_message(
             chat_id,
-            "🏰 *Tower Defense*\n"
+            "🏰 *Telegram Tower Defense*\n"
             "\n"
             "Строй башни и не пусти врагов до конца дороги.\n"
             "\n"
-            "• Личный рекорд\n"
-            "• Место в топе\n"
-            "• Автосохранение\n"
+            "Личный рекорд и место в топе автоматически сохраняются\n"
             "\n"
-            "🎮 Нажми «Играть» слева, чтобы начать.",
+            "🎮 Нажми «Играть» слева чтобы начать.",
         )
     elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
