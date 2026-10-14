@@ -3094,10 +3094,7 @@ class GameScene extends Phaser.Scene {
   // а не с точкой клетки внизу.
   towerAt(px, py) {
     for (const tower of this.towers) {
-      // Кликабельны и клетка, и сама картинка (спрайт поднят над клеткой).
-      const p = tower.getPosition();
-      const r = Math.max((tower.config.footprint / 2) * this.cellSize, 26 * DPR);
-      if (Math.hypot(p.x - px, p.y - py) <= r) return tower;
+      // Кликабельна ТОЛЬКО картинка башни (клетка под ней — нет).
       if (tower.baseSprite) {
         const b = tower.baseSprite.getBounds();
         if (Phaser.Geom.Rectangle.Contains(b, px, py)) return tower;
