@@ -1498,10 +1498,10 @@ class GameScene extends Phaser.Scene {
     // Меню башни (улучшение/продажа).
     // ВАЖНО: без контейнера — интерактив в контейнере со scrollFactor(0)
     // ломает хит-тест кликов. Делаем прямые объекты, зафиксированные на экране.
-    this.towerMenuOffsets = { bg: 0, title: -60 * DPR, upgrade: 0, sell: 60 * DPR };
+    this.towerMenuOffsets = { bg: 0, title: -45 * DPR, upgrade: 0, sell: 45 * DPR };
 
     this.towerMenuBg = this.add
-      .rectangle(0, 0, 270 * DPR, 200 * DPR, 0x000000, 0.9)
+      .rectangle(0, 0, 200 * DPR, 150 * DPR, 0x000000, 0.9)
       .setStrokeStyle(2 * DPR, TOWER_COLOR)
       .setDepth(102)
       .setScrollFactor(0)
@@ -1515,7 +1515,7 @@ class GameScene extends Phaser.Scene {
     this.towerMenuTitle = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${16 * DPR}px`,
+        fontSize: `${13 * DPR}px`,
         color: '#ffffff',
         fontStyle: 'bold',
         align: 'center',
@@ -1529,7 +1529,7 @@ class GameScene extends Phaser.Scene {
     this.towerMenuUpgrade = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${18 * DPR}px`,
+        fontSize: `${14 * DPR}px`,
         color: '#2ecc71',
       })
       .setOrigin(0.5)
@@ -1541,7 +1541,7 @@ class GameScene extends Phaser.Scene {
     this.towerMenuSell = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${18 * DPR}px`,
+        fontSize: `${14 * DPR}px`,
         color: '#e74c3c',
       })
       .setOrigin(0.5)
@@ -1986,22 +1986,16 @@ class GameScene extends Phaser.Scene {
     const tower = this.selectedTower;
     if (!tower) return;
 
-    // towerMenu — UI (scrollFactor 0), поэтому берём экранные координаты башни.
-    const pos = this.worldToUI(tower.gx, tower.gy);
     const width = this.scale.width;
     const height = this.scale.height;
-    const halfW = 135 * DPR; // половина ширины фона меню (270 / 2)
-    const halfH = 100 * DPR; // половина высоты фона меню (200 / 2)
+    const halfW = 100 * DPR; // половина ширины фона меню (200 / 2)
+    const halfH = 75 * DPR;  // половина высоты фона меню (150 / 2)
     const margin = 8 * DPR;
 
-    let x = pos.x;
-    let y = pos.y - 70 * DPR - halfH; // сначала пробуем над башней
-    if (y - halfH < margin) {
-      y = pos.y + 70 * DPR + halfH; // не влезло — ставим под башней
-    }
-
-    x = Phaser.Math.Clamp(x, halfW + margin, width - halfW - margin);
-    y = Phaser.Math.Clamp(y, halfH + margin, height - halfH - margin);
+    // Угол окна (верх-лево) — в точке нажатия (или у башни).
+    const anchor = this.menuAnchor || this.worldToUI(tower.gx, tower.gy);
+    const x = Phaser.Math.Clamp(anchor.x + halfW, halfW + margin, width - halfW - margin);
+    const y = Phaser.Math.Clamp(anchor.y + halfH, halfH + margin, height - halfH - margin);
 
     const off = this.towerMenuOffsets;
     this.towerMenuBg.setPosition(x, y + off.bg);
@@ -3151,9 +3145,10 @@ class GameScene extends Phaser.Scene {
     const { gx, gy } = this.pointerToGrid(pointer);
     const worldPx = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
-    // Нажали на башню — открываем её меню (улучшение/продажа).
+    // Нажали на башню — открываем её меню (угол окна — в точке нажатия).
     const existing = this.towerAt(worldPx.x, worldPx.y);
     if (existing) {
+      this.menuAnchor = { x: pointer.x, y: pointer.y };
       this.openTowerMenu(existing);
       return;
     }
