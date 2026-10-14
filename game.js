@@ -3536,6 +3536,7 @@ class GameScene extends Phaser.Scene {
     updateRoundBgs(this); // держим фон кнопок в синхроне с видимостью/размером
     if (this.isGameOver) return; // игра остановлена
 
+    const rawDelta = delta; // реальное время — для анимаций, не зависящих от ускорения
     delta *= this.timeScale; // ускорение времени (стафф)
 
     // Враги (движение — в world-координатах по Route).
@@ -3563,8 +3564,8 @@ class GameScene extends Phaser.Scene {
     // Окошко с HP врага (кружок по клику/наведению, плашка по клику).
     this.updateEnemyInfo();
 
-    // Вращаем пунктирное кольцо радиуса атаки.
-    this.rangePhase += (delta / 1000) * 1.2;
+    // Вращаем пунктирное кольцо радиуса атаки (скорость не зависит от ускорения).
+    this.rangePhase += (rawDelta / 1000) * 1.2;
     this.drawDashedRangeRing();
 
     // Проверяем, не закончилась ли волна.
