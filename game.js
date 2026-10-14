@@ -266,6 +266,8 @@ function roundTextButton(scene, text, color, radius, alpha) {
     text.parentContainer.addAt(g, Math.max(0, idx));
   } else {
     g.setDepth((text.depth || 0) - 1);
+    // Фон должен быть так же зафиксирован на экране, как и сама кнопка.
+    g.setScrollFactor(text.scrollFactorX, text.scrollFactorY);
   }
   scene._roundBtns = scene._roundBtns || [];
   const item = { g: g, text: text, color: color, radius: radius, alpha: alpha === undefined ? 1 : alpha };
