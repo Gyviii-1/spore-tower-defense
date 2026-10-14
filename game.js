@@ -161,7 +161,7 @@ const ASSET_VER = '?v=20261010g';
 
 // Насколько визуально поднять спрайт над его клеткой (в долях клетки).
 // Зона тапа при этом остаётся на клетке (не смещается).
-const BASE_LIFT = 0.12;
+const BASE_LIFT = 0.2;
 
 // HiDPI-масштаб: рендерим канвас в физическом разрешении экрана, а UI
 // задаём в «CSS-пикселях», умножая абсолютные размеры на DPR. Ограничиваем
@@ -3094,13 +3094,14 @@ class GameScene extends Phaser.Scene {
   // а не с точкой клетки внизу.
   towerAt(px, py) {
     for (const tower of this.towers) {
-      // Тап-зона привязана к КЛЕТКЕ (спрайт визуально поднят — зона не едет).
+      // Кликабельны и клетка, и сама картинка (спрайт поднят над клеткой).
       const p = tower.getPosition();
-      const spriteR = tower.baseSprite
-        ? Math.max(tower.baseSprite.displayWidth, tower.baseSprite.displayHeight) / 2
-        : 0;
-      const r = Math.max((tower.config.footprint / 2) * this.cellSize, spriteR);
+      const r = Math.max((tower.config.footprint / 2) * this.cellSize, 26 * DPR);
       if (Math.hypot(p.x - px, p.y - py) <= r) return tower;
+      if (tower.baseSprite) {
+        const b = tower.baseSprite.getBounds();
+        if (Phaser.Geom.Rectangle.Contains(b, px, py)) return tower;
+      }
     }
     return null;
   }
