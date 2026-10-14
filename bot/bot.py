@@ -642,7 +642,7 @@ def handle_update(update):
     if text in ("/start", "/menu"):
         send_message(
             chat_id,
-            "🏰 *Telegram Tower Defense*\n"
+            "🏰 *Spore Tower Defense*\n"
             "\n"
             "Строй башни и не пусти врагов до конца дороги.\n"
             "\n"
