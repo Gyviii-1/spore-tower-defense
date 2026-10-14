@@ -18,12 +18,12 @@ const API_BASE = location.hostname.endsWith('vercel.app')
   : 'https://telegram-tower-defense.vercel.app';
 
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
-const BG_COLOR = 0x1a1a2e;        // цвет фона сцены
-const CELL_COLOR = 0x16213e;      // заливка обычной (свободной) клетки
-const ROAD_COLOR = 0xd4a017;      // заливка клетки дороги (жёлто-песочный)
-const GRID_LINE_COLOR = 0x0f3460; // цвет линий сетки
+const BG_COLOR = 0x0d0d0d;        // цвет фона сцены
+const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
+const ROAD_COLOR = 0x555555;      // заливка дороги (серый)
+const GRID_LINE_COLOR = 0x2a2a2a; // цвет линий сетки
 
-const TOWER_COLOR = 0x2ecc71;     // акцентный цвет интерфейса башен
+const TOWER_COLOR = 0xe63946;     // акцентный цвет интерфейса башен
 const TOWER_MAX_LEVEL = 5;        // максимальный уровень башни
 const TOWER_SELL_RATIO = 0.7;     // возврат золота при продаже (70% вложенного)
 // Размер спрайта (size) и радиус для коллизий/кликов (radius) задаются
@@ -43,7 +43,7 @@ const TOWER_TYPES = {
     weaponScale: 0.5, // во сколько раз пушка меньше корпуса
     baseTexture: 'tower', // корпус (стоит на месте)
     texture: 'tower', // запасная картинка
-    color: 0x2ecc71,
+    color: 0xe63946,
     baseOrigin: { x: 0.5, y: 0.5 }, // опора корпуса — центр картинки
     gunOrigin: { x: 0.5, y: 0.5 },  // опора пушки — точка крепления в картинке
     gunOrbit: 0.30,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
@@ -99,7 +99,7 @@ const ENEMY_TYPES = {
     splitInto: 'small',
     splitCount: 2,
   },
-  small: { hp: 2, speed: 3.2, color: 0x2ecc71, reward: 3, size: 0.34 },
+  small: { hp: 2, speed: 3.2, color: 0xe63946, reward: 3, size: 0.34 },
   shielded: {
     hp: 15,
     speed: 1.4,
@@ -247,6 +247,49 @@ function sliceSheet(scene, sheetKey, prefix) {
     );
     scene.textures.addCanvas(key, canvas);
   });
+}
+
+// ------------- Скруглённые фоны кнопок -------------
+// У Phaser.Text фон — обычный прямоугольник (без радиуса). Поэтому прячем
+// встроенный фон и рисуем скруглённый прямоугольник позади кнопки.
+function roundTextButton(scene, text, color, radius, alpha) {
+  try {
+    if (text.style) text.style.backgroundColor = null;
+    if (text.updateText) text.updateText();
+  } catch (error) {
+    /* не критично */
+  }
+  const g = scene.add.graphics();
+  if (text.parentContainer) {
+    // Внутри контейнера — просто ставим фон ПОД текстом.
+    const idx = text.parentContainer.getIndex(text);
+    text.parentContainer.addAt(g, Math.max(0, idx));
+  } else {
+    g.setDepth((text.depth || 0) - 1);
+  }
+  scene._roundBtns = scene._roundBtns || [];
+  const item = { g: g, text: text, color: color, radius: radius, alpha: alpha === undefined ? 1 : alpha };
+  scene._roundBtns.push(item);
+  text._roundItem = item;
+  return g;
+}
+
+// Пересобрать скруглённые фоны по текущим размерам/позициям кнопок.
+function layoutRoundButtons(scene) {
+  const list = scene._roundBtns;
+  if (!list) return;
+  for (const it of list) {
+    const w = it.text.displayWidth;
+    const h = it.text.displayHeight;
+    if (w <= 0 || h <= 0) continue;
+    const cx = it.text.x + w * (0.5 - it.text.originX);
+    const cy = it.text.y + h * (0.5 - it.text.originY);
+    it.g.clear();
+    it.g.fillStyle(it.color, it.alpha);
+    it.g.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, Math.min(it.radius, w / 2, h / 2));
+    if (!it.text.parentContainer) it.g.setDepth((it.text.depth || 0) - 1);
+    it.g.setVisible(it.text.visible);
+  }
 }
 
 // Непрерывный маршрут в world-координатах (центры клеток старого пути).
@@ -687,13 +730,13 @@ class MenuScene extends Phaser.Scene {
     }
     sliceSheet(this, 'template_base_sheet', 'template_base');
 
-    this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d1a, 1).setOrigin(0, 0);
+    this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d0d, 1).setOrigin(0, 0);
 
     this.title = this.add
       .text(0, 0, 'SPORE TOWER DEFENSE', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '48px',
-        color: '#2ecc71',
+        color: '#e63946',
         stroke: '#000000',
         strokeThickness: 6 * DPR,
         fontStyle: 'bold',
@@ -724,7 +767,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.bestText = this.add
-      .text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#f1c40f' })
+      .text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#e63946' })
       .setOrigin(0.5);
 
     this.playButton = this.add
@@ -732,7 +775,7 @@ class MenuScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         color: '#ffffff',
-        backgroundColor: '#2ecc71',
+        backgroundColor: '#e63946',
         padding: { x: 30 * DPR, y: 14 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
@@ -750,7 +793,7 @@ class MenuScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
         color: '#ffffff',
-        backgroundColor: '#34495e',
+        backgroundColor: '#3a3a3a',
         padding: { x: 24 * DPR, y: 10 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
@@ -763,6 +806,8 @@ class MenuScene extends Phaser.Scene {
       this.openRules();
     });
 
+    roundTextButton(this, this.playButton, 0xe63946, 14 * DPR);
+    roundTextButton(this, this.rulesButton, 0x3a3a3a, 14 * DPR);
     this.lobbyPage.add([this.profileText, this.bestText, this.playButton, this.rulesButton]);
   }
 
@@ -785,8 +830,8 @@ class MenuScene extends Phaser.Scene {
       const row = this.add.container(0, 0);
 
       const bg = this.add
-        .rectangle(0, 0, 320, 72, 0x1a2433, 0.95)
-        .setStrokeStyle(2, 0x2ecc71, 0.6);
+        .rectangle(0, 0, 320, 72, 0x1a1a1a, 0.95)
+        .setStrokeStyle(2, 0xe63946, 0.6);
 
       const icon = this.add.container(-120, 0);
       const baseKey = this.getBaseTextureKey(key) || type.texture;
@@ -806,7 +851,7 @@ class MenuScene extends Phaser.Scene {
         .text(-70, 14, `Цена: ${type.cost}`, {
           fontFamily: 'Arial, sans-serif',
           fontSize: '15px',
-          color: '#bdc3c7',
+          color: '#bdbdbd',
         })
         .setOrigin(0, 0.5);
 
@@ -832,7 +877,7 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
-        color: '#f1c40f',
+        color: '#e63946',
         align: 'center',
         lineSpacing: 4 * DPR,
       })
@@ -857,7 +902,7 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, 'МАГАЗИН\n\nСкоро', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
-        color: '#bdc3c7',
+        color: '#bdbdbd',
         align: 'center',
         lineSpacing: 8 * DPR,
       })
@@ -868,7 +913,7 @@ class MenuScene extends Phaser.Scene {
   createTabs() {
     this.tabBar = this.add.container(0, 0);
     this.tabInventory = this.makeTab('Инвентарь', 'inventory');
-    this.tabLobby = this.makeTab('Лобби', 'lobby');
+    this.tabLobby = this.makeTab('Меню', 'lobby');
     this.tabTop = this.makeTab('Топ', 'top');
     this.tabShop = this.makeTab('Магазин', 'shop');
     this.tabBar.add([this.tabInventory, this.tabLobby, this.tabTop, this.tabShop]);
@@ -878,7 +923,7 @@ class MenuScene extends Phaser.Scene {
     this.rulesPanel = this.add.container(0, 0).setVisible(false);
 
     this.rulesBg = this.add
-      .rectangle(0, 0, 1, 1, 0x0d0d1a, 0.98)
+      .rectangle(0, 0, 1, 1, 0x0d0d0d, 0.98)
       .setOrigin(0, 0)
       .setInteractive();
     this.rulesBg.on('pointerdown', (pointer, localX, localY, event) => {
@@ -913,6 +958,7 @@ class MenuScene extends Phaser.Scene {
       this.closeRules();
     });
 
+    roundTextButton(this, this.rulesBack, 0xe74c3c, 14 * DPR);
     this.rulesPanel.add([this.rulesBg, this.rulesText, this.rulesBack]);
   }
 
@@ -922,7 +968,7 @@ class MenuScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#ffffff',
-        backgroundColor: '#1f2b3a',
+        backgroundColor: '#262626',
         padding: { x: 12 * DPR, y: 8 * DPR },
       })
       .setOrigin(0.5)
@@ -932,6 +978,7 @@ class MenuScene extends Phaser.Scene {
       if (event && event.stopPropagation) event.stopPropagation();
       this.selectTab(key);
     });
+    roundTextButton(this, tab, 0x262626, 12 * DPR);
     return tab;
   }
 
@@ -941,12 +988,17 @@ class MenuScene extends Phaser.Scene {
     if (this.inventoryPage) this.inventoryPage.setVisible(key === 'inventory');
     if (this.topPage) this.topPage.setVisible(key === 'top');
     if (this.shopPage) this.shopPage.setVisible(key === 'shop');
+    // Заголовок «Spore Tower Defense» — только на вкладке «Меню» (лобби).
+    if (this.title) this.title.setVisible(key === 'lobby');
 
     const tabs = [this.tabInventory, this.tabLobby, this.tabTop, this.tabShop];
     for (const tab of tabs) {
       if (!tab) continue;
-      tab.setBackgroundColor(tab.tabKey === key ? '#2ecc71' : '#1f2b3a');
+      const active = tab.tabKey === key;
+      tab.setBackgroundColor(active ? '#e63946' : '#262626');
+      if (tab._roundItem) tab._roundItem.color = active ? 0xe63946 : 0x262626;
     }
+    layoutRoundButtons(this);
   }
 
   openRules() {
@@ -959,10 +1011,12 @@ class MenuScene extends Phaser.Scene {
         '• Враг, дошедший до конца, отнимает жизнь'
     );
     this.rulesPanel.setVisible(true);
+    layoutRoundButtons(this);
   }
 
   closeRules() {
     this.rulesPanel.setVisible(false);
+    layoutRoundButtons(this);
   }
 
   refreshProfile() {
@@ -1100,6 +1154,9 @@ class MenuScene extends Phaser.Scene {
     });
     this.rulesBack.setPosition(width / 2, height * 0.85);
     this.rulesBack.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
+
+    // Пересобираем скруглённые фоны кнопок под новый размер/шрифт.
+    layoutRoundButtons(this);
   }
 
   getBaseTextureKey(typeKey) {
@@ -1378,7 +1435,7 @@ class GameScene extends Phaser.Scene {
       .text(0, 0, 'СТАРТ', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
-        color: '#2ecc71',
+        color: '#e63946',
         backgroundColor: '#00000088',
         padding: { x: 10 * DPR, y: 6 * DPR },
         stroke: '#000000',
@@ -1422,7 +1479,7 @@ class GameScene extends Phaser.Scene {
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
-        color: '#f1c40f',
+        color: '#e63946',
         stroke: '#000000',
         strokeThickness: 5 * DPR,
       })
@@ -1457,7 +1514,7 @@ class GameScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
         color: '#ffffff',
-        backgroundColor: '#2ecc71',
+        backgroundColor: '#e63946',
         padding: { x: 24 * DPR, y: 12 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
@@ -1480,7 +1537,7 @@ class GameScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
         color: '#ffffff',
-        backgroundColor: '#34495e',
+        backgroundColor: '#3a3a3a',
         padding: { x: 24 * DPR, y: 12 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
@@ -1530,7 +1587,7 @@ class GameScene extends Phaser.Scene {
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${14 * DPR}px`,
-        color: '#2ecc71',
+        color: '#e63946',
       })
       .setOrigin(0.5)
       .setDepth(103)
@@ -1609,7 +1666,7 @@ class GameScene extends Phaser.Scene {
           fontFamily: 'Arial, sans-serif',
           fontSize: `${14 * DPR}px`,
           color: '#ffffff',
-          backgroundColor: '#1f2b3a',
+          backgroundColor: '#262626',
           padding: { x: 10 * DPR, y: 6 * DPR },
         })
         .setOrigin(0, 0)
@@ -1691,6 +1748,14 @@ class GameScene extends Phaser.Scene {
     for (const obj of fixedUI) {
       if (obj) obj.setScrollFactor(0);
     }
+
+    // Скруглённые фоны кнопок (фон рисуется позади текста).
+    roundTextButton(this, this.startButton, 0x000000, 12 * DPR, 0.53);
+    roundTextButton(this, this.menuButton, 0x000000, 12 * DPR, 0.53);
+    roundTextButton(this, this.restartButton, 0xe63946, 14 * DPR);
+    roundTextButton(this, this.gameOverMenuButton, 0x3a3a3a, 14 * DPR);
+    roundTextButton(this, this.cheatButton, 0x000000, 10 * DPR, 0.53);
+    for (const part of this.cheatParts) roundTextButton(this, part, 0x262626, 10 * DPR);
   }
 
   // Обновляем текст панели при изменении волны/жизней/золота.
@@ -1973,7 +2038,7 @@ class GameScene extends Phaser.Scene {
     );
 
     if (tower.canUpgrade()) {
-      this.towerMenuUpgrade.setText(`Улучшить (${tower.getUpgradeCost()})`).setColor('#2ecc71');
+      this.towerMenuUpgrade.setText(`Улучшить (${tower.getUpgradeCost()})`).setColor('#e63946');
     } else {
       this.towerMenuUpgrade.setText('МАКС. УРОВЕНЬ').setColor('#7f8c8d');
     }
@@ -2515,6 +2580,8 @@ class GameScene extends Phaser.Scene {
     this.layoutBuildMenu(width, height);
     this.setBuildMenuVisible(!this.isGameOver);
 
+    // Пересобираем скруглённые фоны кнопок.
+    layoutRoundButtons(this);
   }
 
   // Земля — большой изометрический ромб (без видимой квадратной сетки).
@@ -3391,6 +3458,7 @@ class GameScene extends Phaser.Scene {
 
   // Игровой цикл: двигаем врагов, работаем башнями, летим снарядами.
   update(time, delta) {
+    layoutRoundButtons(this); // держим фон кнопок в синхроне с видимостью/размером
     if (this.isGameOver) return; // игра остановлена
 
     delta *= this.timeScale; // ускорение времени (стафф)
