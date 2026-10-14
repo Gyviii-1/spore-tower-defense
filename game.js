@@ -2829,12 +2829,16 @@ class GameScene extends Phaser.Scene {
           const gunY = centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
-          // Когда пушка уходит ЗА корпус. BEHIND_OFFSET в долях клетки:
-          // БОЛЬШЕ → выходит из-под тела РАНЬШЕ (за телом только когда цель сильно сверху).
-          // МЕНЬШЕ (0) → как раньше (за телом при любой «выше центра»).
-          const BEHIND_OFFSET = 0.25;
+          // Когда пушка уходит ЗА корпус. Смещение в долях клетки, с гистерезисом:
+          // ENTER — раньше уходит за спину (меньше = раньше); EXIT — выходит
+          // из-за спины как раньше (0.25).
+          const BEHIND_ENTER = 0.1;
+          const BEHIND_EXIT = 0.25;
           const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
-          const behind = gunY < centerY - this.cellSize * BEHIND_OFFSET;
+          const aboveCenter = centerY - gunY; // >0 когда пушка выше центра
+          const threshold = tower._gunBehind ? BEHIND_EXIT : BEHIND_ENTER;
+          const behind = aboveCenter > this.cellSize * threshold;
+          tower._gunBehind = behind;
           tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
         } else {
           tower.sprite.setPosition(pos.x, pos.y);
