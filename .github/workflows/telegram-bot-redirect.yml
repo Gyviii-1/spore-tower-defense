@@ -1,0 +1,33 @@
+name: Old bot redirect
+
+# Старый бот отвечает всем: "игра переехала на @SporeTDBot".
+# Токен старого бота — в секрете OLD_BOT_TOKEN.
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: old-bot-redirect
+  cancel-in-progress: true
+
+jobs:
+  run-redirect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r bot/requirements.txt
+
+      - name: Run redirect bot
+        env:
+          OLD_BOT_TOKEN: ${{ secrets.OLD_BOT_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: python -u bot/redirect_old.py
