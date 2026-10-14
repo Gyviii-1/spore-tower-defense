@@ -849,25 +849,8 @@ class MenuScene extends Phaser.Scene {
       this.scene.start('GameScene');
     });
 
-    this.rulesButton = this.add
-      .text(0, 0, 'ПРАВИЛА', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
-        color: '#ffffff',
-        backgroundColor: '#3a3a3a',
-        padding: { x: 24 * DPR, y: 10 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.rulesButton.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.openRules();
-    });
-
-    this.lobbyPage.add([this.profileText, this.bestText, this.playButton, this.rulesButton]);
+    this.lobbyPage.add([this.profileText, this.bestText, this.playButton]);
+    roundTarget(this, this.playButton, { color: 0xe63946, alpha: 1, radius: 14 * DPR });
   }
 
   createInventory() {
@@ -1173,10 +1156,8 @@ class MenuScene extends Phaser.Scene {
     this.profileText.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
     this.bestText.setPosition(width / 2, height * 0.45);
     this.bestText.setStyle({ fontSize: `${Math.round(size * 0.042)}px` });
-    this.playButton.setPosition(width / 2, height * 0.58);
+    this.playButton.setPosition(width / 2, height * 0.64);
     this.playButton.setStyle({ fontSize: `${Math.round(size * 0.07)}px` });
-    this.rulesButton.setPosition(width / 2, height * 0.69);
-    this.rulesButton.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
 
     // Инвентарь
     this.inventoryTitle.setPosition(width / 2, height * 0.20);
@@ -1509,8 +1490,6 @@ class GameScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
         color: '#e63946',
-        backgroundColor: '#00000088',
-        padding: { x: 10 * DPR, y: 6 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
         fontStyle: 'bold',
@@ -1823,7 +1802,6 @@ class GameScene extends Phaser.Scene {
     }
 
     // Скруглённые фоны кнопок/окон.
-    roundTarget(this, this.startButton, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
     roundTarget(this, this.menuButton, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
     roundTarget(this, this.restartButton, { color: 0xe63946, alpha: 1, radius: 14 * DPR });
     roundTarget(this, this.gameOverMenuButton, { color: 0x2e2e2e, alpha: 1, radius: 14 * DPR });
