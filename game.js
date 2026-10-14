@@ -1053,12 +1053,13 @@ class MenuScene extends Phaser.Scene {
     this.rulesButton.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
 
     // Инвентарь
-    this.inventoryTitle.setPosition(width / 2, height * 0.22);
+    this.inventoryTitle.setPosition(width / 2, height * 0.20);
     this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
-    const rowGap = Math.min(size * 0.13, 90 * DPR);
     const rowScale = Math.min((width * 0.9) / 320, 1.4 * DPR);
+    const rowStep = 72 * rowScale + 12 * DPR; // шаг = высота ряда + отступ (иначе накладываются)
+    const invStart = height * 0.30;
     this.inventoryRows.forEach((row, index) => {
-      row.setPosition(width / 2, height * 0.32 + index * rowGap);
+      row.setPosition(width / 2, invStart + index * rowStep);
       row.setScale(rowScale);
     });
 
@@ -1569,8 +1570,8 @@ class GameScene extends Phaser.Scene {
     // Изначально текстура-заглушка (gunner), т.к. башня не выбрана; при
     // выборе типа updateGhost подставит нужную картинку.
     const ghostType = TOWER_TYPES[this.selectedTowerType] || TOWER_TYPES.gunner;
-    this.ghostBase = this.add.image(0, 0, ghostType.baseTexture).setAlpha(0.6);
-    this.ghostWeapon = this.add.image(0, 0, ghostType.baseTexture).setAlpha(0.6);
+    this.ghostBase = this.add.image(0, 0, ghostType.baseTexture).setAlpha(0.5);
+    this.ghostWeapon = this.add.image(0, 0, ghostType.baseTexture).setAlpha(0.5);
     this.ghost = this.add
       .container(0, 0, [this.ghostBase, this.ghostWeapon])
       .setDepth(40)
@@ -1658,6 +1659,11 @@ class GameScene extends Phaser.Scene {
 
     // Жёлтый кружок вокруг врага (в мировых координатах, поверх юнитов).
     this.markerGraphics = this.add.graphics().setDepth(50);
+
+    // Пунктирная вращающаяся грань радиуса атаки (белая).
+    this.rangeDashGraphics = this.add.graphics().setDepth(2);
+    this.rangePhase = 0;
+    this.activeRange = null;
 
     // UI фиксируется на экране (не двигается и не масштабируется камерой).
     const fixedUI = [
@@ -2893,14 +2899,15 @@ class GameScene extends Phaser.Scene {
   }
 
   // Кольцо радиуса атаки + круг занимаемой площади башни (footprint).
+  // Грань атаки (белый пунктир) рисуется отдельно и вращается — см. drawDashedRangeRing.
   showRangeRing(x, y, rangeUnits, color, footprintUnits) {
     this.rangeGraphics.clear();
     if (footprintUnits) {
       this.fillIsoEllipse(x, y, footprintUnits, 0xffffff, 0.06);
       this.strokeIsoEllipse(x, y, footprintUnits, 0xffffff, 0.5, 2);
     }
-    this.fillIsoEllipse(x, y, rangeUnits, color, 0.08);
-    this.strokeIsoEllipse(x, y, rangeUnits, color, 0.8, 3);
+    this.fillIsoEllipse(x, y, rangeUnits, 0xffffff, 0.04);
+    this.activeRange = { x: x, y: y, r: rangeUnits };
   }
 
   // Кольца конкретной башни (радиус атаки + её площадь).
@@ -2909,9 +2916,42 @@ class GameScene extends Phaser.Scene {
     this.showRangeRing(pos.x, pos.y, tower.range, tower.config.color, tower.config.footprint / 2);
   }
 
+  // Белая пунктирная вращающаяся грань радиуса атаки.
+  drawDashedRangeRing() {
+    const g = this.rangeDashGraphics;
+    if (!g) return;
+    g.clear();
+    const ar = this.activeRange;
+    if (!ar) return;
+
+    const a = ISO_HW * Math.SQRT2 * ar.r;
+    const b = ISO_HH * Math.SQRT2 * ar.r;
+    g.lineStyle(3, 0xffffff, 0.9);
+
+    const DASHES = 20;
+    const DASH_FRAC = 0.55;
+    const step = (Math.PI * 2) / DASHES;
+    const SEG = 4;
+    for (let i = 0; i < DASHES; i++) {
+      const start = i * step + this.rangePhase;
+      const end = start + step * DASH_FRAC;
+      g.beginPath();
+      for (let j = 0; j <= SEG; j++) {
+        const t = start + (end - start) * (j / SEG);
+        const px = ar.x + Math.cos(t) * a;
+        const py = ar.y + Math.sin(t) * b;
+        if (j === 0) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+      g.strokePath();
+    }
+  }
+
   // Убрать кольца.
   clearRangeRing() {
     if (this.rangeGraphics) this.rangeGraphics.clear();
+    if (this.rangeDashGraphics) this.rangeDashGraphics.clear();
+    this.activeRange = null;
   }
 
   // ------------------------- Волны -------------------------
@@ -3263,8 +3303,9 @@ class GameScene extends Phaser.Scene {
     }
     this.fillIsoEllipse(pos.x, pos.y, type.footprint / 2, tint, 0.15);
     this.strokeIsoEllipse(pos.x, pos.y, type.footprint / 2, tint, 0.9, 2);
-    this.fillIsoEllipse(pos.x, pos.y, type.range, type.color, 0.08);
-    this.strokeIsoEllipse(pos.x, pos.y, type.range, type.color, 0.8, 3);
+    // Радиус атаки — белым пунктиром (рисуется и вращается в update).
+    this.fillIsoEllipse(pos.x, pos.y, type.range, 0xffffff, 0.04);
+    this.activeRange = { x: pos.x, y: pos.y, r: type.range };
   }
 
   // Движение указателя: показываем призрак будущей башни.
@@ -3383,6 +3424,10 @@ class GameScene extends Phaser.Scene {
 
     // Окошко с HP врага (кружок по клику/наведению, плашка по клику).
     this.updateEnemyInfo();
+
+    // Вращаем пунктирное кольцо радиуса атаки.
+    this.rangePhase += (delta / 1000) * 1.2;
+    this.drawDashedRangeRing();
 
     // Проверяем, не закончилась ли волна.
     this.checkWaveEnd();
