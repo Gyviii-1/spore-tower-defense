@@ -686,7 +686,7 @@ class MenuScene extends Phaser.Scene {
     this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d1a, 1).setOrigin(0, 0);
 
     this.title = this.add
-      .text(0, 0, 'TOWER DEFENSE', {
+      .text(0, 0, 'SPORE TOWER DEFENSE', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '48px',
         color: '#2ecc71',
