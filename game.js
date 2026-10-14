@@ -20,8 +20,8 @@ const API_BASE = location.hostname.endsWith('vercel.app')
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
 const BG_COLOR = 0x0d0d0d;        // цвет фона сцены
 const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
-const ROAD_COLOR = 0x555555;      // заливка дороги (серый)
-const GRID_LINE_COLOR = 0x2a2a2a; // цвет линий сетки
+const ROAD_COLOR = 0x666666;      // заливка дороги (серый)
+const GRID_LINE_COLOR = 0x333333; // цвет линий сетки
 
 const TOWER_COLOR = 0xe63946;     // акцентный цвет интерфейса башен
 const TOWER_MAX_LEVEL = 5;        // максимальный уровень башни
@@ -276,14 +276,17 @@ function roundTarget(scene, obj, opts) {
 
   if (kind === 'text') {
     try {
-      if (obj.style) obj.style.backgroundColor = null;
+      // Прячем встроенный прямоугольный фон (делаем его прозрачным).
+      if (obj.setStyle) obj.setStyle({ backgroundColor: 'rgba(0,0,0,0)' });
+      if (obj.style) obj.style.backgroundColor = 'rgba(0,0,0,0)';
       if (obj.updateText) obj.updateText();
     } catch (error) {
       /* не критично */
     }
   } else {
-    obj.setFillStyle(opts.color, 0); // прячем прямоугольную заливку
-    obj.setStrokeStyle(0);
+    // Полностью отключаем родную заливку и обводку прямоугольника.
+    obj.isFilled = false;
+    obj.isStroked = false;
   }
 
   scene._roundBgs = scene._roundBgs || [];
@@ -1043,7 +1046,7 @@ class MenuScene extends Phaser.Scene {
       if (event && event.stopPropagation) event.stopPropagation();
       this.selectTab(key);
     });
-    roundTarget(this, tab, { color: 0x262626, alpha: 1, radius: 12 * DPR });
+    roundTarget(this, tab, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
     return tab;
   }
 
@@ -1060,8 +1063,8 @@ class MenuScene extends Phaser.Scene {
     for (const tab of tabs) {
       if (!tab) continue;
       const active = tab.tabKey === key;
-      tab.setBackgroundColor(active ? '#e63946' : '#262626');
-      if (tab._roundItem) tab._roundItem.color = active ? 0xe63946 : 0x262626;
+      tab.setBackgroundColor('rgba(0,0,0,0)'); // прячем родной прямоугольник
+      if (tab._roundItem) tab._roundItem.color = active ? 0xe63946 : 0x2e2e2e;
     }
     updateRoundBgs(this);
   }
@@ -1820,13 +1823,13 @@ class GameScene extends Phaser.Scene {
     }
 
     // Скруглённые фоны кнопок/окон.
-    roundTarget(this, this.startButton, { color: 0x000000, alpha: 0.53, radius: 12 * DPR });
-    roundTarget(this, this.menuButton, { color: 0x000000, alpha: 0.53, radius: 12 * DPR });
+    roundTarget(this, this.startButton, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
+    roundTarget(this, this.menuButton, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
     roundTarget(this, this.restartButton, { color: 0xe63946, alpha: 1, radius: 14 * DPR });
-    roundTarget(this, this.gameOverMenuButton, { color: 0x3a3a3a, alpha: 1, radius: 14 * DPR });
-    roundTarget(this, this.cheatButton, { color: 0x000000, alpha: 0.53, radius: 10 * DPR });
+    roundTarget(this, this.gameOverMenuButton, { color: 0x2e2e2e, alpha: 1, radius: 14 * DPR });
+    roundTarget(this, this.cheatButton, { color: 0x2e2e2e, alpha: 1, radius: 10 * DPR });
     for (const part of this.cheatParts) {
-      roundTarget(this, part, { color: 0x262626, alpha: 1, radius: 10 * DPR });
+      roundTarget(this, part, { color: 0x3a3a3a, alpha: 1, radius: 10 * DPR });
     }
     // Окно прокачки — скруглённое.
     roundTarget(this, this.towerMenuBg, {
@@ -2200,19 +2203,19 @@ class GameScene extends Phaser.Scene {
       const type = TOWER_TYPES[key];
 
       const bg = this.add
-        .rectangle(0, 0, buttonWidth, 90 * DPR, 0x000000, 0.85)
-        .setStrokeStyle(2, 0xffffff, 0.4)
+        .rectangle(0, 0, buttonWidth, 90 * DPR, 0x232323, 1)
+        .setStrokeStyle(2, TOWER_COLOR, 0.9)
         .setDepth(100)
         .setScrollFactor(0)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x000000,
-        alpha: 0.85,
+        color: 0x232323,
+        alpha: 1,
         radius: 12 * DPR,
-        strokeColor: 0xffffff,
-        strokeAlpha: 0.4,
+        strokeColor: TOWER_COLOR,
+        strokeAlpha: 0.9,
         strokeWidth: 2 * DPR,
       });
 
