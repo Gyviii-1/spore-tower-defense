@@ -2832,7 +2832,7 @@ class GameScene extends Phaser.Scene {
           // Когда пушка уходит ЗА корпус. Смещение в долях клетки, с гистерезисом:
           // ENTER — раньше уходит за спину (меньше = раньше); EXIT — выходит
           // из-за спины как раньше (0.25).
-          const BEHIND_ENTER = 0.1;
+          const BEHIND_ENTER = 0.0;
           const BEHIND_EXIT = 0.25;
           const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
           const aboveCenter = centerY - gunY; // >0 когда пушка выше центра
