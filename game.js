@@ -159,6 +159,10 @@ const ROAD_WIDTH = 1.0; // ширина дороги в world units
 // Версия ассетов в запросе — сбрасывает кеш картинок в браузере/Telegram.
 const ASSET_VER = '?v=20261010g';
 
+// Насколько визуально поднять спрайт над его клеткой (в долях клетки).
+// Зона тапа при этом остаётся на клетке (не смещается).
+const BASE_LIFT = 0.12;
+
 // HiDPI-масштаб: рендерим канвас в физическом разрешении экрана, а UI
 // задаём в «CSS-пикселях», умножая абсолютные размеры на DPR. Ограничиваем
 // двойкой ради производительности на слабых телефонах.
@@ -2647,17 +2651,18 @@ class GameScene extends Phaser.Scene {
   applyTowerFacing(tower) {
     const pos = tower.getPosition();
     const type = tower.config;
+    // Спрайт поднят над клеткой визуально (тап-зона — на клетке).
+    const baseY = pos.y - BASE_LIFT * this.cellSize;
 
-    // Центр башни (вокруг него облетает пушка) — центр РИСУНКА корпуса,
-    // а не точка клетки (иначе облёт идёт «у ног»).
+    // Центр башни (вокруг него облетает пушка) — центр РИСУНКА корпуса.
     let centerX = pos.x;
-    let centerY = pos.y;
+    let centerY = baseY;
     if (tower.baseSprite) {
       const o = type.baseOrigin || { x: 0.5, y: 1.0 };
       const vis = this.getVisual(tower.baseSprite.texture.key);
       if (vis) {
         centerX = pos.x + (vis.originX - o.x) * tower.baseSprite.displayWidth;
-        centerY = pos.y + (vis.originY - o.y) * tower.baseSprite.displayHeight;
+        centerY = baseY + (vis.originY - o.y) * tower.baseSprite.displayHeight;
       }
     }
 
@@ -2668,7 +2673,7 @@ class GameScene extends Phaser.Scene {
           tower.baseSprite.setTexture(base.key);
           this.applyBaseVisual(tower.baseSprite, tower.typeKey, base);
         }
-        tower.baseSprite.setPosition(pos.x, pos.y);
+        tower.baseSprite.setPosition(pos.x, baseY);
         tower.baseSprite.setRotation(base.directional ? 0 : tower.baseAngle);
       }
     }
@@ -3089,16 +3094,13 @@ class GameScene extends Phaser.Scene {
   // а не с точкой клетки внизу.
   towerAt(px, py) {
     for (const tower of this.towers) {
+      // Тап-зона привязана к КЛЕТКЕ (спрайт визуально поднят — зона не едет).
       const p = tower.getPosition();
-      // Круг вокруг точки башни...
-      if (Math.hypot(p.x - px, p.y - py) <= (tower.config.footprint / 2) * this.cellSize) {
-        return tower;
-      }
-      // ...и границы рисунка корпуса (совпадает с картинкой).
-      if (tower.baseSprite) {
-        const b = tower.baseSprite.getBounds();
-        if (Phaser.Geom.Rectangle.Contains(b, px, py)) return tower;
-      }
+      const spriteR = tower.baseSprite
+        ? Math.max(tower.baseSprite.displayWidth, tower.baseSprite.displayHeight) / 2
+        : 0;
+      const r = Math.max((tower.config.footprint / 2) * this.cellSize, spriteR);
+      if (Math.hypot(p.x - px, p.y - py) <= r) return tower;
     }
     return null;
   }
@@ -3248,7 +3250,7 @@ class GameScene extends Phaser.Scene {
       this.ghostBase.setTexture(base.key).setVisible(true);
       this.applyBaseVisual(this.ghostBase, this.selectedTowerType, base);
       this.ghostBase.setRotation(0);
-      this.ghostBase.setPosition(0, 0);
+      this.ghostBase.setPosition(0, -BASE_LIFT * this.cellSize);
     } else {
       this.ghostBase.setVisible(false);
     }
@@ -3261,7 +3263,7 @@ class GameScene extends Phaser.Scene {
       const vis = this.getVisual(base.key);
       if (vis) {
         cX = (vis.originX - o.x) * this.ghostBase.displayWidth;
-        cY = (vis.originY - o.y) * this.ghostBase.displayHeight;
+        cY = -BASE_LIFT * this.cellSize + (vis.originY - o.y) * this.ghostBase.displayHeight;
       }
     }
 
