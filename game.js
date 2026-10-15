@@ -2832,7 +2832,7 @@ class GameScene extends Phaser.Scene {
           // За спиной — когда пушка смотрит наверх (в дальнюю от камеры сторону).
           // Порог по синусу угла: меньше |значение| = раньше уходит за спину.
           const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
-          const behind = Math.sin(tower.aimAngle) < -0.2;
+          const behind = Math.sin(tower.aimAngle) < -0.05;
           tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
         } else {
           tower.sprite.setPosition(pos.x, pos.y);
