@@ -66,7 +66,9 @@ const TOWER_TYPES = {
     baseOrigin: { x: 0.5, y: 0.5 },
     gunOrigin: { x: 0.5, y: 0.5 },
     gunOrbit: 0.36,
-    gunMount: { x: 0, y: -0.05 },
+    gunOrbitX: 1.15,
+    gunOrbitY: 0.5,
+    gunMount: { x: 0, y: 0.1 },
   },
 };
 
