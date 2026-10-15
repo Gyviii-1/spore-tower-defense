@@ -215,6 +215,50 @@ function angleToDir(angle, current) {
   return DIRECTIONS[idx];
 }
 
+// Точка на эллипсе (полуоси rx, ry) с РАВНОМЕРНОЙ скоростью движения: угол цели
+// пересчитывается в параметр так, чтобы равное изменение угла = равный путь по дуге.
+// Иначе на вытянутом овале пушка сбоку ползёт, а спереди проскакивает.
+const _ellipseArcCache = new Map();
+function ellipseArcPoint(angle, rx, ry) {
+  const key = `${rx}_${ry}`;
+  let t = _ellipseArcCache.get(key);
+  if (!t) {
+    const N = 64;
+    const twoPi = Math.PI * 2;
+    const step = twoPi / N;
+    const arcs = new Float64Array(N + 1);
+    let total = 0;
+    let px = rx;
+    let py = 0;
+    for (let i = 1; i <= N; i++) {
+      const phi = i * step;
+      const cx = rx * Math.cos(phi);
+      const cy = ry * Math.sin(phi);
+      total += Math.hypot(cx - px, cy - py);
+      arcs[i] = total;
+      px = cx;
+      py = cy;
+    }
+    t = { N, step, arcs, total, twoPi };
+    _ellipseArcCache.set(key, t);
+  }
+  let a = angle % t.twoPi;
+  if (a < 0) a += t.twoPi;
+  const target = (a / t.twoPi) * t.total;
+  let lo = 1;
+  let hi = t.N;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (t.arcs[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  const a0 = t.arcs[lo - 1];
+  const a1 = t.arcs[lo];
+  const f = a1 > a0 ? (target - a0) / (a1 - a0) : 0;
+  const phi = (lo - 1 + f) * t.step;
+  return { x: rx * Math.cos(phi), y: ry * Math.sin(phi) };
+}
+
 // ----------------------------- Спрайт-лист (одна картинка на все позы) -----------------------------
 // Раскладка 4x2, порядок клеток (слева-вправо, сверху-вниз):
 //   ряд 1: вперёд, вперёд-право, вправо, назад-право
@@ -2829,8 +2873,9 @@ class GameScene extends Phaser.Scene {
           const orbitX = orbit * (type.gunOrbitX || 1); // растяжение по горизонтали
           const orbitY = orbit * (type.gunOrbitY || 1); // сжатие по вертикали
           const mount = type.gunMount || { x: 0, y: 0 };
-          const gunX = centerX + Math.cos(tower.aimAngle) * orbitX + mount.x * this.cellSize;
-          const gunY = centerY + Math.sin(tower.aimAngle) * orbitY + mount.y * this.cellSize;
+          const p = ellipseArcPoint(tower.aimAngle, orbitX, orbitY); // ровная скорость
+          const gunX = centerX + p.x + mount.x * this.cellSize;
+          const gunY = centerY + p.y + mount.y * this.cellSize;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
           // За спиной — когда пушка смотрит наверх (в дальнюю от камеры сторону).
@@ -3416,9 +3461,10 @@ class GameScene extends Phaser.Scene {
         const orbitX = orbit * (type.gunOrbitX || 1);
         const orbitY = orbit * (type.gunOrbitY || 1);
         const a = dirToAngle(DIR_FORWARD);
+        const p = ellipseArcPoint(a, orbitX, orbitY);
         this.ghostWeapon.setPosition(
-          cX + Math.cos(a) * orbitX + mount.x * this.cellSize,
-          cY + Math.sin(a) * orbitY + mount.y * this.cellSize
+          cX + p.x + mount.x * this.cellSize,
+          cY + p.y + mount.y * this.cellSize
         );
       } else {
         this.ghostWeapon.setPosition(0, 0);
