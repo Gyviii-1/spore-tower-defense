@@ -47,8 +47,8 @@ const TOWER_TYPES = {
     baseOrigin: { x: 0.5, y: 0.5 }, // опора корпуса — центр картинки
     gunOrigin: { x: 0.5, y: 0.5 },  // опора пушки — точка крепления в картинке
     gunOrbit: 0.30,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
-    gunOvalX: 1.6,                  // овал орбиты: растяжение по горизонтали (1 = круг)
     gunMount: { x: 0, y: -0.05 },   // доп. сдвиг пушки (в долях клетки)
+    gunSideDrop: 0.18,              // доп. спуск пушки по бокам (в долях клетки)
   },
   minigun: {
     name: 'Миниган',
@@ -2825,11 +2825,14 @@ class GameScene extends Phaser.Scene {
         if (gun.directional) {
           // Пушка облетает ЦЕНТР башни в сторону цели.
           const orbit = (type.gunOrbit || 0) * this.cellSize;
-          const ovalX = type.gunOvalX || 1; // вытянутость овала по горизонтали (1 = круг)
+          const sideDrop = (type.gunSideDrop || 0) * this.cellSize; // спуск по бокам
           const mount = type.gunMount || { x: 0, y: 0 };
-          const gunX =
-            centerX + Math.cos(tower.aimAngle) * orbit * ovalX + mount.x * this.cellSize;
-          const gunY = centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize;
+          const gunX = centerX + Math.cos(tower.aimAngle) * orbit + mount.x * this.cellSize;
+          const gunY =
+            centerY +
+            Math.sin(tower.aimAngle) * orbit +
+            mount.y * this.cellSize +
+            Math.abs(Math.cos(tower.aimAngle)) * sideDrop;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
           // За спиной — когда пушка смотрит в ДАЛЬНИЕ направления (вверх/вбок от
@@ -3413,11 +3416,14 @@ class GameScene extends Phaser.Scene {
       const mount = type.gunMount || { x: 0, y: 0 };
       if (gun.directional) {
         const orbit = (type.gunOrbit || 0) * this.cellSize;
-        const ovalX = type.gunOvalX || 1;
+        const sideDrop = (type.gunSideDrop || 0) * this.cellSize;
         const a = dirToAngle(DIR_FORWARD);
         this.ghostWeapon.setPosition(
-          cX + Math.cos(a) * orbit * ovalX + mount.x * this.cellSize,
-          cY + Math.sin(a) * orbit + mount.y * this.cellSize
+          cX + Math.cos(a) * orbit + mount.x * this.cellSize,
+          cY +
+            Math.sin(a) * orbit +
+            mount.y * this.cellSize +
+            Math.abs(Math.cos(a)) * sideDrop
         );
       } else {
         this.ghostWeapon.setPosition(0, 0);
