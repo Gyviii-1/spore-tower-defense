@@ -46,8 +46,8 @@ const TOWER_TYPES = {
     color: 0xe63946,
     baseOrigin: { x: 0.5, y: 0.5 }, // опора корпуса — центр картинки
     gunOrigin: { x: 0.5, y: 0.5 },  // опора пушки — точка крепления в картинке
-    gunOrbit: 0.30,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
-    gunMount: { x: 0, y: -0.05 },   // доп. сдвиг пушки (в долях клетки)
+    gunOrbit: 0.18,                 // радиус облёта пушки вокруг корпуса (в долях клетки)
+    gunMount: { x: 0, y: 0.15 },    // доп. сдвиг пушки (в долях клетки) — ниже головы
   },
   minigun: {
     name: 'Миниган',
@@ -2829,16 +2829,10 @@ class GameScene extends Phaser.Scene {
           const gunY = centerY + Math.sin(tower.aimAngle) * orbit + mount.y * this.cellSize;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
-          // Когда пушка уходит ЗА корпус. Смещение в долях клетки, с гистерезисом:
-          // ENTER — раньше уходит за спину (меньше = раньше); EXIT — выходит
-          // из-за спины как раньше (0.25).
-          const BEHIND_ENTER = 0.0;
-          const BEHIND_EXIT = 0.25;
+          // Когда пушка уходит ЗА корпус (в долях клетки).
+          const BEHIND_OFFSET = 0.25;
           const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
-          const aboveCenter = centerY - gunY; // >0 когда пушка выше центра
-          const threshold = tower._gunBehind ? BEHIND_EXIT : BEHIND_ENTER;
-          const behind = aboveCenter > this.cellSize * threshold;
-          tower._gunBehind = behind;
+          const behind = gunY < centerY - this.cellSize * BEHIND_OFFSET;
           tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
         } else {
           tower.sprite.setPosition(pos.x, pos.y);
