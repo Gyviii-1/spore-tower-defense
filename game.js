@@ -17,8 +17,10 @@ const API_BASE = location.hostname.endsWith('vercel.app')
   ? ''
   : 'https://telegram-tower-defense.vercel.app';
 
+const UI_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
-const BG_COLOR = 0x0d0d0d;        // цвет фона сцены
+const BG_COLOR = 0x0a0c12;        // цвет фона сцены (тёмный графит лаборатории)
 const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
 const ROAD_COLOR = 0x666666;      // заливка дороги (серый)
 const GRID_LINE_COLOR = 0x333333; // цвет линий сетки
@@ -839,15 +841,44 @@ class MenuScene extends Phaser.Scene {
     }
     sliceSheet(this, 'template_base_sheet', 'template_base');
 
-    this.background = this.add.rectangle(0, 0, 1, 1, 0x0d0d0d, 1).setOrigin(0, 0);
+    this.background = this.add.rectangle(0, 0, 1, 1, 0x0a0c12, 1).setOrigin(0, 0);
+    this.bgDecor = this.add.graphics();
+
+    // Верхняя шапка: статус угрозы + заголовок
+    this.badgeText = this.add
+      .text(0, 0, '● СЕКТОР ЗАРАЖЕНИЯ // УРОВЕНЬ 4', {
+        fontFamily: UI_FONT,
+        fontSize: '11px',
+        color: '#ff4d5e',
+        fontStyle: 'bold',
+        padding: { x: 10 * DPR, y: 5 * DPR },
+      })
+      .setOrigin(0.5);
+    roundTarget(this, this.badgeText, {
+      color: 0x221118,
+      alpha: 0.9,
+      radius: 8 * DPR,
+      strokeColor: 0xe63946,
+      strokeAlpha: 0.6,
+      strokeWidth: 1 * DPR,
+    });
 
     this.title = this.add
       .text(0, 0, 'SPORE TOWER DEFENSE', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '48px',
-        color: '#e63946',
-        stroke: '#000000',
-        strokeThickness: 6 * DPR,
+        fontFamily: UI_FONT,
+        fontSize: '38px',
+        color: '#ffffff',
+        stroke: '#e63946',
+        strokeThickness: 2 * DPR,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
+    this.titleSub = this.add
+      .text(0, 0, 'ЛАБОРАТОРНЫЙ КОМПЛЕКС · РУБЕЖ ОБОРОНЫ', {
+        fontFamily: UI_FONT,
+        fontSize: '11px',
+        color: '#707e94',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -871,42 +902,156 @@ class MenuScene extends Phaser.Scene {
   createLobby() {
     this.lobbyPage = this.add.container(0, 0);
 
-    this.profileText = this.add
-      .text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '20px', color: '#ffffff' })
+    // Карточка профиля и рекордов
+    this.cardBg = this.add.rectangle(0, 0, 340, 160, 0x121622, 0.95);
+    roundTarget(this, this.cardBg, {
+      kind: 'rect',
+      color: 0x121622,
+      alpha: 0.95,
+      radius: 16 * DPR,
+      strokeColor: 0x222a3d,
+      strokeAlpha: 1,
+      strokeWidth: 1.5 * DPR,
+    });
+
+    // Никнейм и роль
+    this.playerNick = this.add
+      .text(0, 0, 'Игрок', {
+        fontFamily: UI_FONT,
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
+
+    this.roleBadge = this.add
+      .text(0, 0, '[ОПЕРАТОР]', {
+        fontFamily: UI_FONT,
+        fontSize: '11px',
+        color: '#707e94',
+        fontStyle: 'bold',
+        padding: { x: 8 * DPR, y: 3 * DPR },
+      })
+      .setOrigin(1, 0.5);
+    roundTarget(this, this.roleBadge, {
+      color: 0x181e2e,
+      alpha: 0.9,
+      radius: 6 * DPR,
+      strokeColor: 0x28334a,
+      strokeWidth: 1 * DPR,
+    });
+
+    // Разделитель внутри карточки
+    this.cardDivider = this.add.graphics();
+
+    // 3 блока показателей: Волна, Золото, Ранг
+    this.statWaveLabel = this.add
+      .text(0, 0, 'РЕКОРД', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    this.statWaveVal = this.add
+      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#ff4d5e', fontStyle: 'bold' })
       .setOrigin(0.5);
 
-    this.bestText = this.add
-      .text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#e63946' })
+    this.statGoldLabel = this.add
+      .text(0, 0, 'ЗОЛОТО', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    this.statGoldVal = this.add
+      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#f1c40f', fontStyle: 'bold' })
       .setOrigin(0.5);
 
+    this.statRankLabel = this.add
+      .text(0, 0, 'МЕСТО В ТОПЕ', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    this.statRankVal = this.add
+      .text(0, 0, '—', { fontFamily: UI_FONT, fontSize: '22px', color: '#4ea8de', fontStyle: 'bold' })
+      .setOrigin(0.5);
+
+    // Служебные скрытые текстовые объекты для обратной совместимости
+    this.profileText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
+    this.bestText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
+
+    // Кнопка брифинга
+    this.briefingBtn = this.add
+      .text(0, 0, '📋 Брифинг и правила', {
+        fontFamily: UI_FONT,
+        fontSize: '13px',
+        color: '#8b98aa',
+        backgroundColor: '#121622',
+        padding: { x: 14 * DPR, y: 7 * DPR },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.briefingBtn.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.openRules();
+    });
+    roundTarget(this, this.briefingBtn, {
+      color: 0x121622,
+      alpha: 0.9,
+      radius: 8 * DPR,
+      strokeColor: 0x222a3d,
+      strokeWidth: 1 * DPR,
+    });
+
+    // Главная кнопка запуска игры
     this.playButton = this.add
-      .text(0, 0, 'ИГРАТЬ', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+      .text(0, 0, '▶  В  Б О Й', {
+        fontFamily: UI_FONT,
+        fontSize: '24px',
         color: '#ffffff',
         backgroundColor: '#e63946',
-        padding: { x: 30 * DPR, y: 14 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+        padding: { x: 38 * DPR, y: 13 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+
     this.playButton.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
+      this.playButton.setScale(0.96);
+    });
+    this.playButton.on('pointerup', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.playButton.setScale(1.0);
       this.scene.start('GameScene');
     });
+    this.playButton.on('pointerout', () => {
+      this.playButton.setScale(1.0);
+    });
 
-    this.lobbyPage.add([this.profileText, this.bestText, this.playButton]);
-    roundTarget(this, this.playButton, { color: 0xe63946, alpha: 1, radius: 14 * DPR });
+    roundTarget(this, this.playButton, {
+      color: 0xe63946,
+      alpha: 1,
+      radius: 14 * DPR,
+      strokeColor: 0xff6b7a,
+      strokeAlpha: 0.9,
+      strokeWidth: 1.5 * DPR,
+    });
+
+    this.lobbyPage.add([
+      this.cardBg,
+      this.cardDivider,
+      this.playerNick,
+      this.roleBadge,
+      this.statWaveLabel,
+      this.statWaveVal,
+      this.statGoldLabel,
+      this.statGoldVal,
+      this.statRankLabel,
+      this.statRankVal,
+      this.profileText,
+      this.bestText,
+      this.briefingBtn,
+      this.playButton,
+    ]);
   }
 
   createInventory() {
     this.inventoryPage = this.add.container(0, 0).setVisible(false);
 
     this.inventoryTitle = this.add
-      .text(0, 0, 'ИНВЕНТАРЬ · БАШНИ', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, 'ДОСТУПНЫЕ ТУРЕЛИ', {
+        fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
         fontStyle: 'bold',
@@ -920,40 +1065,50 @@ class MenuScene extends Phaser.Scene {
       const row = this.add.container(0, 0);
 
       const bg = this.add
-        .rectangle(0, 0, 320, 72, 0x1a1a1a, 0.95)
-        .setStrokeStyle(2, 0xe63946, 0.6);
+        .rectangle(0, 0, 320, 76, 0x131722, 0.95)
+        .setStrokeStyle(1.5 * DPR, 0x272f44, 1);
 
-      const icon = this.add.container(-120, 0);
+      const iconTile = this.add.rectangle(-118, 0, 56, 56, 0x1b2030, 0.9);
+      roundTarget(this, iconTile, {
+        kind: 'rect',
+        color: 0x1b2030,
+        alpha: 0.9,
+        radius: 10 * DPR,
+        strokeColor: 0x2e384e,
+        strokeWidth: 1 * DPR,
+      });
+
+      const icon = this.add.container(-118, 0);
       const baseKey = this.getBaseTextureKey(key) || type.texture;
-      icon.add(this.add.image(0, 0, baseKey).setDisplaySize(52, 52));
+      if (baseKey) icon.add(this.add.image(0, 0, baseKey).setDisplaySize(48, 48));
       const weaponKey = this.getWeaponTextureKey(key, 1);
-      if (weaponKey) icon.add(this.add.image(0, 0, weaponKey).setDisplaySize(52, 52));
+      if (weaponKey) icon.add(this.add.image(0, 0, weaponKey).setDisplaySize(48, 48));
 
       const name = this.add
-        .text(-70, -12, type.name, {
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+        .text(-75, -13, type.name, {
+          fontFamily: UI_FONT,
+          fontSize: '17px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
       const info = this.add
-        .text(-70, 14, `Цена: ${type.cost}`, {
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '15px',
-          color: '#bdbdbd',
+        .text(-75, 14, `Стоимость: ${type.cost} 💰 · Урон: ${type.damage || 1}`, {
+          fontFamily: UI_FONT,
+          fontSize: '13px',
+          color: '#8b98aa',
         })
         .setOrigin(0, 0.5);
 
-      row.add([bg, icon, name, info]);
+      row.add([bg, iconTile, icon, name, info]);
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x1a1a1a,
+        color: 0x131722,
         alpha: 0.95,
-        radius: 12 * DPR,
-        strokeColor: 0xe63946,
-        strokeAlpha: 0.6,
-        strokeWidth: 2 * DPR,
+        radius: 14 * DPR,
+        strokeColor: 0x252d40,
+        strokeAlpha: 1,
+        strokeWidth: 1.5 * DPR,
       });
       this.inventoryPage.add(row);
       this.inventoryRows.push(row);
@@ -964,8 +1119,8 @@ class MenuScene extends Phaser.Scene {
     this.topPage = this.add.container(0, 0).setVisible(false);
 
     this.topTitle = this.add
-      .text(0, 0, 'ТОП И СТАТИСТИКА', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, 'ТАБЛИЦА ЛИДЕРОВ', {
+        fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
         fontStyle: 'bold',
@@ -974,80 +1129,137 @@ class MenuScene extends Phaser.Scene {
 
     this.statsText = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
-        color: '#e63946',
+        fontFamily: UI_FONT,
+        fontSize: '14px',
+        color: '#ff4d5e',
         align: 'center',
         lineSpacing: 4 * DPR,
+        backgroundColor: '#141824',
+        padding: { x: 18 * DPR, y: 8 * DPR },
       })
       .setOrigin(0.5);
+    roundTarget(this, this.statsText, {
+      color: 0x141824,
+      alpha: 0.95,
+      radius: 10 * DPR,
+      strokeColor: 0x242c3e,
+      strokeWidth: 1 * DPR,
+    });
+
+    this.topCardBg = this.add.rectangle(0, 0, 100, 100, 0x12151f, 0.95);
+    roundTarget(this, this.topCardBg, {
+      kind: 'rect',
+      color: 0x12151f,
+      alpha: 0.95,
+      radius: 14 * DPR,
+      strokeColor: 0x222a3d,
+      strokeWidth: 1 * DPR,
+    });
 
     this.topText = this.add
       .text(0, 0, 'Загрузка…', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
-        color: '#ffffff',
+        fontFamily: UI_FONT,
+        fontSize: '15px',
+        color: '#e0e6ed',
         align: 'left',
-        lineSpacing: 6 * DPR,
+        lineSpacing: 8 * DPR,
       })
       .setOrigin(0.5);
 
-    this.topPage.add([this.topTitle, this.statsText, this.topText]);
+    this.topPage.add([this.topCardBg, this.topTitle, this.statsText, this.topText]);
   }
 
   createShop() {
     this.shopPage = this.add.container(0, 0).setVisible(false);
-    this.shopText = this.add
-      .text(0, 0, 'МАГАЗИН\n\nСкоро', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
-        color: '#bdbdbd',
-        align: 'center',
-        lineSpacing: 8 * DPR,
+
+    this.shopCardBg = this.add.rectangle(0, 0, 320, 180, 0x131722, 0.95);
+    roundTarget(this, this.shopCardBg, {
+      kind: 'rect',
+      color: 0x131722,
+      alpha: 0.95,
+      radius: 16 * DPR,
+      strokeColor: 0x252d40,
+      strokeWidth: 1.5 * DPR,
+    });
+
+    this.shopTitle = this.add
+      .text(0, -40, '🛒 СНАБЖЕНИЕ БАЗЫ', {
+        fontFamily: UI_FONT,
+        fontSize: '20px',
+        color: '#ffffff',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5);
-    this.shopPage.add(this.shopText);
+
+    this.shopText = this.add
+      .text(0, 20, 'Карантинный протокол заблокировал\nканал поставок лаборатории.\n\nРаздел в разработке.', {
+        fontFamily: UI_FONT,
+        fontSize: '15px',
+        color: '#8898aa',
+        align: 'center',
+        lineSpacing: 6 * DPR,
+      })
+      .setOrigin(0.5);
+
+    this.shopPage.add([this.shopCardBg, this.shopTitle, this.shopText]);
   }
 
   createTabs() {
     this.tabBar = this.add.container(0, 0);
-    this.tabInventory = this.makeTab('Инвентарь', 'inventory');
-    this.tabLobby = this.makeTab('Меню', 'lobby');
-    this.tabTop = this.makeTab('Топ', 'top');
-    this.tabShop = this.makeTab('Магазин', 'shop');
-    this.tabBar.add([this.tabInventory, this.tabLobby, this.tabTop, this.tabShop]);
+    this.tabLobby = this.makeTab('🛡 Меню', 'lobby');
+    this.tabInventory = this.makeTab('⚡ Турели', 'inventory');
+    this.tabTop = this.makeTab('🏆 Топ', 'top');
+    this.tabShop = this.makeTab('🛒 База', 'shop');
+    this.tabBar.add([this.tabLobby, this.tabInventory, this.tabTop, this.tabShop]);
   }
 
   createRules() {
     this.rulesPanel = this.add.container(0, 0).setVisible(false);
 
     this.rulesBg = this.add
-      .rectangle(0, 0, 1, 1, 0x0d0d0d, 0.98)
+      .rectangle(0, 0, 1, 1, 0x07080c, 0.96)
       .setOrigin(0, 0)
       .setInteractive();
     this.rulesBg.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
     });
 
+    this.rulesCard = this.add.rectangle(0, 0, 340, 360, 0x131722, 0.98);
+    roundTarget(this, this.rulesCard, {
+      kind: 'rect',
+      color: 0x131722,
+      alpha: 0.98,
+      radius: 16 * DPR,
+      strokeColor: 0xe63946,
+      strokeWidth: 1.5 * DPR,
+    });
+
+    this.rulesTitle = this.add
+      .text(0, -130, '📋 БРИФИНГ ОБОРОНЫ', {
+        fontFamily: UI_FONT,
+        fontSize: '20px',
+        color: '#ff4d5e',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
     this.rulesText = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: '#ffffff',
+        fontFamily: UI_FONT,
+        fontSize: '15px',
+        color: '#d0d7de',
         align: 'left',
         lineSpacing: 8 * DPR,
       })
       .setOrigin(0.5);
 
     this.rulesBack = this.add
-      .text(0, 0, 'НАЗАД', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+      .text(0, 130, 'ПОНЯТНО', {
+        fontFamily: UI_FONT,
+        fontSize: '18px',
         color: '#ffffff',
-        backgroundColor: '#e74c3c',
-        padding: { x: 24 * DPR, y: 10 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+        backgroundColor: '#e63946',
+        padding: { x: 30 * DPR, y: 10 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -1057,18 +1269,19 @@ class MenuScene extends Phaser.Scene {
       this.closeRules();
     });
 
-    roundTarget(this, this.rulesBack, { color: 0xe74c3c, alpha: 1, radius: 14 * DPR });
-    this.rulesPanel.add([this.rulesBg, this.rulesText, this.rulesBack]);
+    roundTarget(this, this.rulesBack, { color: 0xe63946, alpha: 1, radius: 12 * DPR });
+    this.rulesPanel.add([this.rulesBg, this.rulesCard, this.rulesTitle, this.rulesText, this.rulesBack]);
   }
 
   makeTab(label, key) {
     const tab = this.add
       .text(0, 0, label, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#262626',
+        fontFamily: UI_FONT,
+        fontSize: '14px',
+        color: '#707e94',
+        backgroundColor: '#121622',
         padding: { x: 12 * DPR, y: 8 * DPR },
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -1077,7 +1290,14 @@ class MenuScene extends Phaser.Scene {
       if (event && event.stopPropagation) event.stopPropagation();
       this.selectTab(key);
     });
-    roundTarget(this, tab, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
+    roundTarget(this, tab, {
+      color: 0x121622,
+      alpha: 0.95,
+      radius: 10 * DPR,
+      strokeColor: 0x222a3d,
+      strokeAlpha: 1,
+      strokeWidth: 1 * DPR,
+    });
     return tab;
   }
 
@@ -1087,27 +1307,35 @@ class MenuScene extends Phaser.Scene {
     if (this.inventoryPage) this.inventoryPage.setVisible(key === 'inventory');
     if (this.topPage) this.topPage.setVisible(key === 'top');
     if (this.shopPage) this.shopPage.setVisible(key === 'shop');
-    // Заголовок «Spore Tower Defense» — только на вкладке «Меню» (лобби).
-    if (this.title) this.title.setVisible(key === 'lobby');
 
-    const tabs = [this.tabInventory, this.tabLobby, this.tabTop, this.tabShop];
+    const isLobby = key === 'lobby';
+    if (this.badgeText) this.badgeText.setVisible(isLobby);
+    if (this.title) this.title.setVisible(isLobby);
+    if (this.titleSub) this.titleSub.setVisible(isLobby);
+
+    const tabs = [this.tabLobby, this.tabInventory, this.tabTop, this.tabShop];
     for (const tab of tabs) {
       if (!tab) continue;
       const active = tab.tabKey === key;
-      tab.setBackgroundColor('rgba(0,0,0,0)'); // прячем родной прямоугольник
-      if (tab._roundItem) tab._roundItem.color = active ? 0xe63946 : 0x2e2e2e;
+      tab.setBackgroundColor('rgba(0,0,0,0)');
+      tab.setColor(active ? '#ffffff' : '#707e94');
+      if (tab._roundItem) {
+        tab._roundItem.color = active ? 0xe63946 : 0x121622;
+        tab._roundItem.strokeColor = active ? 0xff6b7a : 0x222a3d;
+        tab._roundItem.strokeWidth = (active ? 1.5 : 1) * DPR;
+      }
     }
     updateRoundBgs(this);
   }
 
   openRules() {
     this.rulesText.setText(
-      'Цель — не пустить врагов до конца дороги.\n\n' +
-        '• Строй башни на свободных клетках (на дорогу нельзя)\n' +
-        '• Кнопка «СТАРТ ВОЛНЫ» запускает волну\n' +
-        '• Клик по башне — улучшить или продать\n' +
-        '• Золото дают за убийства врагов и зачистку волны\n' +
-        '• Враг, дошедший до конца, отнимает жизнь'
+      '• Прорыв спор: мутанты идут напролом к ядру лаборатории\n' +
+        '• Турели: строй оборону на свободных клетках коридора\n' +
+        '• Волна: кнопка «СТАРТ» запускает следующую волну\n' +
+        '• Улучшения: клик по турели — прокачка или утилизация\n' +
+        '• Биоматериал: золото дают за ликвидацию зараженных\n' +
+        '• Прорыв: каждый прорвавшийся мутант отнимает жизнь'
     );
     this.rulesPanel.setVisible(true);
     updateRoundBgs(this);
@@ -1120,18 +1348,35 @@ class MenuScene extends Phaser.Scene {
 
   refreshProfile() {
     const nick = this.playerInfo ? this.playerInfo.nick : 'Игрок';
-    const prefix = this.roleLabel(this.playerRole);
-    this.profileText.setText(prefix ? `${nick} · ${prefix}` : nick);
+    const role = this.playerRole || 'player';
+    const prefix = this.roleLabel(role);
+
+    if (this.playerNick) this.playerNick.setText(nick);
+    if (this.roleBadge) {
+      const badgeText = prefix ? `[${prefix.toUpperCase()}]` : '[ОПЕРАТОР]';
+      this.roleBadge.setText(badgeText);
+      const badgeColor = role === 'creator' ? '#ff4d5e' : role === 'tester' ? '#f39c12' : '#707e94';
+      this.roleBadge.setColor(badgeColor);
+    }
+    if (this.profileText) this.profileText.setText(prefix ? `${nick} · ${prefix}` : nick);
 
     const best = this.playerBest || { wave: 0, gold: 0 };
-    this.bestText.setText(
-      best.wave > 0 ? `Лучший результат: волна ${best.wave} · ${best.gold} золота` : 'Пока нет результата'
-    );
+    if (this.statWaveVal) this.statWaveVal.setText(String(best.wave || 0));
+    if (this.statGoldVal) this.statGoldVal.setText(String(best.gold || 0));
+    if (this.statRankVal) this.statRankVal.setText(this.playerRank ? `#${this.playerRank}` : '—');
 
-    this.statsText.setText(
-      `Рекорд: волна ${best.wave} · ${best.gold} золота\n` +
-        `Место в топе: ${this.playerRank || '—'} из ${this.playersTotal}`
-    );
+    if (this.bestText) {
+      this.bestText.setText(
+        best.wave > 0 ? `Волна ${best.wave} · ${best.gold} золота` : 'Пока нет результата'
+      );
+    }
+
+    if (this.statsText) {
+      this.statsText.setText(
+        `Твой рекорд: волна ${best.wave || 0}  ·  ${best.gold || 0} 💰  ·  Рейтинг: ${this.playerRank ? '#' + this.playerRank : '—'} из ${this.playersTotal || 0}`
+      );
+    }
+    updateRoundBgs(this);
   }
 
   refreshTop() {
@@ -1141,11 +1386,12 @@ class MenuScene extends Phaser.Scene {
     }
     const medals = ['🥇', '🥈', '🥉'];
     const lines = [];
-    this.topList.forEach((item, index) => {
+    this.topList.slice(0, 10).forEach((item, index) => {
       const place = medals[index] || `${index + 1}.`;
-      lines.push(`${place} ${item.nick} — волна ${item.wave}, ${item.gold} золота`);
+      lines.push(`${place}  ${item.nick}  —  волна ${item.wave}  ·  ${item.gold} 💰`);
     });
     this.topText.setText(lines.join('\n'));
+    updateRoundBgs(this);
   }
 
   async loadPlayerData() {
@@ -1196,61 +1442,166 @@ class MenuScene extends Phaser.Scene {
 
     this.background.setPosition(0, 0).setSize(width, height);
 
-    this.title.setPosition(width / 2, height * 0.14);
-    this.title.setStyle({ fontSize: `${Math.round(size * 0.085)}px` });
+    // Фоновая графика / акцентная линия
+    if (this.bgDecor) {
+      this.bgDecor.clear();
+      this.bgDecor.lineStyle(1 * DPR, 0x181e2b, 0.6);
+      this.bgDecor.lineBetween(0, height * 0.88, width, height * 0.88);
+    }
 
-    // Лобби
-    this.profileText.setPosition(width / 2, height * 0.38);
-    this.profileText.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
-    this.bestText.setPosition(width / 2, height * 0.45);
-    this.bestText.setStyle({ fontSize: `${Math.round(size * 0.042)}px` });
-    this.playButton.setPosition(width / 2, height * 0.64);
-    this.playButton.setStyle({ fontSize: `${Math.round(size * 0.07)}px` });
+    // Верхняя шапка
+    if (this.badgeText) {
+      this.badgeText.setPosition(width / 2, height * 0.08);
+      this.badgeText.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.026))}px` });
+    }
+    if (this.title) {
+      this.title.setPosition(width / 2, height * 0.145);
+      this.title.setStyle({ fontSize: `${Math.max(20 * DPR, Math.round(size * 0.066))}px` });
+    }
+    if (this.titleSub) {
+      this.titleSub.setPosition(width / 2, height * 0.195);
+      this.titleSub.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.024))}px` });
+    }
+
+    // Карточка лобби
+    const cardWidth = Math.min(width * 0.9, 360 * DPR);
+    const cardHeight = Math.min(height * 0.28, 160 * DPR);
+    const cardY = height * 0.44;
+    const cardTop = cardY - cardHeight / 2;
+
+    if (this.cardBg) {
+      this.cardBg.setPosition(width / 2, cardY).setSize(cardWidth, cardHeight);
+    }
+
+    if (this.cardDivider) {
+      this.cardDivider.clear();
+      this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
+      const divLeft = width / 2 - cardWidth / 2 + 16 * DPR;
+      const divRight = width / 2 + cardWidth / 2 - 16 * DPR;
+      const divY = cardTop + 48 * DPR;
+      this.cardDivider.lineBetween(divLeft, divY, divRight, divY);
+    }
+
+    if (this.playerNick) {
+      this.playerNick.setPosition(width / 2 - cardWidth / 2 + 18 * DPR, cardTop + 24 * DPR);
+      this.playerNick.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.044))}px` });
+    }
+
+    if (this.roleBadge) {
+      this.roleBadge.setPosition(width / 2 + cardWidth / 2 - 18 * DPR, cardTop + 24 * DPR);
+      this.roleBadge.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.024))}px` });
+    }
+
+    const statColW = cardWidth / 3;
+    const col1X = width / 2 - statColW;
+    const col2X = width / 2;
+    const col3X = width / 2 + statColW;
+    const statLabelY = cardTop + 72 * DPR;
+    const statValY = cardTop + 106 * DPR;
+
+    const labelSize = `${Math.max(9 * DPR, Math.round(size * 0.022))}px`;
+    const valSize = `${Math.max(16 * DPR, Math.round(size * 0.048))}px`;
+
+    if (this.statWaveLabel) {
+      this.statWaveLabel.setPosition(col1X, statLabelY).setStyle({ fontSize: labelSize });
+      this.statWaveVal.setPosition(col1X, statValY).setStyle({ fontSize: valSize });
+    }
+    if (this.statGoldLabel) {
+      this.statGoldLabel.setPosition(col2X, statLabelY).setStyle({ fontSize: labelSize });
+      this.statGoldVal.setPosition(col2X, statValY).setStyle({ fontSize: valSize });
+    }
+    if (this.statRankLabel) {
+      this.statRankLabel.setPosition(col3X, statLabelY).setStyle({ fontSize: labelSize });
+      this.statRankVal.setPosition(col3X, statValY).setStyle({ fontSize: valSize });
+    }
+
+    // Кнопка В БОЙ
+    if (this.playButton) {
+      this.playButton.setPosition(width / 2, height * 0.67);
+      this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.052))}px` });
+    }
+
+    // Кнопка брифинга
+    if (this.briefingBtn) {
+      this.briefingBtn.setPosition(width / 2, height * 0.77);
+      this.briefingBtn.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.028))}px` });
+    }
 
     // Инвентарь
-    this.inventoryTitle.setPosition(width / 2, height * 0.20);
-    this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
-    const rowScale = Math.min((width * 0.9) / 320, 1.4 * DPR);
-    const rowStep = 72 * rowScale + 12 * DPR; // шаг = высота ряда + отступ (иначе накладываются)
-    const invStart = height * 0.30;
+    if (this.inventoryTitle) {
+      this.inventoryTitle.setPosition(width / 2, height * 0.14);
+      this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+    }
+    const rowScale = Math.min((width * 0.9) / 320, 1.3 * DPR);
+    const rowStep = 76 * rowScale + 12 * DPR;
+    const invStart = height * 0.24;
     this.inventoryRows.forEach((row, index) => {
       row.setPosition(width / 2, invStart + index * rowStep);
       row.setScale(rowScale);
     });
 
     // Топ
-    this.topTitle.setPosition(width / 2, height * 0.16);
-    this.topTitle.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
-    this.statsText.setPosition(width / 2, height * 0.32);
-    this.statsText.setStyle({ fontSize: `${Math.round(size * 0.04)}px` });
-    this.topText.setPosition(width / 2, height * 0.62);
-    this.topText.setStyle({ fontSize: `${Math.round(size * 0.038)}px` });
+    if (this.topTitle) {
+      this.topTitle.setPosition(width / 2, height * 0.12);
+      this.topTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+    }
+    if (this.statsText) {
+      this.statsText.setPosition(width / 2, height * 0.19);
+      this.statsText.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.028))}px` });
+    }
+    const topCardW = Math.min(width * 0.9, 360 * DPR);
+    const topCardH = height * 0.54;
+    const topCardY = height * 0.54;
+    if (this.topCardBg) {
+      this.topCardBg.setPosition(width / 2, topCardY).setSize(topCardW, topCardH);
+    }
+    if (this.topText) {
+      this.topText.setPosition(width / 2, topCardY);
+      this.topText.setStyle({
+        fontSize: `${Math.max(12 * DPR, Math.round(size * 0.03))}px`,
+        wordWrap: { width: topCardW - 24 * DPR },
+      });
+    }
 
     // Магазин
-    this.shopText.setPosition(width / 2, height * 0.45);
-    this.shopText.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
+    if (this.shopCardBg) {
+      const shopCardW = Math.min(width * 0.88, 340 * DPR);
+      this.shopCardBg.setPosition(width / 2, height * 0.44).setSize(shopCardW, 180 * DPR);
+      this.shopTitle.setPosition(width / 2, height * 0.38).setStyle({ fontSize: `${Math.round(size * 0.042)}px` });
+      this.shopText.setPosition(width / 2, height * 0.46).setStyle({
+        fontSize: `${Math.round(size * 0.03)}px`,
+        wordWrap: { width: shopCardW - 32 * DPR },
+      });
+    }
 
-    // Вкладки
+    // Вкладки внизу
     const tabY = height * 0.94;
-    this.tabInventory.setPosition(width * 0.14, tabY);
-    this.tabLobby.setPosition(width * 0.38, tabY);
-    this.tabTop.setPosition(width * 0.62, tabY);
-    this.tabShop.setPosition(width * 0.86, tabY);
-    const tabFont = `${Math.round(size * 0.038)}px`;
-    this.tabInventory.setStyle({ fontSize: tabFont });
-    this.tabLobby.setStyle({ fontSize: tabFont });
-    this.tabTop.setStyle({ fontSize: tabFont });
-    this.tabShop.setStyle({ fontSize: tabFont });
-
-    // Правила
-    this.rulesBg.setPosition(0, 0).setSize(width, height);
-    this.rulesText.setPosition(width / 2, height * 0.45);
-    this.rulesText.setStyle({
-      fontSize: `${Math.round(size * 0.04)}px`,
-      wordWrap: { width: width * 0.82 },
+    const tabWidths = [width * 0.15, width * 0.38, width * 0.62, width * 0.85];
+    const tabFont = `${Math.max(11 * DPR, Math.round(size * 0.03))}px`;
+    const tabs = [this.tabLobby, this.tabInventory, this.tabTop, this.tabShop];
+    tabs.forEach((tab, i) => {
+      if (tab) {
+        tab.setPosition(tabWidths[i], tabY);
+        tab.setStyle({ fontSize: tabFont });
+      }
     });
-    this.rulesBack.setPosition(width / 2, height * 0.85);
-    this.rulesBack.setStyle({ fontSize: `${Math.round(size * 0.05)}px` });
+
+    // Правила (Брифинг)
+    if (this.rulesBg) {
+      this.rulesBg.setPosition(0, 0).setSize(width, height);
+      const rW = Math.min(width * 0.92, 400 * DPR);
+      const rH = Math.min(height * 0.72, 420 * DPR);
+      this.rulesCard.setPosition(width / 2, height / 2).setSize(rW, rH);
+      this.rulesTitle.setPosition(width / 2, height / 2 - rH / 2 + 34 * DPR);
+      this.rulesTitle.setStyle({ fontSize: `${Math.round(size * 0.044)}px` });
+      this.rulesText.setPosition(width / 2, height / 2);
+      this.rulesText.setStyle({
+        fontSize: `${Math.max(11 * DPR, Math.round(size * 0.03))}px`,
+        wordWrap: { width: rW - 36 * DPR },
+      });
+      this.rulesBack.setPosition(width / 2, height / 2 + rH / 2 - 34 * DPR);
+      this.rulesBack.setStyle({ fontSize: `${Math.max(13 * DPR, Math.round(size * 0.034))}px` });
+    }
 
     // Пересобираем скруглённые фоны кнопок под новый размер/шрифт.
     updateRoundBgs(this);
