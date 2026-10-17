@@ -841,47 +841,19 @@ class MenuScene extends Phaser.Scene {
     }
     sliceSheet(this, 'template_base_sheet', 'template_base');
 
-    this.background = this.add.rectangle(0, 0, 1, 1, 0x0a0c12, 1).setOrigin(0, 0);
-    this.bgDecor = this.add.graphics();
-
-    // Верхняя шапка: статус угрозы + заголовок
-    this.badgeText = this.add
-      .text(0, 0, '● СЕКТОР ЗАРАЖЕНИЯ // УРОВЕНЬ 4', {
-        fontFamily: UI_FONT,
-        fontSize: '11px',
-        color: '#ff4d5e',
-        fontStyle: 'bold',
-        padding: { x: 10 * DPR, y: 5 * DPR },
-      })
-      .setOrigin(0.5);
-    roundTarget(this, this.badgeText, {
-      color: 0x221118,
-      alpha: 0.9,
-      radius: 8 * DPR,
-      strokeColor: 0xe63946,
-      strokeAlpha: 0.6,
-      strokeWidth: 1 * DPR,
-    });
+    this.background = this.add.rectangle(0, 0, 1, 1, 0x0a0c12, 1).setOrigin(0, 0).setDepth(-1000);
 
     this.title = this.add
       .text(0, 0, 'SPORE TOWER DEFENSE', {
         fontFamily: UI_FONT,
-        fontSize: '38px',
+        fontSize: '36px',
         color: '#ffffff',
         stroke: '#e63946',
         strokeThickness: 2 * DPR,
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
-
-    this.titleSub = this.add
-      .text(0, 0, 'ЛАБОРАТОРНЫЙ КОМПЛЕКС · РУБЕЖ ОБОРОНЫ', {
-        fontFamily: UI_FONT,
-        fontSize: '11px',
-        color: '#707e94',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(10);
 
     this.createLobby();
     this.createInventory();
@@ -900,51 +872,25 @@ class MenuScene extends Phaser.Scene {
   }
 
   createLobby() {
-    this.lobbyPage = this.add.container(0, 0);
+    this.lobbyPage = this.add.container(0, 0).setDepth(10);
 
     // Карточка профиля и рекордов
-    this.cardBg = this.add.rectangle(0, 0, 340, 160, 0x121622, 0.95);
-    roundTarget(this, this.cardBg, {
-      kind: 'rect',
-      color: 0x121622,
-      alpha: 0.95,
-      radius: 16 * DPR,
-      strokeColor: 0x222a3d,
-      strokeAlpha: 1,
-      strokeWidth: 1.5 * DPR,
-    });
+    this.cardBg = this.add.graphics();
 
-    // Никнейм и роль
+    // Никнейм по центру карточки
     this.playerNick = this.add
-      .text(0, 0, 'Игрок', {
+      .text(0, 0, 'Гость', {
         fontFamily: UI_FONT,
         fontSize: '18px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5);
 
-    this.roleBadge = this.add
-      .text(0, 0, '[ОПЕРАТОР]', {
-        fontFamily: UI_FONT,
-        fontSize: '11px',
-        color: '#707e94',
-        fontStyle: 'bold',
-        padding: { x: 8 * DPR, y: 3 * DPR },
-      })
-      .setOrigin(1, 0.5);
-    roundTarget(this, this.roleBadge, {
-      color: 0x181e2e,
-      alpha: 0.9,
-      radius: 6 * DPR,
-      strokeColor: 0x28334a,
-      strokeWidth: 1 * DPR,
-    });
-
-    // Разделитель внутри карточки
+    // Разделитель
     this.cardDivider = this.add.graphics();
 
-    // 3 блока показателей: Волна, Золото, Ранг
+    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП
     this.statWaveLabel = this.add
       .text(0, 0, 'РЕКОРД', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
       .setOrigin(0.5);
@@ -960,7 +906,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.statRankLabel = this.add
-      .text(0, 0, 'МЕСТО В ТОПЕ', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, 'ТОП', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.statRankVal = this.add
       .text(0, 0, '—', { fontFamily: UI_FONT, fontSize: '22px', color: '#4ea8de', fontStyle: 'bold' })
@@ -970,14 +916,13 @@ class MenuScene extends Phaser.Scene {
     this.profileText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
     this.bestText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
 
-    // Кнопка брифинга
+    // Кнопка правил
     this.briefingBtn = this.add
-      .text(0, 0, '📋 Брифинг и правила', {
+      .text(0, 0, 'Правила', {
         fontFamily: UI_FONT,
         fontSize: '13px',
-        color: '#8b98aa',
-        backgroundColor: '#121622',
-        padding: { x: 14 * DPR, y: 7 * DPR },
+        color: '#707e94',
+        padding: { x: 10 * DPR, y: 5 * DPR },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -985,25 +930,19 @@ class MenuScene extends Phaser.Scene {
       if (event && event.stopPropagation) event.stopPropagation();
       this.openRules();
     });
-    roundTarget(this, this.briefingBtn, {
-      color: 0x121622,
-      alpha: 0.9,
-      radius: 8 * DPR,
-      strokeColor: 0x222a3d,
-      strokeWidth: 1 * DPR,
-    });
 
     // Главная кнопка запуска игры
     this.playButton = this.add
-      .text(0, 0, '▶  В  Б О Й', {
+      .text(0, 0, 'В БОЙ', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
+        fontSize: '22px',
         color: '#ffffff',
         backgroundColor: '#e63946',
         padding: { x: 38 * DPR, y: 13 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setDepth(10)
       .setInteractive({ useHandCursor: true });
 
     this.playButton.on('pointerdown', (pointer, localX, localY, event) => {
@@ -1022,7 +961,7 @@ class MenuScene extends Phaser.Scene {
     roundTarget(this, this.playButton, {
       color: 0xe63946,
       alpha: 1,
-      radius: 14 * DPR,
+      radius: 12 * DPR,
       strokeColor: 0xff6b7a,
       strokeAlpha: 0.9,
       strokeWidth: 1.5 * DPR,
@@ -1032,7 +971,6 @@ class MenuScene extends Phaser.Scene {
       this.cardBg,
       this.cardDivider,
       this.playerNick,
-      this.roleBadge,
       this.statWaveLabel,
       this.statWaveVal,
       this.statGoldLabel,
@@ -1047,10 +985,10 @@ class MenuScene extends Phaser.Scene {
   }
 
   createInventory() {
-    this.inventoryPage = this.add.container(0, 0).setVisible(false);
+    this.inventoryPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.inventoryTitle = this.add
-      .text(0, 0, 'ДОСТУПНЫЕ ТУРЕЛИ', {
+      .text(0, 0, 'ТУРЕЛИ', {
         fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
@@ -1093,7 +1031,7 @@ class MenuScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5);
       const info = this.add
-        .text(-75, 14, `Стоимость: ${type.cost} 💰 · Урон: ${type.damage || 1}`, {
+        .text(-75, 14, `Стоимость: ${type.cost} · Урон: ${type.damage || 1}`, {
           fontFamily: UI_FONT,
           fontSize: '13px',
           color: '#8b98aa',
@@ -1116,10 +1054,10 @@ class MenuScene extends Phaser.Scene {
   }
 
   createTop() {
-    this.topPage = this.add.container(0, 0).setVisible(false);
+    this.topPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.topTitle = this.add
-      .text(0, 0, 'ТАБЛИЦА ЛИДЕРОВ', {
+      .text(0, 0, 'ТОП ИГРОКОВ', {
         fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
@@ -1170,7 +1108,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   createShop() {
-    this.shopPage = this.add.container(0, 0).setVisible(false);
+    this.shopPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.shopCardBg = this.add.rectangle(0, 0, 320, 180, 0x131722, 0.95);
     roundTarget(this, this.shopCardBg, {
@@ -1183,7 +1121,7 @@ class MenuScene extends Phaser.Scene {
     });
 
     this.shopTitle = this.add
-      .text(0, -40, '🛒 СНАБЖЕНИЕ БАЗЫ', {
+      .text(0, -40, 'МАГАЗИН', {
         fontFamily: UI_FONT,
         fontSize: '20px',
         color: '#ffffff',
@@ -1192,7 +1130,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.shopText = this.add
-      .text(0, 20, 'Карантинный протокол заблокировал\nканал поставок лаборатории.\n\nРаздел в разработке.', {
+      .text(0, 20, 'Раздел в разработке', {
         fontFamily: UI_FONT,
         fontSize: '15px',
         color: '#8898aa',
@@ -1205,16 +1143,16 @@ class MenuScene extends Phaser.Scene {
   }
 
   createTabs() {
-    this.tabBar = this.add.container(0, 0);
-    this.tabLobby = this.makeTab('🛡 Меню', 'lobby');
-    this.tabInventory = this.makeTab('⚡ Турели', 'inventory');
-    this.tabTop = this.makeTab('🏆 Топ', 'top');
-    this.tabShop = this.makeTab('🛒 База', 'shop');
-    this.tabBar.add([this.tabLobby, this.tabInventory, this.tabTop, this.tabShop]);
+    this.tabBar = this.add.container(0, 0).setDepth(10);
+    this.tabInventory = this.makeTab('Турели', 'inventory');
+    this.tabLobby = this.makeTab('Меню', 'lobby');
+    this.tabTop = this.makeTab('Топ', 'top');
+    this.tabShop = this.makeTab('База', 'shop');
+    this.tabBar.add([this.tabInventory, this.tabLobby, this.tabTop, this.tabShop]);
   }
 
   createRules() {
-    this.rulesPanel = this.add.container(0, 0).setVisible(false);
+    this.rulesPanel = this.add.container(0, 0).setVisible(false).setDepth(20);
 
     this.rulesBg = this.add
       .rectangle(0, 0, 1, 1, 0x07080c, 0.96)
@@ -1235,7 +1173,7 @@ class MenuScene extends Phaser.Scene {
     });
 
     this.rulesTitle = this.add
-      .text(0, -130, '📋 БРИФИНГ ОБОРОНЫ', {
+      .text(0, -130, 'ПРАВИЛА ИГРЫ', {
         fontFamily: UI_FONT,
         fontSize: '20px',
         color: '#ff4d5e',
@@ -1279,11 +1217,12 @@ class MenuScene extends Phaser.Scene {
         fontFamily: UI_FONT,
         fontSize: '14px',
         color: '#707e94',
-        backgroundColor: '#121622',
-        padding: { x: 12 * DPR, y: 8 * DPR },
+        backgroundColor: '#161a26',
+        padding: { x: 14 * DPR, y: 8 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setDepth(10)
       .setInteractive({ useHandCursor: true });
     tab.tabKey = key;
     tab.on('pointerdown', (pointer, localX, localY, event) => {
@@ -1291,10 +1230,10 @@ class MenuScene extends Phaser.Scene {
       this.selectTab(key);
     });
     roundTarget(this, tab, {
-      color: 0x121622,
+      color: 0x161a26,
       alpha: 0.95,
       radius: 10 * DPR,
-      strokeColor: 0x222a3d,
+      strokeColor: 0x252d40,
       strokeAlpha: 1,
       strokeWidth: 1 * DPR,
     });
@@ -1309,19 +1248,17 @@ class MenuScene extends Phaser.Scene {
     if (this.shopPage) this.shopPage.setVisible(key === 'shop');
 
     const isLobby = key === 'lobby';
-    if (this.badgeText) this.badgeText.setVisible(isLobby);
     if (this.title) this.title.setVisible(isLobby);
-    if (this.titleSub) this.titleSub.setVisible(isLobby);
 
-    const tabs = [this.tabLobby, this.tabInventory, this.tabTop, this.tabShop];
+    const tabs = [this.tabInventory, this.tabLobby, this.tabTop, this.tabShop];
     for (const tab of tabs) {
       if (!tab) continue;
       const active = tab.tabKey === key;
       tab.setBackgroundColor('rgba(0,0,0,0)');
       tab.setColor(active ? '#ffffff' : '#707e94');
       if (tab._roundItem) {
-        tab._roundItem.color = active ? 0xe63946 : 0x121622;
-        tab._roundItem.strokeColor = active ? 0xff6b7a : 0x222a3d;
+        tab._roundItem.color = active ? 0xe63946 : 0x161a26;
+        tab._roundItem.strokeColor = active ? 0xff6b7a : 0x252d40;
         tab._roundItem.strokeWidth = (active ? 1.5 : 1) * DPR;
       }
     }
@@ -1330,12 +1267,12 @@ class MenuScene extends Phaser.Scene {
 
   openRules() {
     this.rulesText.setText(
-      '• Прорыв спор: мутанты идут напролом к ядру лаборатории\n' +
-        '• Турели: строй оборону на свободных клетках коридора\n' +
-        '• Волна: кнопка «СТАРТ» запускает следующую волну\n' +
-        '• Улучшения: клик по турели — прокачка или утилизация\n' +
-        '• Биоматериал: золото дают за ликвидацию зараженных\n' +
-        '• Прорыв: каждый прорвавшийся мутант отнимает жизнь'
+      '• Цель: не пустить врагов до конца дороги\n' +
+        '• Строй башни на свободных клетках коридора\n' +
+        '• Кнопка «СТАРТ» запускает следующую волну\n' +
+        '• Клик по башне: улучшение или продажа\n' +
+        '• Золото дают за уничтожение врагов\n' +
+        '• Враг, дошедший до конца, отнимает жизнь'
     );
     this.rulesPanel.setVisible(true);
     updateRoundBgs(this);
@@ -1347,16 +1284,12 @@ class MenuScene extends Phaser.Scene {
   }
 
   refreshProfile() {
-    const nick = this.playerInfo ? this.playerInfo.nick : 'Игрок';
+    const nick = this.playerInfo ? this.playerInfo.nick : 'Гость';
     const role = this.playerRole || 'player';
     const prefix = this.roleLabel(role);
 
-    if (this.playerNick) this.playerNick.setText(nick);
-    if (this.roleBadge) {
-      const badgeText = prefix ? `[${prefix.toUpperCase()}]` : '[ОПЕРАТОР]';
-      this.roleBadge.setText(badgeText);
-      const badgeColor = role === 'creator' ? '#ff4d5e' : role === 'tester' ? '#f39c12' : '#707e94';
-      this.roleBadge.setColor(badgeColor);
+    if (this.playerNick) {
+      this.playerNick.setText(prefix ? `${nick} · ${prefix}` : nick);
     }
     if (this.profileText) this.profileText.setText(prefix ? `${nick} · ${prefix}` : nick);
 
@@ -1373,7 +1306,7 @@ class MenuScene extends Phaser.Scene {
 
     if (this.statsText) {
       this.statsText.setText(
-        `Твой рекорд: волна ${best.wave || 0}  ·  ${best.gold || 0} 💰  ·  Рейтинг: ${this.playerRank ? '#' + this.playerRank : '—'} из ${this.playersTotal || 0}`
+        `Твой результат: волна ${best.wave || 0}  ·  ${best.gold || 0} золота  ·  Место: ${this.playerRank ? '#' + this.playerRank : '—'} из ${this.playersTotal || 0}`
       );
     }
     updateRoundBgs(this);
@@ -1384,11 +1317,9 @@ class MenuScene extends Phaser.Scene {
       this.topText.setText('Пока нет рекордов');
       return;
     }
-    const medals = ['🥇', '🥈', '🥉'];
     const lines = [];
     this.topList.slice(0, 10).forEach((item, index) => {
-      const place = medals[index] || `${index + 1}.`;
-      lines.push(`${place}  ${item.nick}  —  волна ${item.wave}  ·  ${item.gold} 💰`);
+      lines.push(`${index + 1}.  ${item.nick}  —  волна ${item.wave}  ·  ${item.gold} золота`);
     });
     this.topText.setText(lines.join('\n'));
     updateRoundBgs(this);
@@ -1449,58 +1380,48 @@ class MenuScene extends Phaser.Scene {
       this.bgDecor.lineBetween(0, height * 0.88, width, height * 0.88);
     }
 
-    // Верхняя шапка
-    if (this.badgeText) {
-      this.badgeText.setPosition(width / 2, height * 0.08);
-      this.badgeText.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.026))}px` });
-    }
+    // Заголовок
     if (this.title) {
-      this.title.setPosition(width / 2, height * 0.145);
-      this.title.setStyle({ fontSize: `${Math.max(20 * DPR, Math.round(size * 0.066))}px` });
-    }
-    if (this.titleSub) {
-      this.titleSub.setPosition(width / 2, height * 0.195);
-      this.titleSub.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.024))}px` });
+      this.title.setPosition(width / 2, height * 0.16);
+      this.title.setStyle({ fontSize: `${Math.max(22 * DPR, Math.round(size * 0.072))}px` });
     }
 
     // Карточка лобби
-    const cardWidth = Math.min(width * 0.9, 360 * DPR);
-    const cardHeight = Math.min(height * 0.28, 160 * DPR);
-    const cardY = height * 0.44;
+    const cardWidth = Math.min(width * 0.88, 360 * DPR);
+    const cardHeight = Math.min(height * 0.28, 140 * DPR);
+    const cardY = height * 0.43;
+    const cardX = width / 2 - cardWidth / 2;
     const cardTop = cardY - cardHeight / 2;
 
     if (this.cardBg) {
-      this.cardBg.setPosition(width / 2, cardY).setSize(cardWidth, cardHeight);
+      this.cardBg.clear();
+      this.cardBg.fillStyle(0x131722, 0.95);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+    }
+
+    if (this.playerNick) {
+      this.playerNick.setPosition(width / 2, cardTop + 24 * DPR);
+      this.playerNick.setStyle({ fontSize: `${Math.max(15 * DPR, Math.round(size * 0.046))}px` });
     }
 
     if (this.cardDivider) {
       this.cardDivider.clear();
       this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
-      const divLeft = width / 2 - cardWidth / 2 + 16 * DPR;
-      const divRight = width / 2 + cardWidth / 2 - 16 * DPR;
-      const divY = cardTop + 48 * DPR;
-      this.cardDivider.lineBetween(divLeft, divY, divRight, divY);
+      this.cardDivider.lineBetween(cardX + 16 * DPR, cardTop + 44 * DPR, cardX + cardWidth - 16 * DPR, cardTop + 44 * DPR);
     }
 
-    if (this.playerNick) {
-      this.playerNick.setPosition(width / 2 - cardWidth / 2 + 18 * DPR, cardTop + 24 * DPR);
-      this.playerNick.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.044))}px` });
-    }
-
-    if (this.roleBadge) {
-      this.roleBadge.setPosition(width / 2 + cardWidth / 2 - 18 * DPR, cardTop + 24 * DPR);
-      this.roleBadge.setStyle({ fontSize: `${Math.max(10 * DPR, Math.round(size * 0.024))}px` });
-    }
-
-    const statColW = cardWidth / 3;
-    const col1X = width / 2 - statColW;
+    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП — гарантированно не перекрывают друг друга
+    const colStep = cardWidth * 0.32;
+    const col1X = width / 2 - colStep;
     const col2X = width / 2;
-    const col3X = width / 2 + statColW;
-    const statLabelY = cardTop + 72 * DPR;
-    const statValY = cardTop + 106 * DPR;
+    const col3X = width / 2 + colStep;
+    const statLabelY = cardTop + 68 * DPR;
+    const statValY = cardTop + 98 * DPR;
 
-    const labelSize = `${Math.max(9 * DPR, Math.round(size * 0.022))}px`;
-    const valSize = `${Math.max(16 * DPR, Math.round(size * 0.048))}px`;
+    const labelSize = `${Math.max(10 * DPR, Math.round(size * 0.024))}px`;
+    const valSize = `${Math.max(18 * DPR, Math.round(size * 0.052))}px`;
 
     if (this.statWaveLabel) {
       this.statWaveLabel.setPosition(col1X, statLabelY).setStyle({ fontSize: labelSize });
@@ -1518,16 +1439,16 @@ class MenuScene extends Phaser.Scene {
     // Кнопка В БОЙ
     if (this.playButton) {
       this.playButton.setPosition(width / 2, height * 0.67);
-      this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.052))}px` });
+      this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.054))}px` });
     }
 
-    // Кнопка брифинга
+    // Кнопка правил
     if (this.briefingBtn) {
       this.briefingBtn.setPosition(width / 2, height * 0.77);
-      this.briefingBtn.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.028))}px` });
+      this.briefingBtn.setStyle({ fontSize: `${Math.max(12 * DPR, Math.round(size * 0.03))}px` });
     }
 
-    // Инвентарь
+    // Инвентарь / Турели
     if (this.inventoryTitle) {
       this.inventoryTitle.setPosition(width / 2, height * 0.14);
       this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
@@ -1574,11 +1495,11 @@ class MenuScene extends Phaser.Scene {
       });
     }
 
-    // Вкладки внизу
+    // Вкладки внизу (порядок: Турели, Меню, Топ, База)
     const tabY = height * 0.94;
     const tabWidths = [width * 0.15, width * 0.38, width * 0.62, width * 0.85];
-    const tabFont = `${Math.max(11 * DPR, Math.round(size * 0.03))}px`;
-    const tabs = [this.tabLobby, this.tabInventory, this.tabTop, this.tabShop];
+    const tabFont = `${Math.max(12 * DPR, Math.round(size * 0.032))}px`;
+    const tabs = [this.tabInventory, this.tabLobby, this.tabTop, this.tabShop];
     tabs.forEach((tab, i) => {
       if (tab) {
         tab.setPosition(tabWidths[i], tabY);
@@ -1586,7 +1507,7 @@ class MenuScene extends Phaser.Scene {
       }
     });
 
-    // Правила (Брифинг)
+    // Правила
     if (this.rulesBg) {
       this.rulesBg.setPosition(0, 0).setSize(width, height);
       const rW = Math.min(width * 0.92, 400 * DPR);
