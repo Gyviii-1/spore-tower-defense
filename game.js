@@ -734,7 +734,7 @@ class Tower {
   // Инициализация угла установки стационарного орудия
   initMountAngle() {
     if (this.aimAngle !== undefined && this.aimAngle !== dirToAngle(DIR_FORWARD)) {
-      this.mountAngle = this.aimAngle;
+      this.mountAngle = Math.atan2(Math.sin(this.aimAngle) / ISO_HH, Math.cos(this.aimAngle) / ISO_HW);
     } else {
       let bestDist = Infinity;
       let bestAngle = dirToAngle(DIR_FORWARD);
@@ -744,23 +744,25 @@ class Tower {
         const d = Math.hypot(wp.x - this.gx, wp.y - this.gy);
         if (d < bestDist) {
           bestDist = d;
-          bestAngle = Math.atan2(wpScreen.y - pos.y, wpScreen.x - pos.x);
+          bestAngle = Math.atan2((wpScreen.y - pos.y) / ISO_HH, (wpScreen.x - pos.x) / ISO_HW);
         }
       }
       this.mountAngle = bestAngle;
     }
-    this.baseAngle = this.mountAngle;
-    this.baseDir = angleToDir(this.mountAngle);
-    this.aimAngle = this.mountAngle;
+    const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
+    this.baseAngle = screenMount;
+    this.baseDir = angleToDir(screenMount);
+    this.aimAngle = screenMount;
     this.aimDir = this.baseDir;
   }
 
   // Установить угол стационарного сектора (любой угол на поле)
   setMountAngle(angle) {
     this.mountAngle = angle;
-    this.baseAngle = angle;
-    this.baseDir = angleToDir(angle);
-    this.aimAngle = angle;
+    const screenMount = Math.atan2(Math.sin(angle) * ISO_HH, Math.cos(angle) * ISO_HW);
+    this.baseAngle = screenMount;
+    this.baseDir = angleToDir(screenMount);
+    this.aimAngle = screenMount;
     this.aimDir = this.baseDir;
   }
 
@@ -770,9 +772,10 @@ class Tower {
     this.mountAngle = (this.mountAngle + rad) % (Math.PI * 2);
     if (this.mountAngle < -Math.PI) this.mountAngle += Math.PI * 2;
     if (this.mountAngle > Math.PI) this.mountAngle -= Math.PI * 2;
-    this.baseAngle = this.mountAngle;
-    this.baseDir = angleToDir(this.mountAngle);
-    this.aimAngle = this.mountAngle;
+    const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
+    this.baseAngle = screenMount;
+    this.baseDir = angleToDir(screenMount);
+    this.aimAngle = screenMount;
     this.aimDir = this.baseDir;
   }
 
@@ -837,14 +840,16 @@ class Tower {
         this.baseAngle = this.aimAngle;
         this.baseDir = angleToDir(this.baseAngle, this.baseDir);
       } else {
-        this.baseAngle = this.mountAngle;
-        this.baseDir = angleToDir(this.mountAngle, this.baseDir);
+        const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
+        this.baseAngle = screenMount;
+        this.baseDir = angleToDir(screenMount, this.baseDir);
       }
     } else if (this.arc) {
       // Нет цели — смотрим в центр сектора установки
-      this.aimAngle = this.mountAngle;
-      this.aimDir = angleToDir(this.mountAngle, this.aimDir);
-      this.baseAngle = this.mountAngle;
+      const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
+      this.aimAngle = screenMount;
+      this.aimDir = angleToDir(screenMount, this.aimDir);
+      this.baseAngle = screenMount;
       this.baseDir = this.aimDir;
     }
 
@@ -877,7 +882,7 @@ class Tower {
       if (distance > this.range) continue;
 
       if (this.arc) {
-        const enemyAngle = Math.atan2(enemy.y - pos.y, enemy.x - pos.x);
+        const enemyAngle = Math.atan2((enemy.y - pos.y) / ISO_HH, (enemy.x - pos.x) / ISO_HW);
         if (Math.abs(angleDiff(enemyAngle, this.mountAngle)) > this.arc / 2) {
           continue;
         }
@@ -4037,7 +4042,7 @@ class GameScene extends Phaser.Scene {
     // Если сейчас режим наведения сектора установки:
     if (this.aimingTower) {
       const pos = this.aimingTower.getPosition();
-      const angle = Math.atan2(worldPx.y - pos.y, worldPx.x - pos.x);
+      const angle = Math.atan2((worldPx.y - pos.y) / ISO_HH, (worldPx.x - pos.x) / ISO_HW);
       this.aimingTower.setMountAngle(angle);
       this.applyTowerFacing(this.aimingTower);
       this.showRangeRingForTower(this.aimingTower);
@@ -4213,7 +4218,7 @@ class GameScene extends Phaser.Scene {
     if (this.aimingTower && pointer.isDown) {
       const worldPx = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const pos = this.aimingTower.getPosition();
-      const angle = Math.atan2(worldPx.y - pos.y, worldPx.x - pos.x);
+      const angle = Math.atan2((worldPx.y - pos.y) / ISO_HH, (worldPx.x - pos.x) / ISO_HW);
       this.aimingTower.setMountAngle(angle);
       this.applyTowerFacing(this.aimingTower);
       this.showRangeRingForTower(this.aimingTower);
