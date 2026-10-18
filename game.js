@@ -851,12 +851,11 @@ class Tower {
         this.baseDir = angleToDir(screenMount, this.baseDir);
       }
     } else if (this.arc) {
-      // Нет цели — смотрим в центр сектора установки
+      // Для стационарной установки крепление ВСЕГДА смотрит строго по mountAngle.
+      // А пулемёт запоминает последнее направление, куда стрелял, и не меняет положение!
       const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
-      this.aimAngle = screenMount;
-      this.aimDir = angleToDir(screenMount, this.aimDir);
       this.baseAngle = screenMount;
-      this.baseDir = this.aimDir;
+      this.baseDir = angleToDir(screenMount, this.baseDir);
     }
 
     // Стреляем, только если башня умеет стрелять, есть цель и она перезарядилась.
@@ -941,11 +940,19 @@ class MenuScene extends Phaser.Scene {
     }
     // Направленные спрайты (чтобы инвентарь показывал актуальные модели).
     for (const key in TOWER_TYPES) {
+      this.load.image(`${key}_mount`, `assets/${key}_mount.png${ASSET_VER}`);
       for (const dir of DIRECTIONS) {
         this.load.image(`${key}_base_${dir}`, `assets/${key}_base_${dir}.png${ASSET_VER}`);
+        this.load.image(`${key}_mount_${dir}`, `assets/${key}_mount_${dir}.png${ASSET_VER}`);
         for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+          this.load.image(`${key}_base_${level}_${dir}`, `assets/${key}_base_${level}_${dir}.png${ASSET_VER}`);
+          this.load.image(`${key}_mount_${level}_${dir}`, `assets/${key}_mount_${level}_${dir}.png${ASSET_VER}`);
           this.load.image(`${key}_gun_${level}_${dir}`, `assets/${key}_gun_${level}_${dir}.png${ASSET_VER}`);
         }
+      }
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        this.load.image(`${key}_base_${level}`, `assets/${key}_base_${level}.png${ASSET_VER}`);
+        this.load.image(`${key}_mount_${level}`, `assets/${key}_mount_${level}.png${ASSET_VER}`);
       }
     }
     this.load.image('template_base_sheet', `assets/template_base_sheet.png${ASSET_VER}`);
@@ -965,7 +972,10 @@ class MenuScene extends Phaser.Scene {
     // Нарезаем спрайт-листы (если есть) на отдельные направления (для иконок).
     for (const key in TOWER_TYPES) {
       sliceSheet(this, `${key}_base_sheet`, `${key}_base`);
+      sliceSheet(this, `${key}_mount_sheet`, `${key}_mount`);
       for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        sliceSheet(this, `${key}_base_${level}_sheet`, `${key}_base_${level}`);
+        sliceSheet(this, `${key}_mount_${level}_sheet`, `${key}_mount_${level}`);
         sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
       }
     }
@@ -1828,14 +1838,22 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // Направленные спрайты (8 сторон): корпус и пушка. Если файлов ещё нет —
+    // Направленные спрайты (8 сторон): корпус, крепление и пушка. Если файлов ещё нет —
     // они просто не загрузятся, игра идёт на старых спрайтах (fallback).
     for (const key in TOWER_TYPES) {
+      this.load.image(`${key}_mount`, `assets/${key}_mount.png${ASSET_VER}`);
       for (const dir of DIRECTIONS) {
         this.load.image(`${key}_base_${dir}`, `assets/${key}_base_${dir}.png${ASSET_VER}`);
+        this.load.image(`${key}_mount_${dir}`, `assets/${key}_mount_${dir}.png${ASSET_VER}`);
         for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+          this.load.image(`${key}_base_${level}_${dir}`, `assets/${key}_base_${level}_${dir}.png${ASSET_VER}`);
+          this.load.image(`${key}_mount_${level}_${dir}`, `assets/${key}_mount_${level}_${dir}.png${ASSET_VER}`);
           this.load.image(`${key}_gun_${level}_${dir}`, `assets/${key}_gun_${level}_${dir}.png${ASSET_VER}`);
         }
+      }
+      for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        this.load.image(`${key}_base_${level}`, `assets/${key}_base_${level}.png${ASSET_VER}`);
+        this.load.image(`${key}_mount_${level}`, `assets/${key}_mount_${level}.png${ASSET_VER}`);
       }
     }
 
@@ -1860,6 +1878,8 @@ class GameScene extends Phaser.Scene {
         file &&
         (/_\d+$/.test(file.key) ||
           /_base_[a-z]+$/.test(file.key) ||
+          /_base_\d+_[a-z]+$/.test(file.key) ||
+          /_mount.*$/.test(file.key) ||
           /_gun_\d+_[a-z]+$/.test(file.key) ||
           /_sheet$/.test(file.key))
       ) {
@@ -1941,7 +1961,10 @@ class GameScene extends Phaser.Scene {
     // Нарезаем спрайт-листы (если есть) на отдельные направления.
     for (const key in TOWER_TYPES) {
       sliceSheet(this, `${key}_base_sheet`, `${key}_base`);
+      sliceSheet(this, `${key}_mount_sheet`, `${key}_mount`);
       for (let level = 1; level <= TOWER_MAX_LEVEL; level++) {
+        sliceSheet(this, `${key}_base_${level}_sheet`, `${key}_base_${level}`);
+        sliceSheet(this, `${key}_mount_${level}_sheet`, `${key}_mount_${level}`);
         sliceSheet(this, `${key}_gun_${level}_sheet`, `${key}_gun_${level}`);
       }
     }
@@ -3582,10 +3605,10 @@ class GameScene extends Phaser.Scene {
     const pos = tower.getPosition();
     const depth = 10 + (tower.gx + tower.gy) * 0.01; // глубина по world (iso)
 
-    const base = this.resolveBase(tower.typeKey, tower.baseDir);
+    const base = this.resolveBase(tower.typeKey, tower.baseDir, tower.level);
     if (base) {
       tower.baseSprite = this.add.image(pos.x, pos.y, base.key).setDepth(depth);
-      this.applyBaseVisual(tower.baseSprite, tower.typeKey, base);
+      this.applyBaseVisual(tower.baseSprite, tower.typeKey, base, tower.level);
     }
 
     const gun = this.resolveGun(tower.typeKey, tower.level, tower.aimDir);
@@ -3597,15 +3620,15 @@ class GameScene extends Phaser.Scene {
     this.applyTowerFacing(tower);
   }
 
-  // Переключаем текстуры корпуса и пушки по их ТЕКУЩИМ направлениям
-  // (корпус и пушка — независимо). Направленные спрайты НЕ вращаем.
+  // Переключаем текстуры корпуса/крепления и пушки по их ТЕКУЩИМ направлениям
+  // (крепление и пушка поворачиваются независимо). Направленные спрайты НЕ вращаем.
   applyTowerFacing(tower) {
     const pos = tower.getPosition();
     const type = tower.config;
     // Спрайт поднят над клеткой визуально (тап-зона — на клетке).
     const baseY = pos.y - BASE_LIFT * this.cellSize;
 
-    // Центр башни (вокруг него облетает пушка) — центр РИСУНКА корпуса.
+    // Центр башни (вокруг него облетает пушка) — центр РИСУНКА корпуса/крепления.
     let centerX = pos.x;
     let centerY = baseY;
     if (tower.baseSprite) {
@@ -3618,11 +3641,11 @@ class GameScene extends Phaser.Scene {
     }
 
     if (tower.baseSprite) {
-      const base = this.resolveBase(tower.typeKey, tower.baseDir);
+      const base = this.resolveBase(tower.typeKey, tower.baseDir, tower.level);
       if (base) {
         if (tower.baseSprite.texture.key !== base.key) {
           tower.baseSprite.setTexture(base.key);
-          this.applyBaseVisual(tower.baseSprite, tower.typeKey, base);
+          this.applyBaseVisual(tower.baseSprite, tower.typeKey, base, tower.level);
         }
         tower.baseSprite.setPosition(pos.x, baseY);
         tower.baseSprite.setRotation(base.directional ? 0 : tower.baseAngle);
@@ -3636,55 +3659,108 @@ class GameScene extends Phaser.Scene {
           tower.sprite.setTexture(gun.key);
           this.applyGunVisual(tower.sprite, tower.typeKey, gun, tower.level);
         }
+        const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
         if (gun.directional) {
-          // Пушка облетает ЦЕНТР башни в сторону цели.
-          const orbit = (type.gunOrbit || 0) * this.cellSize;
+          // Пушка облетает ЦЕНТР башни в сторону цели (для человека с оружием).
+          // Для стационарной установки (arc) пулемёт сидит ровно на станке/креплении (orbit = 0).
+          const lvl = type.levels && type.levels[tower.level - 1];
+          const defaultOrbit = tower.arc ? 0 : (type.gunOrbit || 0);
+          const orbitVal = lvl && lvl.gunOrbit !== undefined ? lvl.gunOrbit : defaultOrbit;
+          const orbit = orbitVal * this.cellSize;
           const orbitX = orbit * (type.gunOrbitX || 1); // растяжение по горизонтали
           const orbitY = orbit * (type.gunOrbitY || 1); // сжатие по вертикали
-          const mount = type.gunMount || { x: 0, y: 0 };
+          const mount = (lvl && lvl.gunMount) || type.gunMount || { x: 0, y: 0 };
           const p = ellipseArcPoint(tower.aimAngle, orbitX, orbitY); // ровная скорость
           const gunX = centerX + p.x + mount.x * this.cellSize;
           const gunY = centerY + p.y + mount.y * this.cellSize;
           tower.sprite.setPosition(gunX, gunY);
           tower.sprite.setRotation(0);
-          // За спиной — когда пушка смотрит наверх (в дальнюю от камеры сторону).
-          // Порог по синусу угла: меньше |значение| = раньше уходит за спину.
-          const baseDepth = 10 + (tower.gx + tower.gy) * 0.01;
-          const behind = Math.sin(tower.aimAngle) < -0.05;
-          tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
+          if (tower.arc) {
+            // У установки пулемёт всегда сверху станины/крепления
+            tower.sprite.setDepth(baseDepth + 0.05);
+          } else {
+            // За спиной — когда пушка смотрит наверх (в дальнюю от камеры сторону).
+            const behind = Math.sin(tower.aimAngle) < -0.05;
+            tower.sprite.setDepth(behind ? baseDepth - 0.05 : baseDepth + 0.05);
+          }
         } else {
-          tower.sprite.setPosition(pos.x, pos.y);
+          tower.sprite.setPosition(centerX, centerY);
           tower.sprite.setRotation(tower.aimAngle);
+          tower.sprite.setDepth(baseDepth + 0.05);
         }
       }
     }
   }
 
-  // Меняем пушку башни (например, после улучшения уровня).
+  // Меняем пушку и корпус/крепление башни (после улучшения уровня).
   refreshTowerSprite(tower) {
-    const gun = this.resolveGun(tower.typeKey, tower.level, tower.aimDir);
+    const base = this.resolveBase(tower.typeKey, tower.baseDir, tower.level);
+    if (!base) {
+      if (tower.baseSprite) {
+        tower.baseSprite.destroy();
+        tower.baseSprite = null;
+      }
+    } else if (!tower.baseSprite) {
+      const pos = tower.getPosition();
+      const depth = 10 + (tower.gx + tower.gy) * 0.01;
+      tower.baseSprite = this.add.image(pos.x, pos.y, base.key).setDepth(depth);
+      this.applyBaseVisual(tower.baseSprite, tower.typeKey, base, tower.level);
+    } else {
+      if (tower.baseSprite.texture.key !== base.key) {
+        tower.baseSprite.setTexture(base.key);
+        this.applyBaseVisual(tower.baseSprite, tower.typeKey, base, tower.level);
+      }
+    }
 
+    const gun = this.resolveGun(tower.typeKey, tower.level, tower.aimDir);
     if (!gun) {
       if (tower.sprite) {
         tower.sprite.destroy();
         tower.sprite = null;
       }
-      return;
-    }
-
-    if (!tower.sprite) {
+    } else if (!tower.sprite) {
       const pos = tower.getPosition();
       const depth = 10 + (tower.gx + tower.gy) * 0.01 + 0.05;
       tower.sprite = this.add.image(pos.x, pos.y, gun.key).setDepth(depth);
       this.applyGunVisual(tower.sprite, tower.typeKey, gun, tower.level);
+    } else {
+      if (tower.sprite.texture.key !== gun.key) {
+        tower.sprite.setTexture(gun.key);
+        this.applyGunVisual(tower.sprite, tower.typeKey, gun, tower.level);
+      }
     }
 
     this.applyTowerFacing(tower);
   }
 
-  // Ключ корпуса: направленный "<type>_base_<dir>" → старый "<type>_base"
-  // → запасная картинка типа. directional=true → не вращать.
-  resolveBase(typeKey, dir) {
+  // Ключ корпуса/крепления:
+  // 1. Уровневое крепление (для установок/моделей конкретного уровня):
+  //    "<type>_base_<level>_<dir>", "<type>_mount_<level>_<dir>", "<type>_mount_<dir>"
+  // 2. Стандартный направленный: "<type>_base_<dir>"
+  // 3. Старый: "<type>_base"
+  // 4. Шаблон: "template_base_<dir>"
+  // 5. Запасная картинка типа
+  resolveBase(typeKey, dir, level = 1) {
+    if (level) {
+      const levelDirKey = `${typeKey}_base_${level}_${dir}`;
+      if (this.textures.exists(levelDirKey)) return { key: levelDirKey, directional: true };
+
+      const mountLevelDirKey = `${typeKey}_mount_${level}_${dir}`;
+      if (this.textures.exists(mountLevelDirKey)) return { key: mountLevelDirKey, directional: true };
+
+      const mountDirKey = `${typeKey}_mount_${dir}`;
+      if (this.textures.exists(mountDirKey)) return { key: mountDirKey, directional: true };
+
+      const levelKey = `${typeKey}_base_${level}`;
+      if (this.textures.exists(levelKey)) return { key: levelKey, directional: false };
+
+      const mountLevelKey = `${typeKey}_mount_${level}`;
+      if (this.textures.exists(mountLevelKey)) return { key: mountLevelKey, directional: false };
+
+      const mountKey = `${typeKey}_mount`;
+      if (this.textures.exists(mountKey)) return { key: mountKey, directional: false };
+    }
+
     const dirKey = `${typeKey}_base_${dir}`;
     if (this.textures.exists(dirKey)) return { key: dirKey, directional: true };
 
@@ -3713,14 +3789,14 @@ class GameScene extends Phaser.Scene {
     return null;
   }
 
-  // Вписываем корпус: направленный — фиксированная опора (ноги, низ-центр),
+  // Вписываем корпус/крепление: направленный — фиксированная опора,
   // старый — авто-центр по непрозрачной части (как раньше).
-  applyBaseVisual(image, typeKey, base) {
+  applyBaseVisual(image, typeKey, base, level = 1) {
     const type = TOWER_TYPES[typeKey];
     const contentPx = this.cellSize * type.footprint;
     if (base.directional) {
       const o = type.baseOrigin || { x: 0.5, y: 1.0 };
-      this.applyDirectionalVisual(image, base.key, contentPx, o.x, o.y, `${typeKey}_base`);
+      this.applyDirectionalVisual(image, base.key, contentPx, o.x, o.y, `${typeKey}_base_${level}`);
     } else {
       this.applyTowerVisual(image, base.key, type.footprint);
     }
