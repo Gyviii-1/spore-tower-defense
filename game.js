@@ -1594,7 +1594,7 @@ class MenuScene extends Phaser.Scene {
       .setInteractive();
     this.detailBackdrop.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
-      this.closeTowerDetail();
+      // Закрытие по клику в пустое место отключено
     });
 
     // Графика плашек/карточки
