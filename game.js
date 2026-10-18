@@ -36,11 +36,11 @@ const TOWER_SELL_RATIO = 0.7;     // возврат золота при прод
 const TOWER_TYPES = {
   gunner: {
     name: 'Стрелок',
-    cost: 25,
+    cost: 35,
     range: 2.5,
-    fireRate: 1,
-    damage: 1,
-    accuracy: 1, // всегда попадает
+    fireRate: 1.3,
+    damage: 13,
+    accuracy: 0.95, // 95% попаданий
     footprint: 0.7, // размер корпуса в клетках
     weaponScale: 0.5, // во сколько раз пушка меньше корпуса
     baseTexture: 'tower', // корпус (стоит на месте)
@@ -52,14 +52,21 @@ const TOWER_TYPES = {
     gunOrbitX: 1.15,                // растяжение орбиты по горизонтали (по бокам чуть дальше)
     gunOrbitY: 0.5,                 // сжатие орбиты по вертикали (1 = круг; меньше = пушка спереди/сзади ближе к телу)
     gunMount: { x: 0, y: 0.1 },     // доп. сдвиг пушки (в долях клетки) — ниже
+    levels: [
+      { name: 'ПМ', damage: 13, fireRate: 1.3, range: 2.5, accuracy: 0.95, upgradeCost: 0 },
+      { name: 'Глок', damage: 16, fireRate: 2.0, range: 2.8, accuracy: 0.90, upgradeCost: 45 },
+      { name: 'Тек-9', damage: 18, fireRate: 3.6, range: 2.8, accuracy: 0.75, upgradeCost: 85 },
+      { name: 'Дигл', damage: 110, fireRate: 1.0, range: 3.6, accuracy: 0.96, upgradeCost: 160 },
+      { name: 'P90', damage: 32, fireRate: 7.0, range: 3.4, accuracy: 0.82, upgradeCost: 320 },
+    ],
   },
   minigun: {
-    name: 'Миниган',
-    cost: 40,
-    range: 3.5,      // бьёт дальше стрелка
-    fireRate: 4,
-    damage: 1,
-    accuracy: 0.7,   // 70% попаданий, 30% — разброс
+    name: 'Пулемётчик',
+    cost: 75,
+    range: 3.2,
+    fireRate: 2.2,
+    damage: 24,
+    accuracy: 0.85, // 85% попаданий
     footprint: 1.0,  // крупнее стрелка
     weaponScale: 0.75, // пулемёт крупнее пистолета
     baseTexture: 'tower_minigun', // корпус (стоит на месте)
@@ -71,11 +78,26 @@ const TOWER_TYPES = {
     gunOrbitX: 1.15,
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
+    levels: [
+      { name: 'АК-47', damage: 24, fireRate: 2.2, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
+      { name: 'РПК', damage: 34, fireRate: 3.0, range: 3.6, accuracy: 0.80, upgradeCost: 110 },
+      {
+        name: 'Корд (установка)',
+        damage: 85,
+        fireRate: 2.6,
+        range: 4.2,
+        accuracy: 0.88,
+        arc: (130 * Math.PI) / 180, // ~130° сектор огня
+        upgradeCost: 220,
+      },
+      { name: 'Спаренный пулемёт', damage: 50, fireRate: 5.2, range: 3.8, accuracy: 0.78, upgradeCost: 380 },
+      { name: 'Миниган M134', damage: 38, fireRate: 10.0, range: 4.0, accuracy: 0.72, upgradeCost: 650 },
+    ],
   },
 };
 
 const ENEMY_HIT_COLOR = 0xffffff; // вспышка врага при попадании
-const ENEMY_HP = 3;               // базовое здоровье врага по умолчанию
+const ENEMY_HP = 65;              // базовое здоровье врага по умолчанию
 const ENEMY_HP_SCALE = 0.12;      // прирост HP врагов за волну (множитель)
 
 // Типы врагов. hp — базовое здоровье, speed — клеток/сек, color — цвет,
@@ -85,43 +107,43 @@ const ENEMY_HP_SCALE = 0.12;      // прирост HP врагов за вол�
 // splitInto / splitCount — на кого распадается при смерти.
 // livesDamage — сколько жизней снимает, если дойдёт до конца.
 const ENEMY_TYPES = {
-  normal: { hp: 3, speed: 2.0, color: 0xe74c3c, reward: 8, size: 0.60 },
-  fast: { hp: 2, speed: 4.2, color: 0xf39c12, reward: 6, size: 0.45 },
+  normal: { hp: 65, speed: 1.8, color: 0xe74c3c, reward: 10, size: 0.60 },
+  fast: { hp: 45, speed: 3.6, color: 0xf39c12, reward: 8, size: 0.45 },
   armored: {
-    hp: 8,
-    speed: 1.5,
+    hp: 180,
+    speed: 1.3,
     color: 0x7f8c8d,
-    reward: 14,
+    reward: 22,
     size: 0.62,
-    damageMultiplier: 0.6,
+    damageMultiplier: 0.65,
   },
-  tank: { hp: 26, speed: 0.9, color: 0x8e44ad, reward: 30, size: 0.80 },
+  tank: { hp: 650, speed: 0.8, color: 0x8e44ad, reward: 60, size: 0.80 },
   splitter: {
-    hp: 12,
-    speed: 1.6,
+    hp: 280,
+    speed: 1.5,
     color: 0x27ae60,
-    reward: 15,
+    reward: 28,
     size: 0.70,
     splitInto: 'small',
     splitCount: 2,
   },
-  small: { hp: 2, speed: 3.2, color: 0xe63946, reward: 3, size: 0.34 },
+  small: { hp: 45, speed: 2.8, color: 0xe63946, reward: 5, size: 0.34 },
   shielded: {
-    hp: 15,
-    speed: 1.4,
+    hp: 320,
+    speed: 1.3,
     color: 0x2980b9,
-    reward: 25,
+    reward: 45,
     size: 0.70,
-    shield: 12,
+    shield: 250,
     shieldColor: 0x66ccff,
   },
-  boss: { hp: 160, speed: 0.8, color: 0x2c3e50, reward: 220, size: 1.15, livesDamage: 3 },
+  boss: { hp: 4500, speed: 0.7, color: 0x2c3e50, reward: 500, size: 1.15, livesDamage: 5 },
 };
 
 // ----------------------------- Волны -----------------------------
 const SPAWN_INTERVAL = 1000;      // базовая задержка между спавном, мс
 const SPAWN_INTERVAL_MIN = 300;   // минимальная задержка (дальше волны — быстрее)
-const WAVE_CLEAR_BONUS = 25;      // бонус золота за зачистку волны
+const WAVE_CLEAR_BONUS = 40;      // бонус золота за зачистку волны
 
 // Состав волн 1–20 по документу. Дальше — процедурно (buildEndlessWave).
 const WAVE_TABLE = [
@@ -149,9 +171,9 @@ const WAVE_TABLE = [
 
 const PROJECTILE_COLOR = 0xf1c40f; // цвет снаряда (жёлтый)
 const PROJECTILE_SPEED = 10;       // скорость снаряда: клеток в секунду
-const PROJECTILE_DAMAGE = 1;       // урон за попадание
+const PROJECTILE_DAMAGE = 13;      // урон за попадание
 
-const START_GOLD = 100;           // стартовое золото игрока
+const START_GOLD = 140;           // стартовое золото игрока
 const START_LIVES = 10;           // стартовые жизни игрока
 
 // Маршрут врагов задаётся угловыми точками (по клеткам сетки).
@@ -603,7 +625,7 @@ class Enemy extends Phaser.GameObjects.Rectangle {
 // ------------------------------ Снаряд ------------------------------
 // Маленький жёлтый кружок, который летит от башни точно в цель (самонаведение).
 class Projectile extends Phaser.GameObjects.Arc {
-  constructor(scene, x, y, target, damage = PROJECTILE_DAMAGE, willHit = true) {
+  constructor(scene, x, y, target, damage = PROJECTILE_DAMAGE, willHit = true, accuracy = 1) {
     super(scene, x, y, Math.max(3, ISO_HW * 0.12), 0, 360, false, PROJECTILE_COLOR);
 
     this.target = target;   // враг, в которого стреляли
@@ -611,8 +633,9 @@ class Projectile extends Phaser.GameObjects.Arc {
     this.willHit = willHit; // попадёт ли этот выстрел
 
     if (!willHit) {
-      // Промах: случайная точка рядом с целью (разброс).
-      const spread = ISO_HW * 1.2;
+      // Промах: точка разброса зависит от точности оружия
+      const spreadFactor = Math.max(0.6, (1.1 - accuracy) * 2.4);
+      const spread = ISO_HW * spreadFactor;
       this.missX = target.x + Phaser.Math.Between(-spread, spread);
       this.missY = target.y + Phaser.Math.Between(-spread, spread);
       this.setAlpha(0.7);
@@ -670,6 +693,7 @@ class Projectile extends Phaser.GameObjects.Arc {
 class Tower {
   constructor(scene, gx, gy, typeKey = 'gunner') {
     const type = TOWER_TYPES[typeKey] || TOWER_TYPES.gunner;
+    const lvl1 = type.levels ? type.levels[0] : null;
 
     this.scene = scene;
     this.gx = gx; // центр башни в клетках (может быть дробным)
@@ -677,10 +701,12 @@ class Tower {
     this.typeKey = typeKey;          // ключ типа ("gunner", "minigun", ...)
     this.config = type;              // настройки типа
     this.level = 1;                  // уровень башни
-    this.range = type.range;         // радиус атаки, клеток
-    this.fireRate = type.fireRate;   // выстрелов в секунду
-    this.damage = type.damage;       // урон за выстрел
-    this.accuracy = type.accuracy !== undefined ? type.accuracy : 1; // шанс попадания
+    this.range = lvl1 ? lvl1.range : type.range;         // радиус атаки, клеток
+    this.fireRate = lvl1 ? lvl1.fireRate : type.fireRate;   // выстрелов в секунду
+    this.damage = lvl1 ? lvl1.damage : type.damage;       // урон за выстрел
+    this.accuracy = lvl1 && lvl1.accuracy !== undefined ? lvl1.accuracy : (type.accuracy !== undefined ? type.accuracy : 1);
+    this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
+    this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
     this.cooldown = 0;               // время до следующего выстрела, сек
     this.totalSpent = type.cost;     // сколько золота вложено (для продажи)
     this.aimAngle = dirToAngle(DIR_FORWARD); // куда направлена пушка (радианы)
@@ -691,9 +717,60 @@ class Tower {
     this.baseSprite = null;          // картинка корпуса (стоит на месте)
   }
 
-  // Цена следующего улучшения (зависит от типа и уровня).
+  // Название текущего оружия
+  getWeaponName() {
+    const lvl = this.config.levels && this.config.levels[this.level - 1];
+    return lvl ? lvl.name : this.config.name;
+  }
+
+  // Название оружия следующего уровня
+  getNextWeaponName() {
+    if (!this.canUpgrade()) return null;
+    const next = this.config.levels && this.config.levels[this.level];
+    return next ? next.name : null;
+  }
+
+  // Инициализация угла установки стационарного орудия
+  initMountAngle() {
+    if (this.aimAngle !== undefined && this.aimAngle !== dirToAngle(DIR_FORWARD)) {
+      this.mountAngle = this.aimAngle;
+    } else {
+      let bestDist = Infinity;
+      let bestAngle = dirToAngle(DIR_FORWARD);
+      const pos = this.getPosition();
+      for (const wp of ROUTE_WAYPOINTS) {
+        const wpScreen = worldToScreen(wp.x, wp.y);
+        const d = Math.hypot(wp.x - this.gx, wp.y - this.gy);
+        if (d < bestDist) {
+          bestDist = d;
+          bestAngle = Math.atan2(wpScreen.y - pos.y, wpScreen.x - pos.x);
+        }
+      }
+      this.mountAngle = bestAngle;
+    }
+    this.baseAngle = this.mountAngle;
+    this.baseDir = angleToDir(this.mountAngle);
+    this.aimAngle = this.mountAngle;
+    this.aimDir = this.baseDir;
+  }
+
+  // Поворот стационарного сектора на угол rad
+  rotateArc(rad = Math.PI / 4) {
+    if (!this.arc) return;
+    this.mountAngle = (this.mountAngle + rad) % (Math.PI * 2);
+    if (this.mountAngle < -Math.PI) this.mountAngle += Math.PI * 2;
+    if (this.mountAngle > Math.PI) this.mountAngle -= Math.PI * 2;
+    this.baseAngle = this.mountAngle;
+    this.baseDir = angleToDir(this.mountAngle);
+    this.aimAngle = this.mountAngle;
+    this.aimDir = this.baseDir;
+  }
+
+  // Цена следующего улучшения (зависит от конфигурации уровней).
   getUpgradeCost() {
-    return Math.round(this.config.cost * 0.8) * this.level;
+    if (!this.canUpgrade()) return 0;
+    const next = this.config.levels && this.config.levels[this.level];
+    return next ? next.upgradeCost : Math.round(this.config.cost * 0.8) * this.level;
   }
 
   // Сколько золота вернётся при продаже.
@@ -706,13 +783,26 @@ class Tower {
     return this.level < TOWER_MAX_LEVEL;
   }
 
-  // Улучшение башни: +радиус, +скорость, +урон.
-  // cost передаёт сцена — там же списывается золото.
+  // Улучшение башни под конкретный уровень из levels.
   upgrade(cost) {
+    if (!this.canUpgrade()) return;
     this.level += 1;
-    this.range += 0.4;
-    this.fireRate += 0.3;
-    this.damage += 1;
+    const lvl = this.config.levels && this.config.levels[this.level - 1];
+    if (lvl) {
+      this.range = lvl.range;
+      this.fireRate = lvl.fireRate;
+      this.damage = lvl.damage;
+      this.accuracy = lvl.accuracy !== undefined ? lvl.accuracy : 1;
+      const hadArc = Boolean(this.arc);
+      this.arc = lvl.arc || null;
+      if (this.arc && !hadArc) {
+        this.initMountAngle();
+      }
+    } else {
+      this.range += 0.4;
+      this.fireRate += 0.3;
+      this.damage += 1;
+    }
     this.totalSpent += cost;
   }
 
@@ -721,20 +811,30 @@ class Tower {
     return worldToScreen(this.gx, this.gy);
   }
 
-  // Обновление башни: перезарядка, поиск цели, выстрел.
+  // Обновление башни: перезарядка, поиск цели, наведение, выстрел.
   update(delta, enemies) {
     this.cooldown -= delta / 1000;
 
     const pos = this.getPosition();
     const target = this.findTarget(enemies);
 
-    // Наводим пушку на цель (визуально — по экранным позициям) и поворачиваем корпус.
-    // Нет цели — держим последнее направление (не сбрасываем).
+    // Наводим пушку на цель в пределах сектора (если есть ограничение arc)
     if (target) {
       this.aimAngle = Math.atan2(target.y - pos.y, target.x - pos.x);
       this.aimDir = angleToDir(this.aimAngle, this.aimDir);
-      this.baseAngle = this.aimAngle;
-      this.baseDir = angleToDir(this.baseAngle, this.baseDir);
+      if (!this.arc) {
+        this.baseAngle = this.aimAngle;
+        this.baseDir = angleToDir(this.baseAngle, this.baseDir);
+      } else {
+        this.baseAngle = this.mountAngle;
+        this.baseDir = angleToDir(this.mountAngle, this.baseDir);
+      }
+    } else if (this.arc) {
+      // Нет цели — смотрим в центр сектора установки
+      this.aimAngle = this.mountAngle;
+      this.aimDir = angleToDir(this.mountAngle, this.aimDir);
+      this.baseAngle = this.mountAngle;
+      this.baseDir = this.aimDir;
     }
 
     // Стреляем, только если башня умеет стрелять, есть цель и она перезарядилась.
@@ -753,16 +853,24 @@ class Tower {
   }
 
   // Целимся в ПЕРВОГО врага — самого продвинутого по дороге (ведущего),
-  // из тех, кто в радиусе. segment + progress монотонно растёт по маршруту.
+  // из тех, кто в радиусе (и в секторе обстрела, если задан arc).
   findTarget(enemies) {
     let best = null;
     let bestLead = -Infinity;
+    const pos = this.getPosition();
 
     for (const enemy of enemies) {
       if (!enemy.active || enemy.isDead) continue;
 
       const distance = Math.hypot(this.gx - enemy.wx, this.gy - enemy.wy);
       if (distance > this.range) continue;
+
+      if (this.arc) {
+        const enemyAngle = Math.atan2(enemy.y - pos.y, enemy.x - pos.x);
+        if (Math.abs(angleDiff(enemyAngle, this.mountAngle)) > this.arc / 2) {
+          continue;
+        }
+      }
 
       const lead = enemy.segment + enemy.progress;
       if (lead > bestLead) {
@@ -779,7 +887,7 @@ class Tower {
   shoot(pos, target) {
     const willHit = Math.random() < this.accuracy;
     this.scene.playSfx('sfx_shot', 0.25);
-    const projectile = new Projectile(this.scene, pos.x, pos.y, target, this.damage, willHit);
+    const projectile = new Projectile(this.scene, pos.x, pos.y, target, this.damage, willHit, this.accuracy);
     this.scene.projectiles.push(projectile);
   }
 }
@@ -1013,8 +1121,12 @@ class MenuScene extends Phaser.Scene {
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
+      const baseGunName = type.levels ? type.levels[0].name : '';
+      const infoText = baseGunName
+        ? `База: ${baseGunName} · Урон: ${type.damage} · Цена: ${type.cost}`
+        : `Стоимость: ${type.cost} · Урон: ${type.damage || 1}`;
       const info = this.add
-        .text(-75, 14, `Стоимость: ${type.cost} · Урон: ${type.damage || 1}`, {
+        .text(-75, 14, infoText, {
           fontFamily: UI_FONT,
           fontSize: '13px',
           color: '#8b98aa',
@@ -2052,6 +2164,19 @@ class GameScene extends Phaser.Scene {
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
 
+    this.towerMenuRotate = this.add
+      .text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#f39c12',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(103)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
     this.towerMenuSell = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
@@ -2067,9 +2192,15 @@ class GameScene extends Phaser.Scene {
     this.towerMenuParts = [
       this.towerMenuBg,
       this.towerMenuTitle,
+      this.towerMenuRotate,
       this.towerMenuUpgrade,
       this.towerMenuSell,
     ];
+
+    this.towerMenuRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.rotateSelectedTower();
+    });
 
     this.towerMenuUpgrade.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
@@ -2476,8 +2607,13 @@ class GameScene extends Phaser.Scene {
   openTowerMenu(tower) {
     this.selectedTower = tower;
     this.hideEnemyInfo();
-    // Показываем все части меню.
-    for (const part of this.towerMenuParts) part.setVisible(true);
+    for (const part of this.towerMenuParts) {
+      if (part === this.towerMenuRotate && !tower.arc) {
+        part.setVisible(false);
+        continue;
+      }
+      part.setVisible(true);
+    }
     this.refreshTowerMenu();
     this.positionTowerMenu();
     this.showRangeRingForTower(tower);
@@ -2492,21 +2628,41 @@ class GameScene extends Phaser.Scene {
     this.clearRangeRing();
   }
 
+  // Повернуть сектор обстрела стационарной турели
+  rotateSelectedTower() {
+    const tower = this.selectedTower;
+    if (!tower || !tower.arc) return;
+    tower.rotateArc(Math.PI / 4);
+    this.applyTowerFacing(tower);
+    this.showRangeRingForTower(tower);
+    this.refreshTowerMenu();
+  }
+
   // Обновить тексты меню по текущей башне.
   refreshTowerMenu() {
     const tower = this.selectedTower;
     if (!tower) return;
 
     this.towerMenuUpgrade.setVisible(true);
-    this.towerMenuTitle.setText(
-      `${tower.config.name} · ур. ${tower.level}\n` +
-        `Радиус ${tower.range.toFixed(1)} · ${tower.fireRate.toFixed(1)}/с · точн. ${Math.round(
-          tower.accuracy * 100
-        )}%`
-    );
+    let title =
+      `${tower.getWeaponName()} · ур. ${tower.level}\n` +
+      `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)} · Точн: ${Math.round(
+        tower.accuracy * 100
+      )}%`;
+    if (tower.arc) {
+      title += `\nСектор обстрела: ${Math.round((tower.arc * 180) / Math.PI)}°`;
+      this.towerMenuRotate.setVisible(true).setText('🔄 Повернуть (+45°)');
+    } else {
+      this.towerMenuRotate.setVisible(false);
+    }
+    this.towerMenuTitle.setText(title);
 
     if (tower.canUpgrade()) {
-      this.towerMenuUpgrade.setText(`Улучшить (${tower.getUpgradeCost()})`).setColor('#e63946');
+      const nextName = tower.getNextWeaponName();
+      const upText = nextName
+        ? `Улучшить: ${nextName} (${tower.getUpgradeCost()})`
+        : `Улучшить (${tower.getUpgradeCost()})`;
+      this.towerMenuUpgrade.setText(upText).setColor('#e63946');
     } else {
       this.towerMenuUpgrade.setText('МАКС. УРОВЕНЬ').setColor('#7f8c8d');
     }
@@ -2521,8 +2677,11 @@ class GameScene extends Phaser.Scene {
 
     const width = this.scale.width;
     const height = this.scale.height;
-    const halfW = 100 * DPR; // половина ширины фона меню (200 / 2)
-    const halfH = 75 * DPR;  // половина высоты фона меню (150 / 2)
+    const hasArc = Boolean(tower.arc);
+    const menuW = 230 * DPR;
+    const menuH = hasArc ? 180 * DPR : 145 * DPR;
+    const halfW = menuW / 2;
+    const halfH = menuH / 2;
     const margin = 8 * DPR;
 
     // Угол окна (верх-лево) — в точке нажатия (или у башни).
@@ -2530,11 +2689,22 @@ class GameScene extends Phaser.Scene {
     const x = Phaser.Math.Clamp(anchor.x + halfW, halfW + margin, width - halfW - margin);
     const y = Phaser.Math.Clamp(anchor.y + halfH, halfH + margin, height - halfH - margin);
 
-    const off = this.towerMenuOffsets;
-    this.towerMenuBg.setPosition(x, y + off.bg);
-    this.towerMenuTitle.setPosition(x, y + off.title);
-    this.towerMenuUpgrade.setPosition(x, y + off.upgrade);
-    this.towerMenuSell.setPosition(x, y + off.sell);
+    this.towerMenuBg.setSize(menuW, menuH);
+    this.towerMenuBg.setPosition(x, y);
+
+    if (hasArc) {
+      this.towerMenuTitle.setPosition(x, y - 56 * DPR);
+      this.towerMenuRotate.setPosition(x, y - 18 * DPR);
+      this.towerMenuUpgrade.setPosition(x, y + 20 * DPR);
+      this.towerMenuSell.setPosition(x, y + 58 * DPR);
+    } else {
+      this.towerMenuTitle.setPosition(x, y - 42 * DPR);
+      this.towerMenuRotate.setVisible(false);
+      this.towerMenuUpgrade.setPosition(x, y + 4 * DPR);
+      this.towerMenuSell.setPosition(x, y + 46 * DPR);
+    }
+
+    updateRoundBgs(this);
   }
 
   // Улучшить выбранную башню за золото.
@@ -2553,6 +2723,7 @@ class GameScene extends Phaser.Scene {
     this.refreshTowerSprite(tower); // меняем картинку на спрайт нового уровня
     this.drawTowers();
     this.refreshTowerMenu();
+    this.positionTowerMenu();
     this.showRangeRingForTower(tower); // радиус вырос — обновляем кольцо
     this.updateUI();
   }
@@ -3447,23 +3618,48 @@ class GameScene extends Phaser.Scene {
 
   // Кольцо радиуса атаки + круг занимаемой площади башни (footprint).
   // Грань атаки (белый пунктир) рисуется отдельно и вращается — см. drawDashedRangeRing.
-  showRangeRing(x, y, rangeUnits, color, footprintUnits) {
+  showRangeRing(x, y, rangeUnits, color, footprintUnits, arc = null, mountAngle = 0) {
     this.rangeGraphics.clear();
     if (footprintUnits) {
       this.fillIsoEllipse(x, y, footprintUnits, 0xffffff, 0.06);
       this.strokeIsoEllipse(x, y, footprintUnits, 0xffffff, 0.5, 2);
     }
-    this.fillIsoEllipse(x, y, rangeUnits, 0xffffff, 0.04);
-    this.activeRange = { x: x, y: y, r: rangeUnits };
+    const a = ISO_HW * Math.SQRT2 * rangeUnits;
+    const b = ISO_HH * Math.SQRT2 * rangeUnits;
+    const g = this.rangeGraphics;
+    if (arc) {
+      const startAngle = mountAngle - arc / 2;
+      g.fillStyle(0xffffff, 0.05);
+      g.beginPath();
+      g.moveTo(x, y);
+      const SECTOR_STEPS = 32;
+      for (let i = 0; i <= SECTOR_STEPS; i++) {
+        const ang = startAngle + (arc * i) / SECTOR_STEPS;
+        g.lineTo(x + Math.cos(ang) * a, y + Math.sin(ang) * b);
+      }
+      g.closePath();
+      g.fillPath();
+    } else {
+      this.fillIsoEllipse(x, y, rangeUnits, 0xffffff, 0.04);
+    }
+    this.activeRange = { x: x, y: y, r: rangeUnits, arc: arc, mountAngle: mountAngle };
   }
 
-  // Кольца конкретной башни (радиус атаки + её площадь).
+  // Кольца конкретной башни (радиус атаки + её площадь или сектор).
   showRangeRingForTower(tower) {
     const pos = tower.getPosition();
-    this.showRangeRing(pos.x, pos.y, tower.range, tower.config.color, tower.config.footprint / 2);
+    this.showRangeRing(
+      pos.x,
+      pos.y,
+      tower.range,
+      tower.config.color,
+      tower.config.footprint / 2,
+      tower.arc,
+      tower.mountAngle || 0
+    );
   }
 
-  // Белая пунктирная вращающаяся грань радиуса атаки.
+  // Белая пунктирная вращающаяся грань радиуса атаки (или сектор).
   drawDashedRangeRing() {
     const g = this.rangeDashGraphics;
     if (!g) return;
@@ -3474,6 +3670,42 @@ class GameScene extends Phaser.Scene {
     const a = ISO_HW * Math.SQRT2 * ar.r;
     const b = ISO_HH * Math.SQRT2 * ar.r;
     g.lineStyle(3, 0xffffff, 0.9);
+
+    if (ar.arc) {
+      const startAngle = ar.mountAngle - ar.arc / 2;
+      const endAngle = ar.mountAngle + ar.arc / 2;
+
+      // Ограничительные лучи сектора обстрела
+      g.beginPath();
+      g.moveTo(ar.x, ar.y);
+      g.lineTo(ar.x + Math.cos(startAngle) * a, ar.y + Math.sin(startAngle) * b);
+      g.strokePath();
+
+      g.beginPath();
+      g.moveTo(ar.x, ar.y);
+      g.lineTo(ar.x + Math.cos(endAngle) * a, ar.y + Math.sin(endAngle) * b);
+      g.strokePath();
+
+      // Пунктирная дуга сектора
+      const ARC_DASHES = 10;
+      const DASH_FRAC = 0.55;
+      const step = ar.arc / ARC_DASHES;
+      const SEG = 4;
+      for (let i = 0; i < ARC_DASHES; i++) {
+        const start = startAngle + i * step;
+        const end = start + step * DASH_FRAC;
+        g.beginPath();
+        for (let j = 0; j <= SEG; j++) {
+          const t = start + (end - start) * (j / SEG);
+          const px = ar.x + Math.cos(t) * a;
+          const py = ar.y + Math.sin(t) * b;
+          if (j === 0) g.moveTo(px, py);
+          else g.lineTo(px, py);
+        }
+        g.strokePath();
+      }
+      return;
+    }
 
     const DASHES = 20;
     const DASH_FRAC = 0.55;
