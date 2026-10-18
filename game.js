@@ -116,6 +116,40 @@ const TOWER_TYPES = {
   },
 };
 
+// Дополнительные данные турелей для Инвентаря (роли, особенности, облики/скины)
+const TOWER_EXTRA_INFO = {
+  gunner: {
+    role: 'Базовая турель · Одиночные выстрелы',
+    traitDesc: 'Высокая точность (95%). На 4 ур. — мощный "Дигл" (110 урона), на 5 ур. — скорострельный "P90" (7.0 выстр/с).',
+    skins: [
+      { id: 'default', name: 'Стандартный', desc: 'Базовый армейский облик', unlocked: true },
+      { id: 'camo', name: 'Лесной камуфляж', desc: 'Тактический камуфляж спецназа', unlocked: false },
+      { id: 'cyber', name: 'Кибер-спора', desc: 'Тёмный карбон и неоновые вставки', unlocked: false },
+      { id: 'gold', name: 'Золотой титан', desc: 'Элитное позолоченное покрытие', unlocked: false },
+    ],
+  },
+  minigun: {
+    role: 'Тяжёлая турель · Высокая скорострельность',
+    traitDesc: 'Шквал пуль до 25 выстр/с. На 4 ур. — Миниган M134, на 5 ур. — спаренный миниган с 2 независимыми струями (14x2 урона).',
+    skins: [
+      { id: 'default', name: 'Стандартный', desc: 'Заводской стальной облик', unlocked: true },
+      { id: 'desert', name: 'Пустынный охотник', desc: 'Песчаный тактический окрас', unlocked: false },
+      { id: 'lava', name: 'Вулканический', desc: 'Раскалённый металл стволов', unlocked: false },
+      { id: 'gold', name: 'Золотой титан', desc: 'Полированный хром и золото', unlocked: false },
+    ],
+  },
+  disinfector: {
+    role: 'Химическая турель · Урон сквозь броню',
+    traitDesc: 'Бьёт ядовитым газом сквозь броню. Чем больше споры на цели, тем меньше урон. На 5 ур. распыляет непрерывный поток без кд.',
+    skins: [
+      { id: 'default', name: 'Стандартный', desc: 'Заводской защитный хим-костюм', unlocked: true },
+      { id: 'hazard', name: 'Токсичный рубеж', desc: 'Ярко-жёлтая предупреждающая разметка', unlocked: false },
+      { id: 'frost', name: 'Криогенный', desc: 'Ледяной баллон и крио-распылитель', unlocked: false },
+      { id: 'gold', name: 'Золотой титан', desc: 'Элитная станция из золота', unlocked: false },
+    ],
+  },
+};
+
 const ENEMY_HIT_COLOR = 0xffffff; // вспышка врага при попадании
 const ENEMY_HP = 65;              // базовое здоровье врага по умолчанию
 const ENEMY_HP_SCALE = 0.12;      // прирост HP врагов за волну (множитель)
@@ -1321,6 +1355,15 @@ class MenuScene extends Phaser.Scene {
     this.createTop();
     this.createShop();
     this.createTabs();
+    this.createTowerDetailModal();
+
+    if (this.input.keyboard) {
+      this.input.keyboard.on('keydown-ESC', () => {
+        if (this.towerDetailModal && this.towerDetailModal.visible) {
+          this.closeTowerDetail();
+        }
+      });
+    }
 
     this.selectTab('lobby');
     this.layout();
@@ -1432,14 +1475,23 @@ class MenuScene extends Phaser.Scene {
     this.inventoryPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.inventoryTitle = this.add
-      .text(0, 0, 'ТУРЕЛИ', {
+      .text(0, 0, 'ИНВЕНТАРЬ', {
         fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
-    this.inventoryPage.add(this.inventoryTitle);
+
+    this.inventorySubtitle = this.add
+      .text(0, 0, 'Нажмите на турель для просмотра характеристик и скинов', {
+        fontFamily: UI_FONT,
+        fontSize: '13px',
+        color: '#707e94',
+      })
+      .setOrigin(0.5);
+
+    this.inventoryPage.add([this.inventoryTitle, this.inventorySubtitle]);
 
     this.inventoryRows = [];
     for (const key in TOWER_TYPES) {
@@ -1486,7 +1538,18 @@ class MenuScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5);
 
-      row.add([bg, iconTile, icon, name, info]);
+      const arrowBtn = this.add
+        .text(128, 0, '›', {
+          fontFamily: UI_FONT,
+          fontSize: '24px',
+          color: '#707e94',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5);
+
+      const hitZone = this.add.zone(0, 0, 320, 76).setInteractive({ useHandCursor: true });
+
+      row.add([bg, iconTile, icon, name, info, arrowBtn, hitZone]);
       roundTarget(this, bg, {
         kind: 'rect',
         color: 0x131722,
@@ -1496,8 +1559,469 @@ class MenuScene extends Phaser.Scene {
         strokeAlpha: 1,
         strokeWidth: 1.5 * DPR,
       });
+
+      hitZone.on('pointerover', () => {
+        if (bg._roundItem) {
+          bg._roundItem.strokeColor = 0xff4d5e;
+          bg._roundItem.color = 0x181e2b;
+        }
+        arrowBtn.setColor('#ffffff');
+      });
+      hitZone.on('pointerout', () => {
+        if (bg._roundItem) {
+          bg._roundItem.strokeColor = 0x252d40;
+          bg._roundItem.color = 0x131722;
+        }
+        arrowBtn.setColor('#707e94');
+      });
+      hitZone.on('pointerdown', (pointer, localX, localY, event) => {
+        if (event && event.stopPropagation) event.stopPropagation();
+        this.openTowerDetail(key);
+      });
+
       this.inventoryPage.add(row);
       this.inventoryRows.push(row);
+    }
+  }
+
+  createTowerDetailModal() {
+    this.towerDetailModal = this.add.container(0, 0).setVisible(false).setDepth(60);
+
+    // Затемнение фона
+    this.detailBackdrop = this.add
+      .rectangle(0, 0, 1, 1, 0x000000, 0.78)
+      .setOrigin(0, 0)
+      .setInteractive();
+    this.detailBackdrop.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.closeTowerDetail();
+    });
+
+    // Графика плашек/карточки
+    this.detailCardGfx = this.add.graphics();
+    // Контейнер с текстами и кнопками
+    this.detailElements = this.add.container(0, 0);
+
+    this.towerDetailModal.add([this.detailBackdrop, this.detailCardGfx, this.detailElements]);
+    this.towerDetailTab = 'stats';
+  }
+
+  getTowerSkin(typeKey) {
+    try {
+      return localStorage.getItem(`spore_tower_skin_${typeKey}`) || 'default';
+    } catch (e) {
+      return 'default';
+    }
+  }
+
+  setTowerSkin(typeKey, skinId) {
+    try {
+      localStorage.setItem(`spore_tower_skin_${typeKey}`, skinId);
+    } catch (e) {}
+  }
+
+  openTowerDetail(key) {
+    this.selectedTowerKey = key;
+    this.towerDetailTab = this.towerDetailTab || 'stats';
+    this.towerDetailModal.setVisible(true);
+    const telegram = window.Telegram ? window.Telegram.WebApp : null;
+    if (telegram && telegram.BackButton) {
+      try { telegram.BackButton.show(); } catch (e) {}
+    }
+    this.renderTowerDetail();
+  }
+
+  closeTowerDetail() {
+    if (!this.towerDetailModal) return;
+    this.towerDetailModal.setVisible(false);
+    this.selectedTowerKey = null;
+    const telegram = window.Telegram ? window.Telegram.WebApp : null;
+    if (telegram && telegram.BackButton) {
+      try { telegram.BackButton.hide(); } catch (e) {}
+    }
+  }
+
+  renderTowerDetail() {
+    const typeKey = this.selectedTowerKey;
+    if (!typeKey || !TOWER_TYPES[typeKey]) return;
+    const type = TOWER_TYPES[typeKey];
+    const extra = TOWER_EXTRA_INFO[typeKey] || { role: '', traitDesc: '', skins: [] };
+
+    const { width, height } = this.scale;
+    const cardW = Math.min(width * 0.94, 440 * DPR);
+    const cardH = Math.min(height * 0.84, 580 * DPR);
+    const cardX = Math.round(width / 2 - cardW / 2);
+    const cardY = Math.round(height / 2 - cardH / 2);
+
+    this.detailBackdrop.setPosition(0, 0).setSize(width, height);
+    this.detailElements.removeAll(true);
+
+    const g = this.detailCardGfx;
+    g.clear();
+
+    // Внешняя карточка
+    g.fillStyle(0x131722, 0.98);
+    g.fillRoundedRect(cardX, cardY, cardW, cardH, 16 * DPR);
+    g.lineStyle(1.5 * DPR, 0x252d40, 1);
+    g.strokeRoundedRect(cardX, cardY, cardW, cardH, 16 * DPR);
+
+    // Шапка: Иконка
+    const iconSize = 52 * DPR;
+    const iconX = cardX + 16 * DPR;
+    const iconY = cardY + 16 * DPR;
+
+    g.fillStyle(0x1b2030, 0.95);
+    g.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
+    g.lineStyle(1 * DPR, 0x2e384e, 1);
+    g.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
+
+    const baseKey = this.getBaseTextureKey(typeKey) || type.texture;
+    if (baseKey) {
+      const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 8 * DPR, iconSize - 8 * DPR);
+      this.detailElements.add(baseImg);
+    }
+    const weaponKey = this.getWeaponTextureKey(typeKey, 1);
+    if (weaponKey) {
+      const gunImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, weaponKey).setDisplaySize(iconSize - 8 * DPR, iconSize - 8 * DPR);
+      this.detailElements.add(gunImg);
+    }
+
+    // Название и подзаголовок
+    const titleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 6 * DPR, type.name, {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(19 * DPR)}px`,
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    const subtitleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 30 * DPR, extra.role, {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(12 * DPR)}px`,
+      color: '#8b98aa',
+    });
+    this.detailElements.add([titleText, subtitleText]);
+
+    // Кнопка закрытия ✕
+    const closeBtn = this.add.text(cardX + cardW - 22 * DPR, cardY + 22 * DPR, '✕', {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(20 * DPR)}px`,
+      color: '#8b98aa',
+      padding: { x: 8 * DPR, y: 8 * DPR },
+    })
+    .setOrigin(0.5)
+    .setInteractive({ useHandCursor: true });
+
+    closeBtn.on('pointerover', () => closeBtn.setColor('#ff4d5e'));
+    closeBtn.on('pointerout', () => closeBtn.setColor('#8b98aa'));
+    closeBtn.on('pointerdown', (p, x, y, ev) => {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      this.closeTowerDetail();
+    });
+    this.detailElements.add(closeBtn);
+
+    // Вкладки [ Характеристики ] и [ Скины ]
+    const tabW = (cardW - 32 * DPR - 8 * DPR) / 2;
+    const tabH = 34 * DPR;
+    const tabY = cardY + iconSize + 24 * DPR;
+    const tab1X = cardX + 16 * DPR;
+    const tab2X = tab1X + tabW + 8 * DPR;
+
+    const isStats = this.towerDetailTab === 'stats';
+    const isSkins = this.towerDetailTab === 'skins';
+
+    // Таб 1 (Характеристики)
+    g.fillStyle(isStats ? 0xe63946 : 0x181e2b, 0.95);
+    g.fillRoundedRect(tab1X, tabY, tabW, tabH, 8 * DPR);
+    if (!isStats) {
+      g.lineStyle(1 * DPR, 0x273144, 1);
+      g.strokeRoundedRect(tab1X, tabY, tabW, tabH, 8 * DPR);
+    }
+
+    // Таб 2 (Скины)
+    g.fillStyle(isSkins ? 0xe63946 : 0x181e2b, 0.95);
+    g.fillRoundedRect(tab2X, tabY, tabW, tabH, 8 * DPR);
+    if (!isSkins) {
+      g.lineStyle(1 * DPR, 0x273144, 1);
+      g.strokeRoundedRect(tab2X, tabY, tabW, tabH, 8 * DPR);
+    }
+
+    const tab1Text = this.add.text(tab1X + tabW / 2, tabY + tabH / 2, 'Характеристики', {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(13 * DPR)}px`,
+      color: isStats ? '#ffffff' : '#707e94',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    tab1Text.on('pointerdown', (p, x, y, ev) => {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      this.towerDetailTab = 'stats';
+      this.renderTowerDetail();
+    });
+
+    const tab2Text = this.add.text(tab2X + tabW / 2, tabY + tabH / 2, 'Скины', {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(13 * DPR)}px`,
+      color: isSkins ? '#ffffff' : '#707e94',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    tab2Text.on('pointerdown', (p, x, y, ev) => {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      this.towerDetailTab = 'skins';
+      this.renderTowerDetail();
+    });
+    this.detailElements.add([tab1Text, tab2Text]);
+
+    const traitW = cardW - 32 * DPR;
+
+    if (isStats) {
+      // 4 быстрые характеристики в ряд
+      const statsY = tabY + tabH + 12 * DPR;
+      const statTileW = (cardW - 32 * DPR - 3 * 6 * DPR) / 4;
+      const statTileH = 46 * DPR;
+      const statsList = [
+        { label: 'УРОН', val: `${type.damage}`, color: '#ff4d5e' },
+        { label: 'ВЫСТР/С', val: type.fireRate ? `${type.fireRate}` : 'Струя', color: '#3498db' },
+        { label: 'РАДИУС', val: `${type.range}`, color: '#f1c40f' },
+        { label: 'ТОЧНОСТЬ', val: `${Math.round((type.accuracy || 1) * 100)}%`, color: '#2ecc71' },
+      ];
+      statsList.forEach((st, idx) => {
+        const tileX = cardX + 16 * DPR + idx * (statTileW + 6 * DPR);
+        g.fillStyle(0x161b26, 0.95);
+        g.fillRoundedRect(tileX, statsY, statTileW, statTileH, 7 * DPR);
+        g.lineStyle(1 * DPR, 0x242d3e, 1);
+        g.strokeRoundedRect(tileX, statsY, statTileW, statTileH, 7 * DPR);
+
+        const lbl = this.add.text(tileX + statTileW / 2, statsY + 12 * DPR, st.label, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(10 * DPR)}px`,
+          color: '#707e94',
+          fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        const val = this.add.text(tileX + statTileW / 2, statsY + 31 * DPR, st.val, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(15 * DPR)}px`,
+          color: st.color,
+          fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        this.detailElements.add([lbl, val]);
+      });
+
+      // Особенность башни
+      const traitY = statsY + statTileH + 8 * DPR;
+      const traitH = 40 * DPR;
+      g.fillStyle(0x151b27, 0.95);
+      g.fillRoundedRect(cardX + 16 * DPR, traitY, traitW, traitH, 7 * DPR);
+      g.lineStyle(1 * DPR, 0x273247, 1);
+      g.strokeRoundedRect(cardX + 16 * DPR, traitY, traitW, traitH, 7 * DPR);
+
+      const traitText = this.add.text(cardX + 24 * DPR, traitY + traitH / 2, extra.traitDesc, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(11 * DPR)}px`,
+        color: '#9ab1cc',
+        wordWrap: { width: traitW - 16 * DPR },
+        lineSpacing: 2 * DPR,
+      }).setOrigin(0, 0.5);
+      this.detailElements.add(traitText);
+
+      // Ветка прокачки оружия (1-5 уровни)
+      const levelsHeaderY = traitY + traitH + 10 * DPR;
+      const headerTitle = this.add.text(cardX + 16 * DPR, levelsHeaderY, 'УРОВНИ ОРУЖИЯ (1-5)', {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(11 * DPR)}px`,
+        color: '#707e94',
+        fontStyle: 'bold',
+      });
+      this.detailElements.add(headerTitle);
+
+      const levelsStartY = levelsHeaderY + 16 * DPR;
+      const levelRowH = 35 * DPR;
+      const levelRowGap = 4 * DPR;
+      const levelsCount = type.levels ? type.levels.length : 0;
+      for (let lv = 0; lv < levelsCount; lv++) {
+        const levelData = type.levels[lv];
+        const rowY = levelsStartY + lv * (levelRowH + levelRowGap);
+
+        g.fillStyle(0x161c28, 0.95);
+        g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
+        g.lineStyle(1 * DPR, 0x242d40, 1);
+        g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
+
+        const badge = this.add.text(cardX + 26 * DPR, rowY + levelRowH / 2, `[${lv + 1}]`, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(12 * DPR)}px`,
+          color: '#e63946',
+          fontStyle: 'bold',
+        }).setOrigin(0, 0.5);
+
+        const wName = this.add.text(cardX + 50 * DPR, rowY + levelRowH / 2, levelData.name, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(13 * DPR)}px`,
+          color: '#ffffff',
+          fontStyle: 'bold',
+        }).setOrigin(0, 0.5);
+
+        let statLine = '';
+        if (typeKey === 'disinfector') {
+          if (levelData.continuous) {
+            statLine = `Урон: ${levelData.damage}/с · Струя без кд · +${levelData.upgradeCost} 💰`;
+          } else {
+            statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+          }
+        } else if (typeKey === 'minigun') {
+          const dmgStr = levelData.dualBarrels ? `${levelData.damage}x2` : `${levelData.damage}`;
+          statLine = `Урон: ${dmgStr} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+        } else {
+          statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+        }
+
+        const wStat = this.add.text(cardX + 16 * DPR + traitW - 10 * DPR, rowY + levelRowH / 2, statLine, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(11.5 * DPR)}px`,
+          color: '#8b98aa',
+        }).setOrigin(1, 0.5);
+
+        this.detailElements.add([badge, wName, wStat]);
+      }
+    } else {
+      // Вкладка «Скины»
+      const currentSkinId = this.getTowerSkin(typeKey);
+      const skinsHeaderY = tabY + tabH + 12 * DPR;
+      const skinTitle = this.add.text(cardX + 16 * DPR, skinsHeaderY, 'ДОСТУПНЫЕ ОБЛИКИ', {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(11 * DPR)}px`,
+        color: '#707e94',
+        fontStyle: 'bold',
+      });
+      this.detailElements.add(skinTitle);
+
+      const skinsStartY = skinsHeaderY + 16 * DPR;
+      const skinRowH = 54 * DPR;
+      const skinRowGap = 8 * DPR;
+
+      const skinsList = extra.skins || [];
+      skinsList.forEach((skin, idx) => {
+        const rowY = skinsStartY + idx * (skinRowH + skinRowGap);
+        const isEquipped = currentSkinId === skin.id;
+
+        if (isEquipped) {
+          g.fillStyle(0x13241d, 0.95);
+          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
+          g.lineStyle(1.5 * DPR, 0x2ecc71, 1);
+          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
+        } else {
+          g.fillStyle(0x151924, 0.95);
+          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
+          g.lineStyle(1 * DPR, 0x242d3e, 1);
+          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
+        }
+
+        const iconTileSize = 38 * DPR;
+        const iconTileX = cardX + 24 * DPR;
+        const iconTileY = rowY + (skinRowH - iconTileSize) / 2;
+
+        g.fillStyle(0x1b2030, 0.95);
+        g.fillRoundedRect(iconTileX, iconTileY, iconTileSize, iconTileSize, 7 * DPR);
+        g.lineStyle(1 * DPR, isEquipped ? 0x2ecc71 : 0x2b3548, 1);
+        g.strokeRoundedRect(iconTileX, iconTileY, iconTileSize, iconTileSize, 7 * DPR);
+
+        if (skin.unlocked) {
+          const bKey = this.getBaseTextureKey(typeKey) || type.texture;
+          if (bKey) {
+            const bImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, bKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
+            this.detailElements.add(bImg);
+          }
+          const wKey = this.getWeaponTextureKey(typeKey, 1);
+          if (wKey) {
+            const gImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, wKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
+            this.detailElements.add(gImg);
+          }
+        } else {
+          const lockText = this.add.text(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, '🔒', {
+            fontSize: `${Math.round(16 * DPR)}px`,
+          }).setOrigin(0.5);
+          this.detailElements.add(lockText);
+        }
+
+        const nameText = this.add.text(cardX + 70 * DPR, rowY + 16 * DPR, skin.name, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(14 * DPR)}px`,
+          color: isEquipped ? '#ffffff' : (skin.unlocked ? '#e0e6ed' : '#7f8ea3'),
+          fontStyle: 'bold',
+        });
+        const descText = this.add.text(cardX + 70 * DPR, rowY + 34 * DPR, skin.desc, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(11 * DPR)}px`,
+          color: isEquipped ? '#75b798' : '#707e94',
+        });
+        this.detailElements.add([nameText, descText]);
+
+        if (isEquipped) {
+          const badge = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, '✓ Используется', {
+            fontFamily: UI_FONT,
+            fontSize: `${Math.round(12 * DPR)}px`,
+            color: '#2ecc71',
+            fontStyle: 'bold',
+          }).setOrigin(1, 0.5);
+          this.detailElements.add(badge);
+        } else if (skin.unlocked) {
+          const selectBtn = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, 'Выбрать', {
+            fontFamily: UI_FONT,
+            fontSize: `${Math.round(12 * DPR)}px`,
+            color: '#ffffff',
+            backgroundColor: '#1e283d',
+            padding: { x: 8 * DPR, y: 4 * DPR },
+            fontStyle: 'bold',
+          }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+          selectBtn.on('pointerdown', (p, x, y, ev) => {
+            if (ev && ev.stopPropagation) ev.stopPropagation();
+            this.setTowerSkin(typeKey, skin.id);
+            this.renderTowerDetail();
+          });
+          this.detailElements.add(selectBtn);
+        } else {
+          const soonBadge = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, 'СКОРО', {
+            fontFamily: UI_FONT,
+            fontSize: `${Math.round(11 * DPR)}px`,
+            color: '#8b98aa',
+            fontStyle: 'bold',
+          }).setOrigin(1, 0.5);
+          this.detailElements.add(soonBadge);
+        }
+
+        // Клик по строке скина
+        const rowZone = this.add.zone(cardX + 16 * DPR + traitW / 2, rowY + skinRowH / 2, traitW, skinRowH)
+          .setInteractive({ useHandCursor: true });
+        rowZone.on('pointerdown', (p, x, y, ev) => {
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          if (skin.unlocked) {
+            this.setTowerSkin(typeKey, skin.id);
+            this.renderTowerDetail();
+          } else {
+            if (this.skinNoticeText) {
+              this.skinNoticeText.setText(`🔒 Облик «${skin.name}» появится в ближайшем обновлении!`);
+              this.skinNoticeText.setColor('#f39c12');
+              this.tweens?.killTweensOf(this.skinNoticeText);
+              this.skinNoticeText.setAlpha(1);
+              this.time?.delayedCall(2500, () => {
+                if (this.skinNoticeText && this.skinNoticeText.active) {
+                  this.tweens?.add({ targets: this.skinNoticeText, alpha: 0, duration: 400 });
+                }
+              });
+            }
+          }
+        });
+        this.detailElements.add(rowZone);
+      });
+
+      const footerY = skinsStartY + skinsList.length * (skinRowH + skinRowGap) + 14 * DPR;
+      this.skinNoticeText = this.add.text(cardX + cardW / 2, footerY, 'Смена скинов и открытие новых обликов будут добавлены в обновлениях.', {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(11 * DPR)}px`,
+        color: '#5f6f87',
+        align: 'center',
+        wordWrap: { width: traitW },
+      }).setOrigin(0.5);
+      this.detailElements.add(this.skinNoticeText);
     }
   }
 
@@ -1671,7 +2195,7 @@ class MenuScene extends Phaser.Scene {
 
   createTabs() {
     this.tabBar = this.add.container(0, 0).setDepth(10);
-    this.tabInventory = this.makeTab('Турели', 'inventory');
+    this.tabInventory = this.makeTab('Инвентарь', 'inventory');
     this.tabLobby = this.makeTab('Меню', 'lobby');
     this.tabTop = this.makeTab('Топ', 'top');
     this.tabShop = this.makeTab('Магазин', 'shop');
@@ -1685,7 +2209,7 @@ class MenuScene extends Phaser.Scene {
         fontSize: '14px',
         color: '#707e94',
         backgroundColor: '#161a26',
-        padding: { x: 14 * DPR, y: 8 * DPR },
+        padding: { x: 12 * DPR, y: 8 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -1709,6 +2233,9 @@ class MenuScene extends Phaser.Scene {
 
   selectTab(key) {
     this.currentTab = key;
+    if (this.towerDetailModal && this.towerDetailModal.visible && key !== 'inventory') {
+      this.closeTowerDetail();
+    }
     if (this.lobbyPage) this.lobbyPage.setVisible(key === 'lobby');
     if (this.inventoryPage) this.inventoryPage.setVisible(key === 'inventory');
     if (this.topPage) this.topPage.setVisible(key === 'top');
@@ -1987,18 +2514,26 @@ class MenuScene extends Phaser.Scene {
       });
     }
 
-    // Инвентарь / Турели
+    // Инвентарь
     if (this.inventoryTitle) {
-      this.inventoryTitle.setPosition(width / 2, height * 0.14);
+      this.inventoryTitle.setPosition(width / 2, height * 0.12);
       this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+    }
+    if (this.inventorySubtitle) {
+      this.inventorySubtitle.setPosition(width / 2, height * 0.165);
+      this.inventorySubtitle.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.024))}px` });
     }
     const rowScale = Math.min((width * 0.9) / 320, 1.3 * DPR);
     const rowStep = 76 * rowScale + 12 * DPR;
-    const invStart = height * 0.24;
+    const invStart = height * 0.23;
     this.inventoryRows.forEach((row, index) => {
       row.setPosition(width / 2, invStart + index * rowStep);
       row.setScale(rowScale);
     });
+
+    if (this.towerDetailModal && this.towerDetailModal.visible && this.selectedTowerKey) {
+      this.renderTowerDetail();
+    }
 
     // Топ игроков (широкая карточка с поддержкой скролла для 10+ игроков)
     if (this.topTitle) {
@@ -2062,9 +2597,9 @@ class MenuScene extends Phaser.Scene {
       });
     }
 
-    // Вкладки внизу (порядок: Турели, Меню, Топ, Магазин)
+    // Вкладки внизу (порядок: Инвентарь, Меню, Топ, Магазин)
     const tabY = height * 0.94;
-    const tabWidths = [width * 0.15, width * 0.38, width * 0.62, width * 0.85];
+    const tabWidths = [width * 0.16, width * 0.39, width * 0.62, width * 0.85];
     const tabFont = `${Math.max(12 * DPR, Math.round(size * 0.032))}px`;
     const tabs = [this.tabInventory, this.tabLobby, this.tabTop, this.tabShop];
     tabs.forEach((tab, i) => {
