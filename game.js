@@ -1445,12 +1445,12 @@ class MenuScene extends Phaser.Scene {
     // Заголовок
     if (this.title) {
       this.title.setPosition(width / 2, height * 0.16);
-      this.title.setStyle({ fontSize: `${Math.max(22 * DPR, Math.round(size * 0.072))}px` });
+      this.title.setStyle({ fontSize: `${Math.min(34 * DPR, Math.max(22 * DPR, Math.round(size * 0.062)))}px` });
     }
 
-    // Карточка лобби
-    const cardWidth = Math.min(width * 0.94, 460 * DPR);
-    const cardHeight = Math.min(height * 0.38, 220 * DPR);
+    // Карточка лобби (адаптивная: не громоздкая в окне, не сжимается в фуллскрине)
+    const cardWidth = Math.min(width * 0.92, 440 * DPR);
+    const cardHeight = Phaser.Math.Clamp(Math.round(height * 0.23), 140 * DPR, 175 * DPR);
     const cardY = height * 0.42;
     const cardX = width / 2 - cardWidth / 2;
     const cardTop = cardY - cardHeight / 2;
@@ -1458,25 +1458,34 @@ class MenuScene extends Phaser.Scene {
     if (this.cardBg) {
       this.cardBg.clear();
       this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
       this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
     }
 
+    const nickSize = `${Math.min(18 * DPR, Math.max(14 * DPR, Math.round(cardHeight * 0.115)))}px`;
+    const labelSize = `${Math.min(11 * DPR, Math.max(10 * DPR, Math.round(cardHeight * 0.072)))}px`;
+    const valSize = `${Math.min(22 * DPR, Math.max(17 * DPR, Math.round(cardHeight * 0.138)))}px`;
+
+    const nickY = cardTop + cardHeight * 0.18;
+    const dividerY = cardTop + cardHeight * 0.34;
+    const statLabelY = cardTop + cardHeight * 0.54;
+    const statValY = cardTop + cardHeight * 0.77;
+    const vY1 = cardTop + cardHeight * 0.44;
+    const vY2 = cardTop + cardHeight * 0.88;
+
     if (this.playerNick) {
-      this.playerNick.setPosition(width / 2, cardTop + 32 * DPR);
-      this.playerNick.setStyle({ fontSize: `${Math.max(17 * DPR, Math.round(size * 0.05))}px` });
+      this.playerNick.setPosition(width / 2, nickY);
+      this.playerNick.setStyle({ fontSize: nickSize });
     }
 
     if (this.cardDivider) {
       this.cardDivider.clear();
       // Горизонтальный разделитель под ником
       this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
-      this.cardDivider.lineBetween(cardX + 18 * DPR, cardTop + 64 * DPR, cardX + cardWidth - 18 * DPR, cardTop + 64 * DPR);
+      this.cardDivider.lineBetween(cardX + 16 * DPR, dividerY, cardX + cardWidth - 16 * DPR, dividerY);
       // Тонкие вертикальные разделители колонок
       const colStep = cardWidth * 0.31;
-      const vY1 = cardTop + 84 * DPR;
-      const vY2 = cardTop + 186 * DPR;
       this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.5);
       this.cardDivider.lineBetween(width / 2 - colStep / 2, vY1, width / 2 - colStep / 2, vY2);
       this.cardDivider.lineBetween(width / 2 + colStep / 2, vY1, width / 2 + colStep / 2, vY2);
@@ -1487,11 +1496,6 @@ class MenuScene extends Phaser.Scene {
     const col1X = width / 2 - colStep;
     const col2X = width / 2;
     const col3X = width / 2 + colStep;
-    const statLabelY = cardTop + 104 * DPR;
-    const statValY = cardTop + 154 * DPR;
-
-    const labelSize = `${Math.max(12 * DPR, Math.round(size * 0.028))}px`;
-    const valSize = `${Math.max(22 * DPR, Math.round(size * 0.06))}px`;
 
     if (this.statWaveLabel) {
       this.statWaveLabel.setPosition(col1X, statLabelY).setStyle({ fontSize: labelSize });
@@ -1506,10 +1510,11 @@ class MenuScene extends Phaser.Scene {
       this.statRankVal.setPosition(col3X, statValY).setStyle({ fontSize: valSize });
     }
 
-    // Кнопка В БОЙ
+    // Кнопка В БОЙ — аккуратно под карточкой
     if (this.playButton) {
-      this.playButton.setPosition(width / 2, height * 0.70);
-      this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.054))}px` });
+      const playY = Math.min(height * 0.72, cardTop + cardHeight + 46 * DPR);
+      this.playButton.setPosition(width / 2, playY);
+      this.playButton.setStyle({ fontSize: `${Math.min(22 * DPR, Math.max(17 * DPR, Math.round(size * 0.048)))}px` });
     }
 
     // Инвентарь / Турели
