@@ -214,8 +214,10 @@ function getEnemyGasDamageMultiplier(enemy) {
 }
 
 // ----------------------------- Волны -----------------------------
-const SPAWN_INTERVAL = 1000;      // базовая задержка между спавном, мс
-const SPAWN_INTERVAL_MIN = 300;   // минимальная задержка (дальше волны — быстрее)
+const SPAWN_GAP_TILES_BASE = 3.2;  // базовая дистанция между врагами в клетках на 1-й волне
+const SPAWN_GAP_TILES_MIN = 2.2;   // минимальная дистанция между врагами на поздних волнах
+const SPAWN_INTERVAL = 1000;      // обратная совместимость (мс)
+const SPAWN_INTERVAL_MIN = 300;   // обратная совместимость (мс)
 const WAVE_CLEAR_BONUS = 40;      // бонус золота за зачистку волны
 
 // Состав волн 1–20 по документу. Дальше — процедурно (buildEndlessWave).
@@ -3554,9 +3556,9 @@ class GameScene extends Phaser.Scene {
     for (let i = 0; i < count; i++) {
       const hp = Math.round(base.hp * scale);
       const child = new Enemy(this, this.route, typeKey, hp, 0);
-      // Ставим детей туда же, где погиб родитель (чуть вразброс).
+      // Ставим детей позади родителя с ощутимым интервалом, чтобы не слипались.
       child.segment = parent.segment;
-      child.progress = Math.max(0, parent.progress - i * 0.08);
+      child.progress = Math.max(0, parent.progress - i * 0.16);
       this.enemies.push(child);
     }
   }
@@ -4466,16 +4468,22 @@ class GameScene extends Phaser.Scene {
     const bossCount = counts.boss || 0;
     delete counts.boss;
 
-    // Смешиваем типы «по кругу», чтобы шли вперемешку.
-    const entries = Object.entries(counts).map(([type, n]) => [type, n]);
+    // Группируем врагов пачками (по 3-4 одного типа),
+    // чтобы враги одинаковой скорости шли отрядом и держали постоянную дистанцию,
+    // а не перемешивались по 1 штуке (когда быстрый сразу втыкается в спину медленному).
+    const squadSize = 4;
+    const entries = Object.entries(counts).filter(([_, n]) => n > 0);
     const queue = [];
     let added = true;
     while (added) {
       added = false;
       for (const entry of entries) {
         if (entry[1] > 0) {
-          queue.push(entry[0]);
-          entry[1] -= 1;
+          const take = Math.min(entry[1], squadSize);
+          for (let k = 0; k < take; k++) {
+            queue.push(entry[0]);
+          }
+          entry[1] -= take;
           added = true;
         }
       }
@@ -4517,17 +4525,15 @@ class GameScene extends Phaser.Scene {
     this.updateUI();
     this.showMessage(`Волна ${this.currentWave} началась!`);
 
-    // Порционный спавн: чем дальше волна, тем чаще выходят враги.
-    const interval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL - (this.currentWave - 1) * 30);
-    this.waveSpawnTimer = this.time.addEvent({
-      delay: interval,
-      callback: this.spawnWaveEnemy,
-      callbackScope: this,
-      loop: true,
-    });
+    // Первый враг выходит через небольшую паузу (500мс)
+    if (this.waveSpawnTimer) {
+      this.waveSpawnTimer.remove(false);
+      this.waveSpawnTimer = null;
+    }
+    this.waveSpawnTimer = this.time.delayedCall(500, this.spawnWaveEnemy, [], this);
   }
 
-  // Выпускаем одного врага текущей волны.
+  // Выпускаем одного врага текущей волны и планируем спавн следующего по физической дистанции.
   spawnWaveEnemy() {
     if (this.isGameOver || this.enemiesLeftToSpawn <= 0) return;
 
@@ -4543,10 +4549,38 @@ class GameScene extends Phaser.Scene {
     this.enemies.push(enemy);
     this.enemiesLeftToSpawn -= 1;
 
-    // Все враги выпущены — таймер порционного спавна больше не нужен.
-    if (this.enemiesLeftToSpawn === 0 && this.waveSpawnTimer) {
-      this.waveSpawnTimer.remove(false);
-      this.waveSpawnTimer = null;
+    // Если враги ещё остались — рассчитываем паузу до следующего спавна по дистанции в клетках.
+    if (this.enemiesLeftToSpawn > 0) {
+      // Базовая дистанция в клетках (от 3.2 на 1-й волне до 2.2 на поздних).
+      const gapTiles = Math.max(
+        SPAWN_GAP_TILES_MIN,
+        SPAWN_GAP_TILES_BASE - (this.currentWave - 1) * 0.04
+      );
+
+      let dist = gapTiles;
+
+      // Если следующий враг в очереди быстрее текущего (например, fast за armored/tank),
+      // даём дополнительный зазор (+1.2 клетки), чтобы быстрый не догнал медленного сходу.
+      const nextType = this.waveQueue[0];
+      const nextBase = nextType ? ENEMY_TYPES[nextType] : null;
+      if (nextBase && nextBase.speed > base.speed) {
+        dist += 1.2;
+      }
+
+      // Для босса даём увеличенное пространство
+      if (typeKey === 'boss') {
+        dist += 1.0;
+      }
+
+      // Время в мс, за которое только что вышедший враг отойдёт на dist клеток
+      const delayMs = Math.round((dist / base.speed) * 1000);
+      this.waveSpawnTimer = this.time.delayedCall(delayMs, this.spawnWaveEnemy, [], this);
+    } else {
+      // Все враги выпущены — таймер порционного спавна больше не нужен.
+      if (this.waveSpawnTimer) {
+        this.waveSpawnTimer.remove(false);
+        this.waveSpawnTimer = null;
+      }
     }
   }
 
