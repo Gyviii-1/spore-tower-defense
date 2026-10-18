@@ -249,7 +249,8 @@ const PROJECTILE_SPEED = 10;       // скорость снаряда: клет�
 const PROJECTILE_DAMAGE = 13;      // урон за попадание
 
 const START_GOLD = 140;           // стартовое золото игрока
-const START_LIVES = 10;           // стартовые жизни игрока
+const START_BASE_HP = 1000;       // базовое здоровье базы игрока (было 10 жизней)
+const START_LIVES = START_BASE_HP;// обратная совместимость
 
 // Маршрут врагов задаётся угловыми точками (по клеткам сетки).
 // ----------------------------- Мир / изометрия -----------------------------
@@ -2218,9 +2219,10 @@ class GameScene extends Phaser.Scene {
     this.playerRole = 'player';
     this.playerBest = { wave: 0, gold: 0 };
 
-    // Состояние игрока (экономика и жизни).
+    // Состояние игрока (экономика и здоровье базы).
     this.gold = START_GOLD;
-    this.lives = START_LIVES;
+    this.maxBaseHp = START_BASE_HP;
+    this.lives = START_BASE_HP;
     this.isGameOver = false;
 
     // Ускорение времени (для тестеров) и тип ввода (тач/мышь).
@@ -2810,14 +2812,15 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  // Обновляем текст панели при изменении волны/жизней/золота.
+  // Обновляем текст панели при изменении волны/здоровья базы/золота.
   updateUI() {
     const nick = this.playerInfo ? this.playerInfo.nick : 'Игрок';
     const prefix = this.roleLabel(this.playerRole);
     const nameLine = prefix ? `${nick} · ${prefix}` : nick;
+    const baseText = this.infiniteLives ? '∞' : `${this.lives} HP`;
 
     this.uiText.setText(
-      `${nameLine}\nВолна: ${this.currentWave}\nЖизни: ${this.lives}\nЗолото: ${this.gold}`
+      `${nameLine}\nВолна: ${this.currentWave}\nБаза: ${baseText}\nЗолото: ${this.gold}`
     );
   }
 
@@ -2868,8 +2871,9 @@ class GameScene extends Phaser.Scene {
   toggleInfiniteLives() {
     this.infiniteLives = !this.infiniteLives;
     if (this.cheatLivesButton) {
-      this.cheatLivesButton.setText(`❤ Жизни ∞: ${this.infiniteLives ? 'вкл' : 'выкл'}`);
+      this.cheatLivesButton.setText(`❤ База ∞: ${this.infiniteLives ? 'вкл' : 'выкл'}`);
     }
+    this.updateUI();
   }
 
   killAllEnemies() {
@@ -3563,15 +3567,27 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  // Враг дошёл до конца дороги — отнимаем жизни, при 0 запускаем Game Over.
+  // Враг дошёл до базы — наносит урон, равный своему текущему остатку HP (+ щит).
+  // Если врагу снесли здоровье почти до нуля (например, осталось 5 HP) — снимет только 5 HP.
   onEnemyReachedEnd(enemy) {
     if (this.isGameOver) return;
-    if (this.infiniteLives) return; // чит: жизни не тратятся
+    if (this.infiniteLives) return; // чит: база бессмертна
 
-    const damage = (enemy && enemy.config.livesDamage) || 1;
+    const rawDamage = (enemy ? enemy.hp : 0) + (enemy && enemy.shield ? enemy.shield : 0);
+    const damage = Math.max(1, Math.round(rawDamage));
+
     this.lives = Math.max(0, this.lives - damage);
     this.updateUI();
-    console.log(`Враг дошёл до конца дороги! Осталось жизней: ${this.lives}`);
+
+    // Красный всплывающий урон на базе и лёгкая встряска экрана
+    if (this.showFloatingText && enemy) {
+      this.showFloatingText(enemy.x, enemy.y - 12 * DPR, `-${damage}`, 0xe74c3c);
+    }
+    if (this.cameras && this.cameras.main) {
+      this.cameras.main.shake(100, 0.004);
+    }
+
+    console.log(`Враг нанёс ${damage} урона базе! Осталось HP базы: ${this.lives}`);
 
     if (this.lives <= 0) this.triggerGameOver();
   }
