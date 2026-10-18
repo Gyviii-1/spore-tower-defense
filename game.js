@@ -64,8 +64,8 @@ const TOWER_TYPES = {
     name: 'Пулемётчик',
     cost: 75,
     range: 3.2,
-    fireRate: 2.2,
-    damage: 24,
+    fireRate: 10.0,
+    damage: 6,
     accuracy: 0.85, // 85% попаданий
     footprint: 1.0,  // крупнее стрелка
     weaponScale: 0.75, // пулемёт крупнее пистолета
@@ -79,11 +79,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'АК-47', damage: 24, fireRate: 2.2, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
-      { name: 'РПК', damage: 34, fireRate: 3.0, range: 3.6, accuracy: 0.80, upgradeCost: 110 },
-      { name: 'ПКМ', damage: 46, fireRate: 3.8, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
-      { name: 'Миниган M134', damage: 34, fireRate: 9.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
-      { name: 'Спаренный миниган', damage: 30, fireRate: 15.0, range: 4.2, accuracy: 0.70, upgradeCost: 650 },
+      { name: 'АК-47', damage: 6, fireRate: 10.0, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
+      { name: 'РПК', damage: 10, fireRate: 11.0, range: 3.6, accuracy: 0.82, upgradeCost: 110 },
+      { name: 'ПКМ', damage: 15, fireRate: 12.0, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
+      { name: 'Миниган M134', damage: 12, fireRate: 25.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
+      { name: 'Спаренный миниган', damage: 9, fireRate: 25.0, dualBarrels: true, range: 4.2, accuracy: 0.72, upgradeCost: 650 },
     ],
   },
   disinfector: {
@@ -873,6 +873,7 @@ class Tower {
     this.cureChance = lvl1 && lvl1.cureChance !== undefined ? lvl1.cureChance : (type.cureChance || 0);
     this.sprayCone = lvl1 && lvl1.sprayCone !== undefined ? lvl1.sprayCone : (type.sprayCone || null);
     this.continuous = Boolean(lvl1 && lvl1.continuous);
+    this.dualBarrels = Boolean(lvl1 && lvl1.dualBarrels);
     this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
     this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
     this.hasRotated = false;         // развернули ли установку (доступно только 1 раз)
@@ -978,6 +979,7 @@ class Tower {
       this.cureChance = lvl.cureChance !== undefined ? lvl.cureChance : (this.config.cureChance || 0);
       this.sprayCone = lvl.sprayCone !== undefined ? lvl.sprayCone : (this.config.sprayCone || null);
       this.continuous = Boolean(lvl.continuous);
+      this.dualBarrels = Boolean(lvl.dualBarrels);
       const hadArc = Boolean(this.arc);
       this.arc = lvl.arc || null;
       if (this.arc && !hadArc) {
@@ -1087,10 +1089,44 @@ class Tower {
       this.shootGas(pos, target);
       return;
     }
+
+    // Троттлинг звука выстрела, чтобы при скорострельности 10–25/с звук не трещал
+    const now = Date.now();
+    if (!this.lastShotSound || now - this.lastShotSound >= 75) {
+      this.scene.playSfx('sfx_shot', 0.18);
+      this.lastShotSound = now;
+    }
+
+    if (this.dualBarrels) {
+      this.shootDual(pos, target);
+      return;
+    }
+
     const willHit = Math.random() < this.accuracy;
-    this.scene.playSfx('sfx_shot', 0.25);
     const projectile = new Projectile(this.scene, pos.x, pos.y, target, this.damage, willHit, this.accuracy);
     this.scene.projectiles.push(projectile);
+  }
+
+  // Стрельба из двух независимых параллельных стволов (спаренный миниган)
+  shootDual(pos, target) {
+    const perpAngle = this.aimAngle + Math.PI / 2;
+    const barrelSpacing = 7 * DPR;
+
+    const leftX = pos.x + Math.cos(perpAngle) * barrelSpacing;
+    const leftY = pos.y + Math.sin(perpAngle) * barrelSpacing * (ISO_HH / ISO_HW);
+
+    const rightX = pos.x - Math.cos(perpAngle) * barrelSpacing;
+    const rightY = pos.y - Math.sin(perpAngle) * barrelSpacing * (ISO_HH / ISO_HW);
+
+    // Ствол 1 (левый): независимая проверка попадания и свой снаряд
+    const willHit1 = Math.random() < this.accuracy;
+    const p1 = new Projectile(this.scene, leftX, leftY, target, this.damage, willHit1, this.accuracy);
+    this.scene.projectiles.push(p1);
+
+    // Ствол 2 (правый): независимая проверка попадания и свой снаряд
+    const willHit2 = Math.random() < this.accuracy;
+    const p2 = new Projectile(this.scene, rightX, rightY, target, this.damage, willHit2, this.accuracy);
+    this.scene.projectiles.push(p2);
   }
 
   // Непрерывный поток газа без перезарядки (для финального уровня дезинфектора).
@@ -3258,7 +3294,8 @@ class GameScene extends Phaser.Scene {
         title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
       }
     } else {
-      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
+      const dmgStr = tower.dualBarrels ? `${tower.damage} × 2` : `${tower.damage}`;
+      title += `Урон: ${dmgStr} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
       title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
     }
 
