@@ -860,7 +860,6 @@ class MenuScene extends Phaser.Scene {
     this.createTop();
     this.createShop();
     this.createTabs();
-    this.createRules();
 
     this.selectTab('lobby');
     this.layout();
@@ -916,21 +915,6 @@ class MenuScene extends Phaser.Scene {
     this.profileText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
     this.bestText = this.add.text(0, 0, '', { fontFamily: UI_FONT, fontSize: '1px' }).setVisible(false);
 
-    // Кнопка правил
-    this.briefingBtn = this.add
-      .text(0, 0, 'Правила', {
-        fontFamily: UI_FONT,
-        fontSize: '13px',
-        color: '#707e94',
-        padding: { x: 10 * DPR, y: 5 * DPR },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.briefingBtn.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.openRules();
-    });
-
     // Главная кнопка запуска игры
     this.playButton = this.add
       .text(0, 0, 'В БОЙ', {
@@ -979,7 +963,6 @@ class MenuScene extends Phaser.Scene {
       this.statRankVal,
       this.profileText,
       this.bestText,
-      this.briefingBtn,
       this.playButton,
     ]);
   }
@@ -1068,12 +1051,12 @@ class MenuScene extends Phaser.Scene {
     this.statsText = this.add
       .text(0, 0, '', {
         fontFamily: UI_FONT,
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#ff4d5e',
         align: 'center',
         lineSpacing: 4 * DPR,
         backgroundColor: '#141824',
-        padding: { x: 18 * DPR, y: 8 * DPR },
+        padding: { x: 14 * DPR, y: 7 * DPR },
       })
       .setOrigin(0.5);
     roundTarget(this, this.statsText, {
@@ -1084,27 +1067,106 @@ class MenuScene extends Phaser.Scene {
       strokeWidth: 1 * DPR,
     });
 
-    this.topCardBg = this.add.rectangle(0, 0, 100, 100, 0x12151f, 0.95);
-    roundTarget(this, this.topCardBg, {
-      kind: 'rect',
-      color: 0x12151f,
-      alpha: 0.95,
-      radius: 14 * DPR,
-      strokeColor: 0x222a3d,
-      strokeWidth: 1 * DPR,
-    });
+    // Карточка топа
+    this.topCardGfx = this.add.graphics();
 
-    this.topText = this.add
+    // Маска скролла для списка игроков
+    this.topMaskGfx = this.make.graphics();
+    this.topMask = this.topMaskGfx.createGeometryMask();
+
+    // Контейнер элементов списка
+    this.topListContainer = this.add.container(0, 0);
+    this.topListContainer.setMask(this.topMask);
+
+    // Скроллбар
+    this.topScrollbarGfx = this.add.graphics();
+
+    // Зона скролла (тач и перетаскивание списка)
+    this.topScrollZone = this.add.zone(0, 0, 10, 10).setOrigin(0, 0);
+    this.topScrollZone.setInteractive({ useHandCursor: true });
+
+    // Сообщение при загрузке или пустом списке
+    this.topEmptyText = this.add
       .text(0, 0, 'Загрузка…', {
         fontFamily: UI_FONT,
         fontSize: '15px',
-        color: '#e0e6ed',
-        align: 'left',
-        lineSpacing: 8 * DPR,
+        color: '#707e94',
+        align: 'center',
       })
       .setOrigin(0.5);
 
-    this.topPage.add([this.topCardBg, this.topTitle, this.statsText, this.topText]);
+    this.topPage.add([
+      this.topCardGfx,
+      this.topListContainer,
+      this.topScrollbarGfx,
+      this.topScrollZone,
+      this.topEmptyText,
+      this.topTitle,
+      this.statsText,
+    ]);
+
+    this.initTopScroll();
+  }
+
+  initTopScroll() {
+    this.topScrollOffset = 0;
+    this.topMinScrollOffset = 0;
+    let isDragging = false;
+    let startY = 0;
+    let startOffset = 0;
+
+    this.topScrollZone.on('pointerdown', (pointer) => {
+      if (this.currentTab !== 'top') return;
+      isDragging = true;
+      startY = pointer.y;
+      startOffset = this.topScrollOffset;
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (!isDragging || this.currentTab !== 'top') return;
+      const dy = pointer.y - startY;
+      this.applyTopScroll(startOffset + dy);
+    });
+
+    const stopDrag = () => {
+      isDragging = false;
+    };
+    this.input.on('pointerup', stopDrag);
+    this.input.on('pointerupoutside', stopDrag);
+
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+      if (this.currentTab !== 'top') return;
+      this.applyTopScroll(this.topScrollOffset - deltaY * 0.4);
+    });
+  }
+
+  applyTopScroll(offset) {
+    const minOffset = this.topMinScrollOffset || 0;
+    const maxOffset = 0;
+    this.topScrollOffset = Phaser.Math.Clamp(offset, minOffset, maxOffset);
+    if (this.topListContainer) {
+      this.topListContainer.y = (this.topListBaseY || 0) + this.topScrollOffset;
+    }
+    this.drawTopScrollbar();
+  }
+
+  drawTopScrollbar() {
+    if (!this.topScrollbarGfx) return;
+    this.topScrollbarGfx.clear();
+    const totalH = this.topContentH || 0;
+    const viewH = this.topVisibleH || 0;
+    if (totalH <= viewH || viewH <= 0) return;
+
+    const scrollbarX = this.topCardX + this.topCardW - 7 * DPR;
+    const trackY = this.topCardInnerTop;
+    const trackH = viewH;
+
+    const thumbH = Math.max(22 * DPR, (viewH / totalH) * trackH);
+    const scrollProgress = (-this.topScrollOffset) / (totalH - viewH);
+    const thumbY = trackY + scrollProgress * (trackH - thumbH);
+
+    this.topScrollbarGfx.fillStyle(0x354258, 0.85);
+    this.topScrollbarGfx.fillRoundedRect(scrollbarX, thumbY, 3 * DPR, thumbH, 1.5 * DPR);
   }
 
   createShop() {
@@ -1151,66 +1213,6 @@ class MenuScene extends Phaser.Scene {
     this.tabBar.add([this.tabInventory, this.tabLobby, this.tabTop, this.tabShop]);
   }
 
-  createRules() {
-    this.rulesPanel = this.add.container(0, 0).setVisible(false).setDepth(20);
-
-    this.rulesBg = this.add
-      .rectangle(0, 0, 1, 1, 0x07080c, 0.96)
-      .setOrigin(0, 0)
-      .setInteractive();
-    this.rulesBg.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-    });
-
-    this.rulesCard = this.add.rectangle(0, 0, 340, 360, 0x131722, 0.98);
-    roundTarget(this, this.rulesCard, {
-      kind: 'rect',
-      color: 0x131722,
-      alpha: 0.98,
-      radius: 16 * DPR,
-      strokeColor: 0xe63946,
-      strokeWidth: 1.5 * DPR,
-    });
-
-    this.rulesTitle = this.add
-      .text(0, -130, 'ПРАВИЛА ИГРЫ', {
-        fontFamily: UI_FONT,
-        fontSize: '20px',
-        color: '#ff4d5e',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-
-    this.rulesText = this.add
-      .text(0, 0, '', {
-        fontFamily: UI_FONT,
-        fontSize: '15px',
-        color: '#d0d7de',
-        align: 'left',
-        lineSpacing: 8 * DPR,
-      })
-      .setOrigin(0.5);
-
-    this.rulesBack = this.add
-      .text(0, 130, 'ПОНЯТНО', {
-        fontFamily: UI_FONT,
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#e63946',
-        padding: { x: 30 * DPR, y: 10 * DPR },
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.rulesBack.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.closeRules();
-    });
-
-    roundTarget(this, this.rulesBack, { color: 0xe63946, alpha: 1, radius: 12 * DPR });
-    this.rulesPanel.add([this.rulesBg, this.rulesCard, this.rulesTitle, this.rulesText, this.rulesBack]);
-  }
-
   makeTab(label, key) {
     const tab = this.add
       .text(0, 0, label, {
@@ -1247,6 +1249,10 @@ class MenuScene extends Phaser.Scene {
     if (this.topPage) this.topPage.setVisible(key === 'top');
     if (this.shopPage) this.shopPage.setVisible(key === 'shop');
 
+    if (this.topScrollZone && this.topScrollZone.input) {
+      this.topScrollZone.input.enabled = (key === 'top');
+    }
+
     const isLobby = key === 'lobby';
     if (this.title) this.title.setVisible(isLobby);
 
@@ -1262,24 +1268,6 @@ class MenuScene extends Phaser.Scene {
         tab._roundItem.strokeWidth = (active ? 1.5 : 1) * DPR;
       }
     }
-    updateRoundBgs(this);
-  }
-
-  openRules() {
-    this.rulesText.setText(
-      '• Цель: не пустить врагов до конца дороги\n' +
-        '• Строй башни на свободных клетках коридора\n' +
-        '• Кнопка «СТАРТ» запускает следующую волну\n' +
-        '• Клик по башне: улучшение или продажа\n' +
-        '• Золото дают за уничтожение врагов\n' +
-        '• Враг, дошедший до конца, отнимает жизнь'
-    );
-    this.rulesPanel.setVisible(true);
-    updateRoundBgs(this);
-  }
-
-  closeRules() {
-    this.rulesPanel.setVisible(false);
     updateRoundBgs(this);
   }
 
@@ -1313,16 +1301,90 @@ class MenuScene extends Phaser.Scene {
   }
 
   refreshTop() {
+    if (!this.topListContainer) return;
+    this.topListContainer.removeAll(true);
+
     if (!this.topList || this.topList.length === 0) {
-      this.topText.setText('Пока нет рекордов');
+      if (this.topEmptyText) {
+        this.topEmptyText.setVisible(true).setText('Пока нет рекордов');
+      }
+      this.topContentH = 0;
+      this.topMinScrollOffset = 0;
+      this.applyTopScroll(0);
       return;
     }
-    const lines = [];
-    this.topList.slice(0, 10).forEach((item, index) => {
-      lines.push(`${index + 1}.  ${item.nick}  —  волна ${item.wave}  ·  ${item.gold} золота`);
+
+    if (this.topEmptyText) this.topEmptyText.setVisible(false);
+
+    const width = this.scale.width;
+    const topCardW = this.topCardW || Math.min(width * 0.94, 460 * DPR);
+    const rowW = topCardW - 24 * DPR;
+    const rowH = 44 * DPR;
+    const rowGap = 6 * DPR;
+    const rowX = width / 2;
+
+    const list = this.topList.slice(0, 10);
+    list.forEach((item, index) => {
+      const rowY = index * (rowH + rowGap) + rowH / 2;
+      const rowContainer = this.add.container(rowX, rowY);
+
+      // Фон строки
+      const rowBg = this.add.graphics();
+      const isTop3 = index < 3;
+      rowBg.fillStyle(isTop3 ? 0x161d2b : 0x111622, 0.95);
+      rowBg.fillRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8 * DPR);
+      rowBg.lineStyle(1 * DPR, isTop3 ? 0x27354d : 0x1c2434, 0.85);
+      rowBg.strokeRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8 * DPR);
+
+      // Номер места
+      const rankColor = index === 0 ? '#f1c40f' : index === 1 ? '#cbd5e1' : index === 2 ? '#e67e22' : '#707e94';
+      const rankText = this.add
+        .text(-rowW / 2 + 14 * DPR, 0, `#${index + 1}`, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(14 * DPR)}px`,
+          color: rankColor,
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+
+      // Никнейм игрока
+      const nickStr = item.nick || 'Игрок';
+      const nickText = this.add
+        .text(-rowW / 2 + 52 * DPR, 0, nickStr, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(14 * DPR)}px`,
+          color: '#ffffff',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+
+      // Ограничиваем ширину ника, чтобы не наезжал на показатели
+      const maxNickW = Math.max(70 * DPR, rowW - 200 * DPR);
+      if (nickText.width > maxNickW) {
+        let short = nickStr;
+        while (short.length > 2 && nickText.width > maxNickW) {
+          short = short.slice(0, -1);
+          nickText.setText(short + '…');
+        }
+      }
+
+      // Показатели: волна и золото
+      const statsStr = `Волна ${item.wave}  ·  ${item.gold} з.`;
+      const statsText = this.add
+        .text(rowW / 2 - 14 * DPR, 0, statsStr, {
+          fontFamily: UI_FONT,
+          fontSize: `${Math.round(13 * DPR)}px`,
+          color: '#8b98aa',
+        })
+        .setOrigin(1, 0.5);
+
+      rowContainer.add([rowBg, rankText, nickText, statsText]);
+      this.topListContainer.add(rowContainer);
     });
-    this.topText.setText(lines.join('\n'));
-    updateRoundBgs(this);
+
+    this.topContentH = list.length * (rowH + rowGap);
+    this.topMinScrollOffset = Math.min(0, (this.topVisibleH || 0) - this.topContentH);
+    this.applyTopScroll(this.topScrollOffset);
   }
 
   async loadPlayerData() {
@@ -1362,7 +1424,7 @@ class MenuScene extends Phaser.Scene {
       }
     } catch (error) {
       console.warn('Не удалось загрузить топ:', error);
-      this.topText.setText('Не удалось загрузить топ');
+      if (this.topEmptyText) this.topEmptyText.setVisible(true).setText('Не удалось загрузить топ');
     }
   }
 
@@ -1387,9 +1449,9 @@ class MenuScene extends Phaser.Scene {
     }
 
     // Карточка лобби
-    const cardWidth = Math.min(width * 0.88, 360 * DPR);
-    const cardHeight = Math.min(height * 0.28, 140 * DPR);
-    const cardY = height * 0.43;
+    const cardWidth = Math.min(width * 0.94, 460 * DPR);
+    const cardHeight = Math.min(height * 0.32, 170 * DPR);
+    const cardY = height * 0.42;
     const cardX = width / 2 - cardWidth / 2;
     const cardTop = cardY - cardHeight / 2;
 
@@ -1402,25 +1464,33 @@ class MenuScene extends Phaser.Scene {
     }
 
     if (this.playerNick) {
-      this.playerNick.setPosition(width / 2, cardTop + 24 * DPR);
-      this.playerNick.setStyle({ fontSize: `${Math.max(15 * DPR, Math.round(size * 0.046))}px` });
+      this.playerNick.setPosition(width / 2, cardTop + 28 * DPR);
+      this.playerNick.setStyle({ fontSize: `${Math.max(16 * DPR, Math.round(size * 0.048))}px` });
     }
 
     if (this.cardDivider) {
       this.cardDivider.clear();
+      // Горизонтальный разделитель под ником
       this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
-      this.cardDivider.lineBetween(cardX + 16 * DPR, cardTop + 44 * DPR, cardX + cardWidth - 16 * DPR, cardTop + 44 * DPR);
+      this.cardDivider.lineBetween(cardX + 16 * DPR, cardTop + 54 * DPR, cardX + cardWidth - 16 * DPR, cardTop + 54 * DPR);
+      // Тонкие вертикальные разделители колонок
+      const colStep = cardWidth * 0.31;
+      const vY1 = cardTop + 74 * DPR;
+      const vY2 = cardTop + 146 * DPR;
+      this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.5);
+      this.cardDivider.lineBetween(width / 2 - colStep / 2, vY1, width / 2 - colStep / 2, vY2);
+      this.cardDivider.lineBetween(width / 2 + colStep / 2, vY1, width / 2 + colStep / 2, vY2);
     }
 
-    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП — гарантированно не перекрывают друг друга
-    const colStep = cardWidth * 0.32;
+    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП — больше места, разделители, 0 наложений
+    const colStep = cardWidth * 0.31;
     const col1X = width / 2 - colStep;
     const col2X = width / 2;
     const col3X = width / 2 + colStep;
-    const statLabelY = cardTop + 68 * DPR;
-    const statValY = cardTop + 98 * DPR;
+    const statLabelY = cardTop + 84 * DPR;
+    const statValY = cardTop + 124 * DPR;
 
-    const labelSize = `${Math.max(10 * DPR, Math.round(size * 0.024))}px`;
+    const labelSize = `${Math.max(11 * DPR, Math.round(size * 0.026))}px`;
     const valSize = `${Math.max(18 * DPR, Math.round(size * 0.052))}px`;
 
     if (this.statWaveLabel) {
@@ -1438,14 +1508,8 @@ class MenuScene extends Phaser.Scene {
 
     // Кнопка В БОЙ
     if (this.playButton) {
-      this.playButton.setPosition(width / 2, height * 0.67);
+      this.playButton.setPosition(width / 2, height * 0.68);
       this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.054))}px` });
-    }
-
-    // Кнопка правил
-    if (this.briefingBtn) {
-      this.briefingBtn.setPosition(width / 2, height * 0.77);
-      this.briefingBtn.setStyle({ fontSize: `${Math.max(12 * DPR, Math.round(size * 0.03))}px` });
     }
 
     // Инвентарь / Турели
@@ -1461,28 +1525,56 @@ class MenuScene extends Phaser.Scene {
       row.setScale(rowScale);
     });
 
-    // Топ
+    // Топ игроков (широкая карточка с поддержкой скролла для 10+ игроков)
     if (this.topTitle) {
-      this.topTitle.setPosition(width / 2, height * 0.12);
+      this.topTitle.setPosition(width / 2, height * 0.11);
       this.topTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
     }
     if (this.statsText) {
-      this.statsText.setPosition(width / 2, height * 0.19);
-      this.statsText.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.028))}px` });
-    }
-    const topCardW = Math.min(width * 0.9, 360 * DPR);
-    const topCardH = height * 0.54;
-    const topCardY = height * 0.54;
-    if (this.topCardBg) {
-      this.topCardBg.setPosition(width / 2, topCardY).setSize(topCardW, topCardH);
-    }
-    if (this.topText) {
-      this.topText.setPosition(width / 2, topCardY);
-      this.topText.setStyle({
-        fontSize: `${Math.max(12 * DPR, Math.round(size * 0.03))}px`,
-        wordWrap: { width: topCardW - 24 * DPR },
+      this.statsText.setPosition(width / 2, height * 0.17);
+      this.statsText.setStyle({
+        fontSize: `${Math.max(11 * DPR, Math.round(size * 0.026))}px`,
+        wordWrap: { width: Math.min(width * 0.9, 440 * DPR) },
       });
     }
+
+    const topCardW = Math.min(width * 0.94, 460 * DPR);
+    const topCardTop = height * 0.22;
+    const topCardBottom = height * 0.88;
+    const topCardH = topCardBottom - topCardTop;
+    const topCardX = width / 2 - topCardW / 2;
+
+    this.topCardW = topCardW;
+    this.topCardH = topCardH;
+    this.topCardX = topCardX;
+    this.topCardTop = topCardTop;
+    this.topCardInnerTop = topCardTop + 10 * DPR;
+    this.topVisibleH = topCardH - 20 * DPR;
+    this.topListBaseY = this.topCardInnerTop;
+
+    if (this.topCardGfx) {
+      this.topCardGfx.clear();
+      this.topCardGfx.fillStyle(0x131722, 0.95);
+      this.topCardGfx.fillRoundedRect(topCardX, topCardTop, topCardW, topCardH, 14 * DPR);
+      this.topCardGfx.lineStyle(1.5 * DPR, 0x242d40, 1);
+      this.topCardGfx.strokeRoundedRect(topCardX, topCardTop, topCardW, topCardH, 14 * DPR);
+    }
+
+    if (this.topMaskGfx) {
+      this.topMaskGfx.clear();
+      this.topMaskGfx.fillStyle(0xffffff);
+      this.topMaskGfx.fillRect(topCardX + 2, topCardTop + 6 * DPR, topCardW - 4, topCardH - 12 * DPR);
+    }
+
+    if (this.topScrollZone) {
+      this.topScrollZone.setPosition(topCardX, topCardTop).setSize(topCardW, topCardH);
+    }
+
+    if (this.topEmptyText) {
+      this.topEmptyText.setPosition(width / 2, topCardTop + topCardH / 2);
+    }
+
+    this.refreshTop();
 
     // Магазин
     if (this.shopCardBg) {
@@ -1506,23 +1598,6 @@ class MenuScene extends Phaser.Scene {
         tab.setStyle({ fontSize: tabFont });
       }
     });
-
-    // Правила
-    if (this.rulesBg) {
-      this.rulesBg.setPosition(0, 0).setSize(width, height);
-      const rW = Math.min(width * 0.92, 400 * DPR);
-      const rH = Math.min(height * 0.72, 420 * DPR);
-      this.rulesCard.setPosition(width / 2, height / 2).setSize(rW, rH);
-      this.rulesTitle.setPosition(width / 2, height / 2 - rH / 2 + 34 * DPR);
-      this.rulesTitle.setStyle({ fontSize: `${Math.round(size * 0.044)}px` });
-      this.rulesText.setPosition(width / 2, height / 2);
-      this.rulesText.setStyle({
-        fontSize: `${Math.max(11 * DPR, Math.round(size * 0.03))}px`,
-        wordWrap: { width: rW - 36 * DPR },
-      });
-      this.rulesBack.setPosition(width / 2, height / 2 + rH / 2 - 34 * DPR);
-      this.rulesBack.setStyle({ fontSize: `${Math.max(13 * DPR, Math.round(size * 0.034))}px` });
-    }
 
     // Пересобираем скруглённые фоны кнопок под новый размер/шрифт.
     updateRoundBgs(this);
