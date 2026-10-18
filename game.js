@@ -98,10 +98,10 @@ const TOWER_TYPES = {
     name: 'Дезинфектор',
     cost: 85,
     range: 2.8,
-    fireRate: 3.2,
-    damage: 10,
+    fireRate: 1.4,
+    damage: 22,
     accuracy: 1.0,
-    cureChance: 0.06,
+    cureChance: 0.08,
     sprayCone: (45 * Math.PI) / 180,
     footprint: 0.75,
     weaponScale: 0.6,
@@ -115,11 +115,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Аэрозоль', damage: 10, cureChance: 0.06, fireRate: 3.2, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
-      { name: 'Опрыскиватель', damage: 16, cureChance: 0.09, fireRate: 3.6, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
-      { name: 'Газомёт', damage: 24, cureChance: 0.13, fireRate: 4.0, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
-      { name: 'Химраспылитель', damage: 36, cureChance: 0.18, fireRate: 4.5, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
-      { name: 'Био-очиститель', damage: 220, cureChance: 0.35, continuous: true, fireRate: 0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
+      { name: 'Аэрозоль', damage: 22, cureChance: 0.08, fireRate: 1.4, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
+      { name: 'Опрыскиватель', damage: 28, cureChance: 0.12, fireRate: 2.5, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
+      { name: 'Газомёт', damage: 28, cureChance: 0.18, fireRate: 4.5, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
+      { name: 'Химраспылитель', damage: 21, cureChance: 0.25, fireRate: 8.5, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
+      { name: 'Био-очиститель', damage: 230, cureChance: 0.35, continuous: true, fireRate: 0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
     ],
   },
 };
@@ -1174,7 +1174,7 @@ class Tower {
     const rangePx = this.range * ISO_HW;
 
     if (this.scene.createGasSpray) {
-      this.scene.createGasSpray(pos.x, pos.y, aimAngle, rangePx * 0.7);
+      this.scene.createGasSpray(pos.x, pos.y, aimAngle, rangePx * 0.7, this.level);
     }
 
     for (const enemy of this.scene.enemies) {
@@ -2994,8 +2994,9 @@ class GameScene extends Phaser.Scene {
   }
 
   // Визуальный эффект распыления газа (облако зелёных частиц/пуфов)
-  createGasSpray(startX, startY, angle, distance) {
-    const count = 6;
+  createGasSpray(startX, startY, angle, distance, level = 1) {
+    const count = level >= 4 ? 4 : (level === 3 ? 5 : 6);
+    const duration = level >= 4 ? Phaser.Math.Between(220, 300) : Phaser.Math.Between(260, 380);
     for (let i = 0; i < count; i++) {
       const spread = (Math.random() - 0.5) * 0.55;
       const a = angle + spread;
@@ -3011,7 +3012,7 @@ class GameScene extends Phaser.Scene {
         scaleX: 2.2,
         scaleY: 2.2,
         alpha: 0,
-        duration: Phaser.Math.Between(260, 380),
+        duration: duration,
         ease: 'Quad.easeOut',
         onComplete: () => puff.destroy(),
       });
@@ -3258,13 +3259,15 @@ class GameScene extends Phaser.Scene {
       if (tower.cureChance) {
         title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%/с`;
       }
-    } else {
-      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
+    } else if (tower.typeKey === 'disinfector') {
+      const cdStr = (1 / tower.fireRate).toFixed(2);
+      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с (кд ${cdStr}с) · Рад: ${tower.range.toFixed(1)}`;
       if (tower.cureChance) {
         title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
-      } else {
-        title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
       }
+    } else {
+      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
+      title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
     }
 
     if (tower.arc) {
