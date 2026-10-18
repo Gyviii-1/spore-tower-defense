@@ -1538,7 +1538,7 @@ class MenuScene extends Phaser.Scene {
       });
     }
 
-    const topCardW = Math.min(width * 0.94, 460 * DPR);
+    const topCardW = Math.min(width * 0.94, 550 * DPR);
     const topCardTop = height * 0.22;
     const topCardBottom = height * 0.88;
     const topCardH = topCardBottom - topCardTop;
