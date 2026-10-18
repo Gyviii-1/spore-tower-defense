@@ -707,6 +707,7 @@ class Tower {
     this.accuracy = lvl1 && lvl1.accuracy !== undefined ? lvl1.accuracy : (type.accuracy !== undefined ? type.accuracy : 1);
     this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
     this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
+    this.hasRotated = false;         // развернули ли установку (доступно только 1 раз)
     this.cooldown = 0;               // время до следующего выстрела, сек
     this.totalSpent = type.cost;     // сколько золота вложено (для продажи)
     this.aimAngle = dirToAngle(DIR_FORWARD); // куда направлена пушка (радианы)
@@ -754,6 +755,15 @@ class Tower {
     this.aimDir = this.baseDir;
   }
 
+  // Установить угол стационарного сектора (любой угол на поле)
+  setMountAngle(angle) {
+    this.mountAngle = angle;
+    this.baseAngle = angle;
+    this.baseDir = angleToDir(angle);
+    this.aimAngle = angle;
+    this.aimDir = this.baseDir;
+  }
+
   // Поворот стационарного сектора на угол rad
   rotateArc(rad = Math.PI / 4) {
     if (!this.arc) return;
@@ -797,6 +807,7 @@ class Tower {
       this.arc = lvl.arc || null;
       if (this.arc && !hadArc) {
         this.initMountAngle();
+        this.hasRotated = false;
       }
     } else {
       this.range += 0.4;
@@ -2177,6 +2188,32 @@ class GameScene extends Phaser.Scene {
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
 
+    this.towerMenuConfirmRotate = this.add
+      .text(0, 0, '✅ Зафиксировать', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#2ecc71',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(103)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
+    this.towerMenuCancelRotate = this.add
+      .text(0, 0, '✖ Отмена', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#95a5a6',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(103)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
     this.towerMenuSell = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
@@ -2193,13 +2230,25 @@ class GameScene extends Phaser.Scene {
       this.towerMenuBg,
       this.towerMenuTitle,
       this.towerMenuRotate,
+      this.towerMenuConfirmRotate,
+      this.towerMenuCancelRotate,
       this.towerMenuUpgrade,
       this.towerMenuSell,
     ];
 
     this.towerMenuRotate.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
-      this.rotateSelectedTower();
+      this.startAimingTower();
+    });
+
+    this.towerMenuConfirmRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.confirmAimingTower();
+    });
+
+    this.towerMenuCancelRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.cancelAimingTower();
     });
 
     this.towerMenuUpgrade.on('pointerdown', (pointer, localX, localY, event) => {
@@ -2606,13 +2655,10 @@ class GameScene extends Phaser.Scene {
   // Открыть меню выбранной башни.
   openTowerMenu(tower) {
     this.selectedTower = tower;
+    this.aimingTower = null;
     this.hideEnemyInfo();
     for (const part of this.towerMenuParts) {
-      if (part === this.towerMenuRotate && !tower.arc) {
-        part.setVisible(false);
-        continue;
-      }
-      part.setVisible(true);
+      part.setVisible(false);
     }
     this.refreshTowerMenu();
     this.positionTowerMenu();
@@ -2621,6 +2667,13 @@ class GameScene extends Phaser.Scene {
 
   // Закрыть меню башни.
   closeTowerMenu() {
+    if (this.aimingTower) {
+      if (this.previousMountAngle !== undefined) {
+        this.aimingTower.setMountAngle(this.previousMountAngle);
+        this.applyTowerFacing(this.aimingTower);
+      }
+      this.aimingTower = null;
+    }
     this.selectedTower = null;
     if (this.towerMenuParts) {
       for (const part of this.towerMenuParts) part.setVisible(false);
@@ -2628,14 +2681,41 @@ class GameScene extends Phaser.Scene {
     this.clearRangeRing();
   }
 
-  // Повернуть сектор обстрела стационарной турели
-  rotateSelectedTower() {
+  // Начать свободное наведение сектора установки (1 раз)
+  startAimingTower() {
     const tower = this.selectedTower;
-    if (!tower || !tower.arc) return;
-    tower.rotateArc(Math.PI / 4);
-    this.applyTowerFacing(tower);
-    this.showRangeRingForTower(tower);
+    if (!tower || !tower.arc || tower.hasRotated) return;
+    this.aimingTower = tower;
+    this.previousMountAngle = tower.mountAngle;
     this.refreshTowerMenu();
+    this.positionTowerMenu();
+    this.showMessage('Нажми на поле, чтобы направить сектор');
+  }
+
+  // Подтвердить и зафиксировать сектор навсегда
+  confirmAimingTower() {
+    if (!this.aimingTower) return;
+    const tower = this.aimingTower;
+    tower.hasRotated = true; // Зафиксировано навсегда! Только 1 раз!
+    this.aimingTower = null;
+    this.refreshTowerMenu();
+    this.positionTowerMenu();
+    this.showRangeRingForTower(tower);
+    this.showMessage('Сектор зафиксирован навсегда!');
+  }
+
+  // Отменить наведение и вернуть прежний угол
+  cancelAimingTower() {
+    if (!this.aimingTower) return;
+    const tower = this.aimingTower;
+    if (this.previousMountAngle !== undefined) {
+      tower.setMountAngle(this.previousMountAngle);
+      this.applyTowerFacing(tower);
+    }
+    this.aimingTower = null;
+    this.refreshTowerMenu();
+    this.positionTowerMenu();
+    this.showRangeRingForTower(tower);
   }
 
   // Обновить тексты меню по текущей башне.
@@ -2643,15 +2723,40 @@ class GameScene extends Phaser.Scene {
     const tower = this.selectedTower;
     if (!tower) return;
 
+    this.towerMenuBg.setVisible(true);
+    this.towerMenuTitle.setVisible(true);
+
+    if (this.aimingTower) {
+      this.towerMenuTitle.setText(
+        'НАПРАВЛЕНИЕ (1 РАЗ)\nНажми или потяни на поле,\nчтобы направить сектор'
+      );
+      this.towerMenuConfirmRotate.setVisible(true);
+      this.towerMenuCancelRotate.setVisible(true);
+      this.towerMenuRotate.setVisible(false);
+      this.towerMenuUpgrade.setVisible(false);
+      this.towerMenuSell.setVisible(false);
+      return;
+    }
+
+    this.towerMenuConfirmRotate.setVisible(false);
+    this.towerMenuCancelRotate.setVisible(false);
     this.towerMenuUpgrade.setVisible(true);
+    this.towerMenuSell.setVisible(true);
+
     let title =
       `${tower.getWeaponName()} · ур. ${tower.level}\n` +
       `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)} · Точн: ${Math.round(
         tower.accuracy * 100
       )}%`;
+
     if (tower.arc) {
-      title += `\nСектор обстрела: ${Math.round((tower.arc * 180) / Math.PI)}°`;
-      this.towerMenuRotate.setVisible(true).setText('🔄 Повернуть (+45°)');
+      if (!tower.hasRotated) {
+        title += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (не зафиксирован)`;
+        this.towerMenuRotate.setVisible(true).setText('🔄 Развернуть (1 раз)');
+      } else {
+        title += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (зафиксирован)`;
+        this.towerMenuRotate.setVisible(false);
+      }
     } else {
       this.towerMenuRotate.setVisible(false);
     }
@@ -2677,9 +2782,10 @@ class GameScene extends Phaser.Scene {
 
     const width = this.scale.width;
     const height = this.scale.height;
-    const hasArc = Boolean(tower.arc);
+    const isAiming = Boolean(this.aimingTower);
+    const hasArcNotRotated = Boolean(tower.arc && !tower.hasRotated && !isAiming);
     const menuW = 230 * DPR;
-    const menuH = hasArc ? 180 * DPR : 145 * DPR;
+    const menuH = isAiming ? 155 * DPR : (hasArcNotRotated ? 180 * DPR : 145 * DPR);
     const halfW = menuW / 2;
     const halfH = menuH / 2;
     const margin = 8 * DPR;
@@ -2692,14 +2798,17 @@ class GameScene extends Phaser.Scene {
     this.towerMenuBg.setSize(menuW, menuH);
     this.towerMenuBg.setPosition(x, y);
 
-    if (hasArc) {
+    if (isAiming) {
+      this.towerMenuTitle.setPosition(x, y - 38 * DPR);
+      this.towerMenuConfirmRotate.setPosition(x, y + 14 * DPR);
+      this.towerMenuCancelRotate.setPosition(x, y + 46 * DPR);
+    } else if (hasArcNotRotated) {
       this.towerMenuTitle.setPosition(x, y - 56 * DPR);
       this.towerMenuRotate.setPosition(x, y - 18 * DPR);
       this.towerMenuUpgrade.setPosition(x, y + 20 * DPR);
       this.towerMenuSell.setPosition(x, y + 58 * DPR);
     } else {
       this.towerMenuTitle.setPosition(x, y - 42 * DPR);
-      this.towerMenuRotate.setVisible(false);
       this.towerMenuUpgrade.setPosition(x, y + 4 * DPR);
       this.towerMenuSell.setPosition(x, y + 46 * DPR);
     }
@@ -3925,6 +4034,16 @@ class GameScene extends Phaser.Scene {
     const { gx, gy } = this.pointerToGrid(pointer);
     const worldPx = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
+    // Если сейчас режим наведения сектора установки:
+    if (this.aimingTower) {
+      const pos = this.aimingTower.getPosition();
+      const angle = Math.atan2(worldPx.y - pos.y, worldPx.x - pos.x);
+      this.aimingTower.setMountAngle(angle);
+      this.applyTowerFacing(this.aimingTower);
+      this.showRangeRingForTower(this.aimingTower);
+      return;
+    }
+
     // Нажали на башню — открываем её меню (угол окна — в точке нажатия).
     const existing = this.towerAt(worldPx.x, worldPx.y);
     if (existing) {
@@ -4089,6 +4208,17 @@ class GameScene extends Phaser.Scene {
   // Движение указателя: показываем призрак будущей башни.
   handlePointerMove(pointer) {
     if (this.isGameOver) return;
+
+    // Режим наведения сектора установки:
+    if (this.aimingTower && pointer.isDown) {
+      const worldPx = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const pos = this.aimingTower.getPosition();
+      const angle = Math.atan2(worldPx.y - pos.y, worldPx.x - pos.x);
+      this.aimingTower.setMountAngle(angle);
+      this.applyTowerFacing(this.aimingTower);
+      this.showRangeRingForTower(this.aimingTower);
+      return;
+    }
 
     // Одним пальцем/мышью — панорамируем камеру (если потянули по пустому месту).
     if (this.handlePan(pointer)) {
