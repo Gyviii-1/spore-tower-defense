@@ -1902,6 +1902,7 @@ class GameScene extends Phaser.Scene {
     this.selectedTower = null;
     this.aimingTower = null;
     this.isTowerViewMode = false; // режим просмотра (окно скрыто, круг остаётся)
+    this.viewModeTappedGround = false;
     // Тип башни, который строим по клику (переключается панелью внизу).
     // По умолчанию НИЧЕГО не выбрано — игрок выбирает башню сам.
     this.selectedTowerType = null;
@@ -2736,6 +2737,7 @@ class GameScene extends Phaser.Scene {
   // Закрыть меню башни.
   closeTowerMenu() {
     this.isTowerViewMode = false;
+    this.viewModeTappedGround = false;
     if (this.towerViewPill) {
       this.towerViewPill.setVisible(false);
       updateRoundBgs(this);
@@ -2801,6 +2803,7 @@ class GameScene extends Phaser.Scene {
     const tower = this.selectedTower;
     if (!tower) return;
     this.isTowerViewMode = true;
+    this.viewModeTappedGround = false;
     if (this.towerMenuParts) {
       for (const part of this.towerMenuParts) part.setVisible(false);
     }
@@ -2818,6 +2821,7 @@ class GameScene extends Phaser.Scene {
   // Выход из режима просмотра
   exitTowerViewMode(reopenMenu = true) {
     this.isTowerViewMode = false;
+    this.viewModeTappedGround = false;
     if (this.towerViewPill) {
       this.towerViewPill.setVisible(false);
       updateRoundBgs(this);
@@ -4195,8 +4199,9 @@ class GameScene extends Phaser.Scene {
     }
     this.hideEnemyInfo();
 
-    // Если сейчас был активен режим просмотра: не сбрасываем сразу, если это потяг (панорамирование)
+    // Если сейчас был активен режим просмотра: помечаем, что нажали на пустое поле
     if (this.isTowerViewMode) {
+      this.viewModeTappedGround = true;
       this.panArmed = true;
       this.panStart.x = pointer.x;
       this.panStart.y = pointer.y;
@@ -4402,6 +4407,7 @@ class GameScene extends Phaser.Scene {
 
       // Это потяг, а не тап: отменяем установку башни.
       this.panActive = true;
+      this.viewModeTappedGround = false;
       if (this.isPlacing) {
         this.isPlacing = false;
         if (this.ghost) this.ghost.setVisible(false);
@@ -4430,13 +4436,18 @@ class GameScene extends Phaser.Scene {
     this.panActive = false;
 
     // Если был потяг (панорамирование) — это не тап, ничего не строим.
-    if (wasPanning) return;
+    if (wasPanning) {
+      this.viewModeTappedGround = false;
+      return;
+    }
 
     // Одиночный клик по пустому полю во время режима просмотра — закрываем его.
-    if (this.isTowerViewMode) {
+    if (this.isTowerViewMode && this.viewModeTappedGround) {
+      this.viewModeTappedGround = false;
       this.closeTowerMenu();
       return;
     }
+    this.viewModeTappedGround = false;
 
     // Установка новой башни: строим там, где отпустили палец/мышь.
     if (this.isPlacing) {
