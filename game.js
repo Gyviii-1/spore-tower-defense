@@ -1450,7 +1450,7 @@ class MenuScene extends Phaser.Scene {
 
     // Карточка лобби
     const cardWidth = Math.min(width * 0.94, 460 * DPR);
-    const cardHeight = Math.min(height * 0.32, 170 * DPR);
+    const cardHeight = Math.min(height * 0.38, 220 * DPR);
     const cardY = height * 0.42;
     const cardX = width / 2 - cardWidth / 2;
     const cardTop = cardY - cardHeight / 2;
@@ -1458,40 +1458,40 @@ class MenuScene extends Phaser.Scene {
     if (this.cardBg) {
       this.cardBg.clear();
       this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
       this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
     }
 
     if (this.playerNick) {
-      this.playerNick.setPosition(width / 2, cardTop + 28 * DPR);
-      this.playerNick.setStyle({ fontSize: `${Math.max(16 * DPR, Math.round(size * 0.048))}px` });
+      this.playerNick.setPosition(width / 2, cardTop + 32 * DPR);
+      this.playerNick.setStyle({ fontSize: `${Math.max(17 * DPR, Math.round(size * 0.05))}px` });
     }
 
     if (this.cardDivider) {
       this.cardDivider.clear();
       // Горизонтальный разделитель под ником
       this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
-      this.cardDivider.lineBetween(cardX + 16 * DPR, cardTop + 54 * DPR, cardX + cardWidth - 16 * DPR, cardTop + 54 * DPR);
+      this.cardDivider.lineBetween(cardX + 18 * DPR, cardTop + 64 * DPR, cardX + cardWidth - 18 * DPR, cardTop + 64 * DPR);
       // Тонкие вертикальные разделители колонок
       const colStep = cardWidth * 0.31;
-      const vY1 = cardTop + 74 * DPR;
-      const vY2 = cardTop + 146 * DPR;
+      const vY1 = cardTop + 84 * DPR;
+      const vY2 = cardTop + 186 * DPR;
       this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.5);
       this.cardDivider.lineBetween(width / 2 - colStep / 2, vY1, width / 2 - colStep / 2, vY2);
       this.cardDivider.lineBetween(width / 2 + colStep / 2, vY1, width / 2 + colStep / 2, vY2);
     }
 
-    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП — больше места, разделители, 0 наложений
+    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП
     const colStep = cardWidth * 0.31;
     const col1X = width / 2 - colStep;
     const col2X = width / 2;
     const col3X = width / 2 + colStep;
-    const statLabelY = cardTop + 84 * DPR;
-    const statValY = cardTop + 124 * DPR;
+    const statLabelY = cardTop + 104 * DPR;
+    const statValY = cardTop + 154 * DPR;
 
-    const labelSize = `${Math.max(11 * DPR, Math.round(size * 0.026))}px`;
-    const valSize = `${Math.max(18 * DPR, Math.round(size * 0.052))}px`;
+    const labelSize = `${Math.max(12 * DPR, Math.round(size * 0.028))}px`;
+    const valSize = `${Math.max(22 * DPR, Math.round(size * 0.06))}px`;
 
     if (this.statWaveLabel) {
       this.statWaveLabel.setPosition(col1X, statLabelY).setStyle({ fontSize: labelSize });
@@ -1508,7 +1508,7 @@ class MenuScene extends Phaser.Scene {
 
     // Кнопка В БОЙ
     if (this.playButton) {
-      this.playButton.setPosition(width / 2, height * 0.68);
+      this.playButton.setPosition(width / 2, height * 0.70);
       this.playButton.setStyle({ fontSize: `${Math.max(18 * DPR, Math.round(size * 0.054))}px` });
     }
 
