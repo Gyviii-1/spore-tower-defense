@@ -1317,7 +1317,7 @@ class MenuScene extends Phaser.Scene {
     if (this.topEmptyText) this.topEmptyText.setVisible(false);
 
     const width = this.scale.width;
-    const topCardW = this.topCardW || Math.min(width * 0.94, 460 * DPR);
+    const topCardW = this.topCardW || Math.min(width * 0.94, 550 * DPR);
     const rowW = topCardW - 24 * DPR;
     const rowH = 44 * DPR;
     const rowGap = 6 * DPR;
