@@ -123,9 +123,6 @@ const TOWER_EXTRA_INFO = {
     traitDesc: 'Высокая точность (95%). На 4 ур. — мощный "Дигл" (110 урона), на 5 ур. — скорострельный "P90" (7.0 выстр/с).',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Базовый армейский облик', unlocked: true },
-      { id: 'camo', name: 'Лесной камуфляж', desc: 'Тактический камуфляж спецназа', unlocked: false },
-      { id: 'cyber', name: 'Кибер-спора', desc: 'Тёмный карбон и неоновые вставки', unlocked: false },
-      { id: 'gold', name: 'Золотой титан', desc: 'Элитное позолоченное покрытие', unlocked: false },
     ],
   },
   minigun: {
@@ -133,9 +130,6 @@ const TOWER_EXTRA_INFO = {
     traitDesc: 'Шквал пуль до 25 выстр/с. На 4 ур. — Миниган M134, на 5 ур. — спаренный миниган с 2 независимыми струями (14x2 урона).',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Заводской стальной облик', unlocked: true },
-      { id: 'desert', name: 'Пустынный охотник', desc: 'Песчаный тактический окрас', unlocked: false },
-      { id: 'lava', name: 'Вулканический', desc: 'Раскалённый металл стволов', unlocked: false },
-      { id: 'gold', name: 'Золотой титан', desc: 'Полированный хром и золото', unlocked: false },
     ],
   },
   disinfector: {
@@ -143,9 +137,6 @@ const TOWER_EXTRA_INFO = {
     traitDesc: 'Бьёт ядовитым газом сквозь броню. Чем больше споры на цели, тем меньше урон. На 5 ур. распыляет непрерывный поток без кд.',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Заводской защитный хим-костюм', unlocked: true },
-      { id: 'hazard', name: 'Токсичный рубеж', desc: 'Ярко-жёлтая предупреждающая разметка', unlocked: false },
-      { id: 'frost', name: 'Криогенный', desc: 'Ледяной баллон и крио-распылитель', unlocked: false },
-      { id: 'gold', name: 'Золотой титан', desc: 'Элитная станция из золота', unlocked: false },
     ],
   },
 };
@@ -1963,22 +1954,15 @@ class MenuScene extends Phaser.Scene {
       const skinRowH = 54 * DPR;
       const skinRowGap = 8 * DPR;
 
-      const skinsList = extra.skins || [];
+      const skinsList = (extra.skins || []).filter(s => s.unlocked !== false);
       skinsList.forEach((skin, idx) => {
         const rowY = skinsStartY + idx * (skinRowH + skinRowGap);
         const isEquipped = currentSkinId === skin.id;
 
-        if (isEquipped) {
-          g.fillStyle(0x13241d, 0.95);
-          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-          g.lineStyle(1.5 * DPR, 0x2ecc71, 1);
-          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-        } else {
-          g.fillStyle(0x151924, 0.95);
-          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-          g.lineStyle(1 * DPR, 0x242d3e, 1);
-          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-        }
+        g.fillStyle(isEquipped ? 0x13241d : 0x151924, 0.95);
+        g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
+        g.lineStyle(isEquipped ? 1.5 * DPR : 1 * DPR, isEquipped ? 0x2ecc71 : 0x242d3e, 1);
+        g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
 
         const iconTileSize = 38 * DPR;
         const iconTileX = cardX + 24 * DPR;
@@ -1989,28 +1973,21 @@ class MenuScene extends Phaser.Scene {
         g.lineStyle(1 * DPR, isEquipped ? 0x2ecc71 : 0x2b3548, 1);
         g.strokeRoundedRect(iconTileX, iconTileY, iconTileSize, iconTileSize, 7 * DPR);
 
-        if (skin.unlocked) {
-          const bKey = this.getBaseTextureKey(typeKey) || type.texture;
-          if (bKey) {
-            const bImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, bKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
-            this.detailElements.add(bImg);
-          }
-          const wKey = this.getWeaponTextureKey(typeKey, 1);
-          if (wKey) {
-            const gImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, wKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
-            this.detailElements.add(gImg);
-          }
-        } else {
-          const lockText = this.add.text(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, '🔒', {
-            fontSize: `${Math.round(16 * DPR)}px`,
-          }).setOrigin(0.5);
-          this.detailElements.add(lockText);
+        const bKey = this.getBaseTextureKey(typeKey) || type.texture;
+        if (bKey) {
+          const bImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, bKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
+          this.detailElements.add(bImg);
+        }
+        const wKey = this.getWeaponTextureKey(typeKey, 1);
+        if (wKey) {
+          const gImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, wKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
+          this.detailElements.add(gImg);
         }
 
         const nameText = this.add.text(cardX + 70 * DPR, rowY + 16 * DPR, skin.name, {
           fontFamily: UI_FONT,
           fontSize: `${Math.round(14 * DPR)}px`,
-          color: isEquipped ? '#ffffff' : (skin.unlocked ? '#e0e6ed' : '#7f8ea3'),
+          color: isEquipped ? '#ffffff' : '#e0e6ed',
           fontStyle: 'bold',
         });
         const descText = this.add.text(cardX + 70 * DPR, rowY + 34 * DPR, skin.desc, {
@@ -2028,7 +2005,7 @@ class MenuScene extends Phaser.Scene {
             fontStyle: 'bold',
           }).setOrigin(1, 0.5);
           this.detailElements.add(badge);
-        } else if (skin.unlocked) {
+        } else {
           const selectBtn = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, 'Выбрать', {
             fontFamily: UI_FONT,
             fontSize: `${Math.round(12 * DPR)}px`,
@@ -2043,50 +2020,27 @@ class MenuScene extends Phaser.Scene {
             this.renderTowerDetail();
           });
           this.detailElements.add(selectBtn);
-        } else {
-          const soonBadge = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, 'СКОРО', {
-            fontFamily: UI_FONT,
-            fontSize: `${Math.round(11 * DPR)}px`,
-            color: '#8b98aa',
-            fontStyle: 'bold',
-          }).setOrigin(1, 0.5);
-          this.detailElements.add(soonBadge);
         }
 
-        // Клик по строке скина
         const rowZone = this.add.zone(cardX + 16 * DPR + traitW / 2, rowY + skinRowH / 2, traitW, skinRowH)
           .setInteractive({ useHandCursor: true });
         rowZone.on('pointerdown', (p, x, y, ev) => {
           if (ev && ev.stopPropagation) ev.stopPropagation();
-          if (skin.unlocked) {
-            this.setTowerSkin(typeKey, skin.id);
-            this.renderTowerDetail();
-          } else {
-            if (this.skinNoticeText) {
-              this.skinNoticeText.setText(`🔒 Облик «${skin.name}» появится в ближайшем обновлении!`);
-              this.skinNoticeText.setColor('#f39c12');
-              this.tweens?.killTweensOf(this.skinNoticeText);
-              this.skinNoticeText.setAlpha(1);
-              this.time?.delayedCall(2500, () => {
-                if (this.skinNoticeText && this.skinNoticeText.active) {
-                  this.tweens?.add({ targets: this.skinNoticeText, alpha: 0, duration: 400 });
-                }
-              });
-            }
-          }
+          this.setTowerSkin(typeKey, skin.id);
+          this.renderTowerDetail();
         });
         this.detailElements.add(rowZone);
       });
 
       const footerY = skinsStartY + skinsList.length * (skinRowH + skinRowGap) + 14 * DPR;
-      this.skinNoticeText = this.add.text(cardX + cardW / 2, footerY, 'Смена скинов и открытие новых обликов будут добавлены в обновлениях.', {
+      const footerNotice = this.add.text(cardX + cardW / 2, footerY, 'Новые облики будут добавляться по мере выхода обновлений.', {
         fontFamily: UI_FONT,
         fontSize: `${Math.round(11 * DPR)}px`,
         color: '#5f6f87',
         align: 'center',
         wordWrap: { width: traitW },
       }).setOrigin(0.5);
-      this.detailElements.add(this.skinNoticeText);
+      this.detailElements.add(footerNotice);
     }
   }
 
