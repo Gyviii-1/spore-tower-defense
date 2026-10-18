@@ -119,7 +119,7 @@ const TOWER_TYPES = {
       { name: 'Опрыскиватель', damage: 16, cureChance: 0.09, fireRate: 3.6, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
       { name: 'Газомёт', damage: 24, cureChance: 0.13, fireRate: 4.0, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
       { name: 'Химраспылитель', damage: 36, cureChance: 0.18, fireRate: 4.5, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
-      { name: 'Био-очиститель', damage: 52, cureChance: 0.25, fireRate: 5.0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
+      { name: 'Био-очиститель', damage: 220, cureChance: 0.35, continuous: true, fireRate: 0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
     ],
   },
 };
@@ -189,6 +189,33 @@ function getEnemyCureMultiplier(enemy) {
       return 1.2;
     case 'small':
       return 1.4; // Мелкие споры очищаются легче всего
+    default:
+      return 1.0;
+  }
+}
+
+// Множитель урона газа дезинфектора.
+// Газ бьёт сквозь броню, но чем сильнее враг захвачен/оброс спорами,
+// тем выше у него био-сопротивление и тем меньше урона он получает.
+function getEnemyGasDamageMultiplier(enemy) {
+  if (!enemy || !enemy.typeKey) return 1.0;
+  switch (enemy.typeKey) {
+    case 'boss':
+      return 0.20; // Одно целое со спорами — колоссальное био-сопротивление
+    case 'tank':
+      return 0.35; // Полностью оброс спорами — плотная биомасса
+    case 'shielded':
+      return 0.50; // Споровый щит сдерживает газ
+    case 'armored':
+      return 0.60; // Плотная споровая корка (при этом металлическая броня пробивается)
+    case 'splitter':
+      return 0.75; // Глубокая споровая мутация
+    case 'normal':
+      return 1.0;  // Базовая спора — стандартный урон
+    case 'fast':
+      return 1.20; // Тонкая оболочка — уязвима к газу
+    case 'small':
+      return 1.35; // Молодые споры выжигаются быстрее всего
     default:
       return 1.0;
   }
@@ -710,11 +737,11 @@ class Enemy extends Phaser.GameObjects.Rectangle {
   }
 
   // Получаем урон. Сначала снимается щит, потом здоровье.
-  // Броня (damageMultiplier) уменьшает входящий урон.
-  takeDamage(amount) {
+  // Броня (damageMultiplier) уменьшает входящий урон (если не указано ignoreArmor).
+  takeDamage(amount, ignoreArmor = false) {
     if (this.isDead) return;
 
-    const damage = amount * this.damageMultiplier;
+    const damage = ignoreArmor ? amount : amount * this.damageMultiplier;
 
     if (this.shield > 0) {
       this.shield -= damage;
@@ -853,6 +880,7 @@ class Tower {
     this.accuracy = lvl1 && lvl1.accuracy !== undefined ? lvl1.accuracy : (type.accuracy !== undefined ? type.accuracy : 1);
     this.cureChance = lvl1 && lvl1.cureChance !== undefined ? lvl1.cureChance : (type.cureChance || 0);
     this.sprayCone = lvl1 && lvl1.sprayCone !== undefined ? lvl1.sprayCone : (type.sprayCone || null);
+    this.continuous = Boolean(lvl1 && lvl1.continuous);
     this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
     this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
     this.hasRotated = false;         // развернули ли установку (доступно только 1 раз)
@@ -952,11 +980,12 @@ class Tower {
     const lvl = this.config.levels && this.config.levels[this.level - 1];
     if (lvl) {
       this.range = lvl.range;
-      this.fireRate = lvl.fireRate;
+      this.fireRate = lvl.fireRate !== undefined ? lvl.fireRate : this.config.fireRate;
       this.damage = lvl.damage;
       this.accuracy = lvl.accuracy !== undefined ? lvl.accuracy : 1;
       this.cureChance = lvl.cureChance !== undefined ? lvl.cureChance : (this.config.cureChance || 0);
       this.sprayCone = lvl.sprayCone !== undefined ? lvl.sprayCone : (this.config.sprayCone || null);
+      this.continuous = Boolean(lvl.continuous);
       const hadArc = Boolean(this.arc);
       this.arc = lvl.arc || null;
       if (this.arc && !hadArc) {
@@ -980,6 +1009,12 @@ class Tower {
   update(delta, enemies) {
     if (this.isAiming) {
       // Пока игрок крутит башню вручную — она не ищет цели и не стреляет
+      return;
+    }
+
+    // Для башен с непрерывным потоком (без кд)
+    if (this.continuous) {
+      this.updateContinuous(delta, enemies);
       return;
     }
 
@@ -1066,6 +1101,71 @@ class Tower {
     this.scene.projectiles.push(projectile);
   }
 
+  // Непрерывный поток газа без перезарядки (для финального уровня дезинфектора).
+  updateContinuous(delta, enemies) {
+    const pos = this.getPosition();
+    const target = this.findTarget(enemies);
+
+    if (!target) return;
+
+    this.aimAngle = Math.atan2(target.y - pos.y, target.x - pos.x);
+    this.aimDir = angleToDir(this.aimAngle, this.aimDir);
+    if (!this.arc) {
+      this.baseAngle = this.aimAngle;
+      this.baseDir = angleToDir(this.baseAngle, this.baseDir);
+    } else {
+      const screenMount = Math.atan2(Math.sin(this.mountAngle) * ISO_HH, Math.cos(this.mountAngle) * ISO_HW);
+      this.baseAngle = screenMount;
+      this.baseDir = angleToDir(screenMount, this.baseDir);
+    }
+
+    const weaponScale = this.config.weaponScale || 1;
+    const muzzleDistance = this.config.footprint * weaponScale * 0.5 * ISO_HW;
+    const muzzle = {
+      x: pos.x + Math.cos(this.aimAngle) * muzzleDistance,
+      y: pos.y + Math.sin(this.aimAngle) * muzzleDistance,
+    };
+
+    // Звук распыления (проигрываем периодически, чтобы не спамить каждый кадр)
+    this.soundTimer = (this.soundTimer || 0) - delta;
+    if (this.soundTimer <= 0) {
+      this.scene.playSfx('sfx_shot', 0.08);
+      this.soundTimer = 160;
+    }
+
+    // Непрерывная струя газа
+    if (this.scene.createContinuousGasSpray) {
+      this.scene.createContinuousGasSpray(muzzle.x, muzzle.y, this.aimAngle, this.range * ISO_HW * 0.7);
+    }
+
+    const cone = this.sprayCone || ((45 * Math.PI) / 180);
+    const frameDamage = this.damage * (delta / 1000);
+
+    for (const enemy of this.scene.enemies) {
+      if (!enemy.active || enemy.isDead || enemy.isCured) continue;
+
+      const dist = Math.hypot(this.gx - enemy.wx, this.gy - enemy.wy);
+      if (dist > this.range) continue;
+
+      const enemyAngle = Math.atan2((enemy.y - pos.y) / ISO_HH, (enemy.x - pos.x) / ISO_HW);
+      const diff = Math.abs(angleDiff(enemyAngle, this.aimAngle));
+
+      if (diff <= cone / 2 || enemy === target) {
+        // Урон сквозь броню, масштабируемый био-сопротивлением от степени заражения
+        const gasMult = getEnemyGasDamageMultiplier(enemy);
+        enemy.takeDamage(frameDamage * gasMult, true);
+
+        if (!enemy.isDead && !enemy.isCured) {
+          const mult = getEnemyCureMultiplier(enemy);
+          const frameChance = (this.cureChance || 0.35) * mult * (delta / 1000);
+          if (frameChance > 0 && Math.random() < frameChance) {
+            enemy.cure();
+          }
+        }
+      }
+    }
+  }
+
   // Распыление струи дезинфицирующего газа (конус перед башней).
   shootGas(pos, target) {
     this.scene.playSfx('sfx_shot', 0.12);
@@ -1087,7 +1187,10 @@ class Tower {
       const diff = Math.abs(angleDiff(enemyAngle, aimAngle));
 
       if (diff <= cone / 2 || enemy === target) {
-        enemy.takeDamage(this.damage);
+        // Урон сквозь броню с учётом степени заражения спорами
+        const gasMult = getEnemyGasDamageMultiplier(enemy);
+        enemy.takeDamage(this.damage * gasMult, true);
+
         if (!enemy.isDead && !enemy.isCured) {
           const mult = getEnemyCureMultiplier(enemy);
           const chance = (this.cureChance || 0.06) * mult;
@@ -2915,6 +3018,28 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  // Визуальный эффект непрерывной струи газа (для башен без кд)
+  createContinuousGasSpray(startX, startY, angle, distance) {
+    const spread = (Math.random() - 0.5) * 0.45;
+    const a = angle + spread;
+    const dist = Phaser.Math.Between(distance * 0.35, distance * 0.95);
+    const targetX = startX + Math.cos(a) * dist;
+    const targetY = startY + Math.sin(a) * dist * (ISO_HH / ISO_HW);
+
+    const puff = this.add.circle(startX, startY, 6 * DPR, 0x2ecc71, 0.65).setDepth(45);
+    this.tweens.add({
+      targets: puff,
+      x: targetX,
+      y: targetY,
+      scaleX: 2.2,
+      scaleY: 2.2,
+      alpha: 0,
+      duration: Phaser.Math.Between(220, 320),
+      ease: 'Quad.easeOut',
+      onComplete: () => puff.destroy(),
+    });
+  }
+
   // Всплывающий текст (для лечения, бонусов и статусов)
   showFloatingText(x, y, text, color = 0x2ecc71) {
     const colorStr = typeof color === 'string' ? color : `#${color.toString(16).padStart(6, '0')}`;
@@ -3127,13 +3252,19 @@ class GameScene extends Phaser.Scene {
     this.towerMenuUpgrade.setVisible(true);
     this.towerMenuSell.setVisible(true);
 
-    let title =
-      `${tower.getWeaponName()} · ур. ${tower.level}\n` +
-      `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
-    if (tower.cureChance) {
-      title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
+    let title = `${tower.getWeaponName()} · ур. ${tower.level}\n`;
+    if (tower.continuous) {
+      title += `Урон: ${tower.damage}/с (БЕЗ КД) · Рад: ${tower.range.toFixed(1)}`;
+      if (tower.cureChance) {
+        title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%/с`;
+      }
     } else {
-      title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
+      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
+      if (tower.cureChance) {
+        title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
+      } else {
+        title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
+      }
     }
 
     if (tower.arc) {
