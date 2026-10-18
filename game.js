@@ -1622,6 +1622,7 @@ class MenuScene extends Phaser.Scene {
 
   openTowerDetail(key) {
     this.selectedTowerKey = key;
+    this.selectedDetailLevel = 1;
     this.towerDetailTab = this.towerDetailTab || 'stats';
     this.towerDetailModal.setVisible(true);
     const telegram = window.Telegram ? window.Telegram.WebApp : null;
@@ -1665,40 +1666,52 @@ class MenuScene extends Phaser.Scene {
     g.lineStyle(1.5 * DPR, 0x252d40, 1);
     g.strokeRoundedRect(cardX, cardY, cardW, cardH, 16 * DPR);
 
-    // Шапка: Иконка
-    const iconSize = 52 * DPR;
+    const curLevel = Phaser.Math.Clamp(this.selectedDetailLevel || 1, 1, 5);
+    const curLevelData = (type.levels && type.levels[curLevel - 1]) || null;
+    const curWeaponName = curLevelData ? curLevelData.name : '';
+
+    // Шапка: Иконка (показывает пушку текущего выбранного уровня)
+    const iconSize = 56 * DPR;
     const iconX = cardX + 16 * DPR;
     const iconY = cardY + 16 * DPR;
 
     g.fillStyle(0x1b2030, 0.95);
     g.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
-    g.lineStyle(1 * DPR, 0x2e384e, 1);
+    g.lineStyle(1.5 * DPR, 0x3498db, 1);
     g.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
 
     const baseKey = this.getBaseTextureKey(typeKey) || type.texture;
     if (baseKey) {
-      const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 8 * DPR, iconSize - 8 * DPR);
+      const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 10 * DPR, iconSize - 10 * DPR);
       this.detailElements.add(baseImg);
     }
-    const weaponKey = this.getWeaponTextureKey(typeKey, 1);
+    const weaponKey = this.getWeaponTextureKey(typeKey, curLevel);
     if (weaponKey) {
-      const gunImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, weaponKey).setDisplaySize(iconSize - 8 * DPR, iconSize - 8 * DPR);
+      const gunImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, weaponKey).setDisplaySize(iconSize - 10 * DPR, iconSize - 10 * DPR);
       this.detailElements.add(gunImg);
     }
 
-    // Название и подзаголовок
-    const titleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 6 * DPR, type.name, {
+    // Название башни и текущее просматриваемое оружие
+    const titleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 3 * DPR, type.name, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(19 * DPR)}px`,
+      fontSize: `${Math.round(18 * DPR)}px`,
       color: '#ffffff',
       fontStyle: 'bold',
     });
-    const subtitleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 30 * DPR, extra.role, {
+
+    const weaponTag = this.add.text(iconX + iconSize + 12 * DPR, iconY + 25 * DPR, `Оружие: ${curWeaponName} (${curLevel} ур.)`, {
       fontFamily: UI_FONT,
       fontSize: `${Math.round(12 * DPR)}px`,
+      color: '#4ea8de',
+      fontStyle: 'bold',
+    });
+
+    const subtitleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 44 * DPR, extra.role, {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(11 * DPR)}px`,
       color: '#8b98aa',
     });
-    this.detailElements.add([titleText, subtitleText]);
+    this.detailElements.add([titleText, weaponTag, subtitleText]);
 
     // Кнопка закрытия ✕
     const closeBtn = this.add.text(cardX + cardW - 22 * DPR, cardY + 22 * DPR, '✕', {
@@ -1721,7 +1734,7 @@ class MenuScene extends Phaser.Scene {
     // Вкладки [ Характеристики ] и [ Скины ]
     const tabW = (cardW - 32 * DPR - 8 * DPR) / 2;
     const tabH = 34 * DPR;
-    const tabY = cardY + iconSize + 24 * DPR;
+    const tabY = cardY + iconSize + 22 * DPR;
     const tab1X = cardX + 16 * DPR;
     const tab2X = tab1X + tabW + 8 * DPR;
 
@@ -1749,38 +1762,56 @@ class MenuScene extends Phaser.Scene {
       fontSize: `${Math.round(13 * DPR)}px`,
       color: isStats ? '#ffffff' : '#707e94',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    tab1Text.on('pointerdown', (p, x, y, ev) => {
-      if (ev && ev.stopPropagation) ev.stopPropagation();
-      this.towerDetailTab = 'stats';
-      this.renderTowerDetail();
-    });
+    }).setOrigin(0.5);
 
     const tab2Text = this.add.text(tab2X + tabW / 2, tabY + tabH / 2, 'Скины', {
       fontFamily: UI_FONT,
       fontSize: `${Math.round(13 * DPR)}px`,
       color: isSkins ? '#ffffff' : '#707e94',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    tab2Text.on('pointerdown', (p, x, y, ev) => {
+    }).setOrigin(0.5);
+
+    // Интерактивные зоны НА ВСЮ ПЛОЩАДЬ КНОПОК
+    const tab1Zone = this.add.zone(tab1X + tabW / 2, tabY + tabH / 2, tabW, tabH).setInteractive({ useHandCursor: true });
+    tab1Zone.on('pointerdown', (p, x, y, ev) => {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      this.towerDetailTab = 'stats';
+      this.renderTowerDetail();
+    });
+
+    const tab2Zone = this.add.zone(tab2X + tabW / 2, tabY + tabH / 2, tabW, tabH).setInteractive({ useHandCursor: true });
+    tab2Zone.on('pointerdown', (p, x, y, ev) => {
       if (ev && ev.stopPropagation) ev.stopPropagation();
       this.towerDetailTab = 'skins';
       this.renderTowerDetail();
     });
-    this.detailElements.add([tab1Text, tab2Text]);
+
+    this.detailElements.add([tab1Text, tab2Text, tab1Zone, tab2Zone]);
 
     const traitW = cardW - 32 * DPR;
 
     if (isStats) {
-      // 4 быстрые характеристики в ряд
+      // 4 быстрые характеристики (показывают статы выбранного уровня оружия)
       const statsY = tabY + tabH + 12 * DPR;
       const statTileW = (cardW - 32 * DPR - 3 * 6 * DPR) / 4;
       const statTileH = 46 * DPR;
+
+      const displayDmg = curLevelData
+        ? (curLevelData.dualBarrels ? `${curLevelData.damage}x2` : `${curLevelData.damage}`)
+        : `${type.damage}`;
+      const displayFr = curLevelData
+        ? (curLevelData.continuous ? 'Струя' : `${curLevelData.fireRate}/с`)
+        : (type.fireRate ? `${type.fireRate}/с` : 'Струя');
+      const displayRange = curLevelData ? `${curLevelData.range}` : `${type.range}`;
+      const displayAcc = curLevelData
+        ? `${Math.round((curLevelData.accuracy || 1) * 100)}%`
+        : `${Math.round((type.accuracy || 1) * 100)}%`;
+
       const statsList = [
-        { label: 'УРОН', val: `${type.damage}`, color: '#ff4d5e' },
-        { label: 'ВЫСТР/С', val: type.fireRate ? `${type.fireRate}` : 'Струя', color: '#3498db' },
-        { label: 'РАДИУС', val: `${type.range}`, color: '#f1c40f' },
-        { label: 'ТОЧНОСТЬ', val: `${Math.round((type.accuracy || 1) * 100)}%`, color: '#2ecc71' },
+        { label: 'УРОН', val: displayDmg, color: '#ff4d5e' },
+        { label: 'ВЫСТР/С', val: displayFr, color: '#3498db' },
+        { label: 'РАДИУС', val: displayRange, color: '#f1c40f' },
+        { label: 'ТОЧНОСТЬ', val: displayAcc, color: '#2ecc71' },
       ];
       statsList.forEach((st, idx) => {
         const tileX = cardX + 16 * DPR + idx * (statTileW + 6 * DPR);
@@ -1823,12 +1854,12 @@ class MenuScene extends Phaser.Scene {
       }).setOrigin(0, 0.5);
       this.detailElements.add(traitText);
 
-      // Ветка прокачки оружия (1-5 уровни)
+      // Ветка прокачки оружия (1-5 уровни) с интерактивным выбором визуала!
       const levelsHeaderY = traitY + traitH + 10 * DPR;
-      const headerTitle = this.add.text(cardX + 16 * DPR, levelsHeaderY, 'УРОВНИ ОРУЖИЯ (1-5)', {
+      const headerTitle = this.add.text(cardX + 16 * DPR, levelsHeaderY, 'УРОВНИ ОРУЖИЯ (1-5) · НАЖМИТЕ ДЛЯ ОСМОТРА', {
         fontFamily: UI_FONT,
         fontSize: `${Math.round(11 * DPR)}px`,
-        color: '#707e94',
+        color: '#4ea8de',
         fontStyle: 'bold',
       });
       this.detailElements.add(headerTitle);
@@ -1840,30 +1871,55 @@ class MenuScene extends Phaser.Scene {
       for (let lv = 0; lv < levelsCount; lv++) {
         const levelData = type.levels[lv];
         const rowY = levelsStartY + lv * (levelRowH + levelRowGap);
+        const isSelected = curLevel === (lv + 1);
 
-        g.fillStyle(0x161c28, 0.95);
-        g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
-        g.lineStyle(1 * DPR, 0x242d40, 1);
-        g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
+        if (isSelected) {
+          g.fillStyle(0x1d273a, 0.98);
+          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 7 * DPR);
+          g.lineStyle(1.5 * DPR, 0x4ea8de, 1);
+          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 7 * DPR);
+        } else {
+          g.fillStyle(0x161c28, 0.95);
+          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
+          g.lineStyle(1 * DPR, 0x242d40, 1);
+          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
+        }
 
-        const badge = this.add.text(cardX + 26 * DPR, rowY + levelRowH / 2, `[${lv + 1}]`, {
+        // Иконка оружия текущего уровня
+        const miniIconSize = 26 * DPR;
+        const miniIconX = cardX + 22 * DPR;
+        const miniIconY = rowY + (levelRowH - miniIconSize) / 2;
+
+        g.fillStyle(0x121622, 0.95);
+        g.fillRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * DPR);
+        g.lineStyle(1 * DPR, isSelected ? 0x4ea8de : 0x283348, 1);
+        g.strokeRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * DPR);
+
+        const lvlWpnKey = this.getWeaponTextureKey(typeKey, lv + 1);
+        if (lvlWpnKey) {
+          const miniImg = this.add.image(miniIconX + miniIconSize / 2, miniIconY + miniIconSize / 2, lvlWpnKey)
+            .setDisplaySize(miniIconSize - 4 * DPR, miniIconSize - 4 * DPR);
+          this.detailElements.add(miniImg);
+        }
+
+        const badge = this.add.text(cardX + 54 * DPR, rowY + levelRowH / 2, `[${lv + 1}]`, {
           fontFamily: UI_FONT,
           fontSize: `${Math.round(12 * DPR)}px`,
-          color: '#e63946',
+          color: isSelected ? '#4ea8de' : '#e63946',
           fontStyle: 'bold',
         }).setOrigin(0, 0.5);
 
-        const wName = this.add.text(cardX + 50 * DPR, rowY + levelRowH / 2, levelData.name, {
+        const wName = this.add.text(cardX + 76 * DPR, rowY + levelRowH / 2, levelData.name, {
           fontFamily: UI_FONT,
           fontSize: `${Math.round(13 * DPR)}px`,
-          color: '#ffffff',
+          color: isSelected ? '#ffffff' : '#d2dced',
           fontStyle: 'bold',
         }).setOrigin(0, 0.5);
 
         let statLine = '';
         if (typeKey === 'disinfector') {
           if (levelData.continuous) {
-            statLine = `Урон: ${levelData.damage}/с · Струя без кд · +${levelData.upgradeCost} 💰`;
+            statLine = `Урон: ${levelData.damage}/с · Струя · +${levelData.upgradeCost} 💰`;
           } else {
             statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
           }
@@ -1877,10 +1933,19 @@ class MenuScene extends Phaser.Scene {
         const wStat = this.add.text(cardX + 16 * DPR + traitW - 10 * DPR, rowY + levelRowH / 2, statLine, {
           fontFamily: UI_FONT,
           fontSize: `${Math.round(11.5 * DPR)}px`,
-          color: '#8b98aa',
+          color: isSelected ? '#ffffff' : '#8b98aa',
         }).setOrigin(1, 0.5);
 
-        this.detailElements.add([badge, wName, wStat]);
+        // Интерактивная зона на всю строку уровня для переключения визуала оружия
+        const rowZone = this.add.zone(cardX + 16 * DPR + traitW / 2, rowY + levelRowH / 2, traitW, levelRowH)
+          .setInteractive({ useHandCursor: true });
+        rowZone.on('pointerdown', (p, x, y, ev) => {
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          this.selectedDetailLevel = lv + 1;
+          this.renderTowerDetail();
+        });
+
+        this.detailElements.add([badge, wName, wStat, rowZone]);
       }
     } else {
       // Вкладка «Скины»
