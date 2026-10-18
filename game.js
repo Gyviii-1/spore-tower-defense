@@ -919,10 +919,10 @@ class MenuScene extends Phaser.Scene {
     this.playButton = this.add
       .text(0, 0, 'В БОЙ', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
+        fontSize: '26px',
         color: '#ffffff',
         backgroundColor: '#e63946',
-        padding: { x: 38 * DPR, y: 13 * DPR },
+        padding: { x: 46 * DPR, y: 15 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -1448,30 +1448,31 @@ class MenuScene extends Phaser.Scene {
       this.title.setStyle({ fontSize: `${Math.min(34 * DPR, Math.max(22 * DPR, Math.round(size * 0.062)))}px` });
     }
 
-    // Карточка лобби (адаптивная: не громоздкая в окне, не сжимается в фуллскрине)
-    const cardWidth = Math.min(width * 0.92, 440 * DPR);
-    const cardHeight = Phaser.Math.Clamp(Math.round(height * 0.23), 140 * DPR, 175 * DPR);
-    const cardY = height * 0.42;
+    // Карточка лобби (крупная, с большим запасом по чёткости и читаемости)
+    const cardWidth = Math.min(width * 0.94, 520 * DPR);
+    const cardHeight = Phaser.Math.Clamp(Math.round(height * 0.28), 180 * DPR, 220 * DPR);
+    const cardY = height * 0.40;
     const cardX = width / 2 - cardWidth / 2;
     const cardTop = cardY - cardHeight / 2;
 
     if (this.cardBg) {
       this.cardBg.clear();
       this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
       this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 16 * DPR);
     }
 
-    const nickSize = `${Math.min(18 * DPR, Math.max(14 * DPR, Math.round(cardHeight * 0.115)))}px`;
-    const labelSize = `${Math.min(11 * DPR, Math.max(10 * DPR, Math.round(cardHeight * 0.072)))}px`;
-    const valSize = `${Math.min(22 * DPR, Math.max(17 * DPR, Math.round(cardHeight * 0.138)))}px`;
+    // Крупные шрифты: ник 20-22px, подписи 13-14px, рекорды/золото 28-32px
+    const nickSize = `${Math.round(Math.min(24 * DPR, Math.max(18 * DPR, cardHeight * 0.11)))}px`;
+    const labelSize = `${Math.round(Math.min(15 * DPR, Math.max(12 * DPR, cardHeight * 0.075)))}px`;
+    const valSize = `${Math.round(Math.min(32 * DPR, Math.max(26 * DPR, cardHeight * 0.155)))}px`;
 
-    const nickY = cardTop + cardHeight * 0.18;
-    const dividerY = cardTop + cardHeight * 0.34;
-    const statLabelY = cardTop + cardHeight * 0.54;
+    const nickY = cardTop + cardHeight * 0.17;
+    const dividerY = cardTop + cardHeight * 0.33;
+    const statLabelY = cardTop + cardHeight * 0.52;
     const statValY = cardTop + cardHeight * 0.77;
-    const vY1 = cardTop + cardHeight * 0.44;
+    const vY1 = cardTop + cardHeight * 0.42;
     const vY2 = cardTop + cardHeight * 0.88;
 
     if (this.playerNick) {
@@ -1483,7 +1484,7 @@ class MenuScene extends Phaser.Scene {
       this.cardDivider.clear();
       // Горизонтальный разделитель под ником
       this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
-      this.cardDivider.lineBetween(cardX + 16 * DPR, dividerY, cardX + cardWidth - 16 * DPR, dividerY);
+      this.cardDivider.lineBetween(cardX + 18 * DPR, dividerY, cardX + cardWidth - 18 * DPR, dividerY);
       // Тонкие вертикальные разделители колонок
       const colStep = cardWidth * 0.31;
       this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.5);
@@ -1510,11 +1511,15 @@ class MenuScene extends Phaser.Scene {
       this.statRankVal.setPosition(col3X, statValY).setStyle({ fontSize: valSize });
     }
 
-    // Кнопка В БОЙ — аккуратно под карточкой
+    // Кнопка В БОЙ — крупная, заметная, с хорошим отступом
     if (this.playButton) {
-      const playY = Math.min(height * 0.72, cardTop + cardHeight + 46 * DPR);
+      const playY = Math.min(height * 0.74, cardTop + cardHeight + 58 * DPR);
+      const playFont = `${Math.round(Math.min(28 * DPR, Math.max(22 * DPR, size * 0.055)))}px`;
       this.playButton.setPosition(width / 2, playY);
-      this.playButton.setStyle({ fontSize: `${Math.min(22 * DPR, Math.max(17 * DPR, Math.round(size * 0.048)))}px` });
+      this.playButton.setStyle({
+        fontSize: playFont,
+        padding: { x: 46 * DPR, y: 15 * DPR },
+      });
     }
 
     // Инвентарь / Турели
