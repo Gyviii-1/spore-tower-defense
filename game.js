@@ -1901,6 +1901,7 @@ class GameScene extends Phaser.Scene {
     // Выбранная башня (для меню улучшения/продажи).
     this.selectedTower = null;
     this.aimingTower = null;
+    this.isTowerViewMode = false; // режим просмотра (окно скрыто, круг остаётся)
     // Тип башни, который строим по клику (переключается панелью внизу).
     // По умолчанию НИЧЕГО не выбрано — игрок выбирает башню сам.
     this.selectedTowerType = null;
@@ -2238,15 +2239,53 @@ class GameScene extends Phaser.Scene {
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
 
+    this.towerMenuView = this.add
+      .text(0, 0, '👁 Режим просмотра', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#48dbfb',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(103)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
+    // Плашка режима просмотра (когда окно скрыто, а круг оставлен)
+    this.towerViewPill = this.add
+      .text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#ffffff',
+        padding: { x: 14 * DPR, y: 7 * DPR },
+      })
+      .setOrigin(0.5)
+      .setDepth(103)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
     this.towerMenuParts = [
       this.towerMenuBg,
       this.towerMenuTitle,
       this.towerMenuRotate,
       this.towerMenuConfirmRotate,
       this.towerMenuCancelRotate,
+      this.towerMenuView,
       this.towerMenuUpgrade,
       this.towerMenuSell,
     ];
+
+    this.towerMenuView.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.enterTowerViewMode();
+    });
+
+    this.towerViewPill.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.exitTowerViewMode(true);
+    });
 
     this.towerMenuRotate.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
@@ -2415,6 +2454,15 @@ class GameScene extends Phaser.Scene {
       strokeColor: TOWER_COLOR,
       strokeAlpha: 1,
       strokeWidth: 2 * DPR,
+    });
+    // Плашка режима просмотра — скруглённая с голубой обводкой.
+    roundTarget(this, this.towerViewPill, {
+      color: 0x151515,
+      alpha: 0.95,
+      radius: 12 * DPR,
+      strokeColor: 0x48dbfb,
+      strokeAlpha: 0.9,
+      strokeWidth: 1.5 * DPR,
     });
   }
 
@@ -2669,6 +2717,11 @@ class GameScene extends Phaser.Scene {
     if (this.aimingTower) {
       this.aimingTower.isAiming = false;
     }
+    this.isTowerViewMode = false;
+    if (this.towerViewPill) {
+      this.towerViewPill.setVisible(false);
+      updateRoundBgs(this);
+    }
     this.selectedTower = tower;
     this.aimingTower = null;
     this.hideEnemyInfo();
@@ -2682,6 +2735,11 @@ class GameScene extends Phaser.Scene {
 
   // Закрыть меню башни.
   closeTowerMenu() {
+    this.isTowerViewMode = false;
+    if (this.towerViewPill) {
+      this.towerViewPill.setVisible(false);
+      updateRoundBgs(this);
+    }
     if (this.aimingTower) {
       this.aimingTower.isAiming = false;
       if (this.previousMountAngle !== undefined) {
@@ -2695,6 +2753,7 @@ class GameScene extends Phaser.Scene {
       for (const part of this.towerMenuParts) part.setVisible(false);
     }
     this.clearRangeRing();
+    updateRoundBgs(this);
   }
 
   // Начать свободное наведение сектора установки (1 раз)
@@ -2737,6 +2796,46 @@ class GameScene extends Phaser.Scene {
     this.showRangeRingForTower(tower);
   }
 
+  // Вход в режим просмотра башни (скрываем окно меню, оставляем круговой радиус)
+  enterTowerViewMode() {
+    const tower = this.selectedTower;
+    if (!tower) return;
+    this.isTowerViewMode = true;
+    if (this.towerMenuParts) {
+      for (const part of this.towerMenuParts) part.setVisible(false);
+    }
+    this.showRangeRingForTower(tower);
+    if (this.towerViewPill) {
+      this.towerViewPill
+        .setText(`👁 ${tower.getWeaponName()} (ур. ${tower.level}) · Нажми для меню`)
+        .setVisible(true);
+      this.positionTowerViewPill();
+    }
+    this.showMessage('Режим просмотра: нажми на башню для меню');
+    updateRoundBgs(this);
+  }
+
+  // Выход из режима просмотра
+  exitTowerViewMode(reopenMenu = true) {
+    this.isTowerViewMode = false;
+    if (this.towerViewPill) {
+      this.towerViewPill.setVisible(false);
+      updateRoundBgs(this);
+    }
+    if (reopenMenu && this.selectedTower) {
+      this.openTowerMenu(this.selectedTower);
+    }
+  }
+
+  // Позиционирование плашки режима просмотра
+  positionTowerViewPill() {
+    if (!this.towerViewPill) return;
+    const width = this.scale.width;
+    const height = this.scale.height;
+    this.towerViewPill.setPosition(width / 2, height - 125 * DPR);
+    updateRoundBgs(this);
+  }
+
   // Обновить тексты меню по текущей башне.
   refreshTowerMenu() {
     const tower = this.selectedTower;
@@ -2752,6 +2851,7 @@ class GameScene extends Phaser.Scene {
       this.towerMenuConfirmRotate.setVisible(true);
       this.towerMenuCancelRotate.setVisible(true);
       this.towerMenuRotate.setVisible(false);
+      this.towerMenuView.setVisible(false);
       this.towerMenuUpgrade.setVisible(false);
       this.towerMenuSell.setVisible(false);
       return;
@@ -2759,6 +2859,7 @@ class GameScene extends Phaser.Scene {
 
     this.towerMenuConfirmRotate.setVisible(false);
     this.towerMenuCancelRotate.setVisible(false);
+    this.towerMenuView.setVisible(true);
     this.towerMenuUpgrade.setVisible(true);
     this.towerMenuSell.setVisible(true);
 
@@ -2804,7 +2905,7 @@ class GameScene extends Phaser.Scene {
     const isAiming = Boolean(this.aimingTower);
     const hasArcNotRotated = Boolean(tower.arc && !tower.hasRotated && !isAiming);
     const menuW = 230 * DPR;
-    const menuH = isAiming ? 155 * DPR : (hasArcNotRotated ? 180 * DPR : 145 * DPR);
+    const menuH = isAiming ? 155 * DPR : (hasArcNotRotated ? 210 * DPR : 175 * DPR);
     const halfW = menuW / 2;
     const halfH = menuH / 2;
     const margin = 8 * DPR;
@@ -2822,14 +2923,16 @@ class GameScene extends Phaser.Scene {
       this.towerMenuConfirmRotate.setPosition(x, y + 14 * DPR);
       this.towerMenuCancelRotate.setPosition(x, y + 46 * DPR);
     } else if (hasArcNotRotated) {
-      this.towerMenuTitle.setPosition(x, y - 56 * DPR);
-      this.towerMenuRotate.setPosition(x, y - 18 * DPR);
-      this.towerMenuUpgrade.setPosition(x, y + 20 * DPR);
-      this.towerMenuSell.setPosition(x, y + 58 * DPR);
+      this.towerMenuTitle.setPosition(x, y - 68 * DPR);
+      this.towerMenuRotate.setPosition(x, y - 30 * DPR);
+      this.towerMenuView.setPosition(x, y + 6 * DPR);
+      this.towerMenuUpgrade.setPosition(x, y + 42 * DPR);
+      this.towerMenuSell.setPosition(x, y + 76 * DPR);
     } else {
-      this.towerMenuTitle.setPosition(x, y - 42 * DPR);
-      this.towerMenuUpgrade.setPosition(x, y + 4 * DPR);
-      this.towerMenuSell.setPosition(x, y + 46 * DPR);
+      this.towerMenuTitle.setPosition(x, y - 54 * DPR);
+      this.towerMenuView.setPosition(x, y - 12 * DPR);
+      this.towerMenuUpgrade.setPosition(x, y + 24 * DPR);
+      this.towerMenuSell.setPosition(x, y + 58 * DPR);
     }
 
     updateRoundBgs(this);
@@ -3351,7 +3454,11 @@ class GameScene extends Phaser.Scene {
 
     // Если меню башни открыто — пересчитываем позицию и кольцо под новый размер.
     if (this.selectedTower) {
-      this.positionTowerMenu();
+      if (!this.isTowerViewMode) {
+        this.positionTowerMenu();
+      } else {
+        this.positionTowerViewPill();
+      }
       this.showRangeRingForTower(this.selectedTower);
     }
 
@@ -4063,9 +4170,18 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Нажали на башню — открываем её меню (угол окна — в точке нажатия).
+    // Нажали на башню — открываем её меню или переключаем режим просмотра.
     const existing = this.towerAt(worldPx.x, worldPx.y);
     if (existing) {
+      if (this.selectedTower === existing) {
+        if (this.isTowerViewMode) {
+          this.exitTowerViewMode(true);
+        } else {
+          this.enterTowerViewMode();
+        }
+        return;
+      }
+      this.isTowerViewMode = false;
       this.menuAnchor = { x: pointer.x, y: pointer.y };
       this.openTowerMenu(existing);
       return;
@@ -4078,6 +4194,14 @@ class GameScene extends Phaser.Scene {
       return;
     }
     this.hideEnemyInfo();
+
+    // Если сейчас был активен режим просмотра: не сбрасываем сразу, если это потяг (панорамирование)
+    if (this.isTowerViewMode) {
+      this.panArmed = true;
+      this.panStart.x = pointer.x;
+      this.panStart.y = pointer.y;
+      return;
+    }
 
     // Клик по пустому месту — закрываем меню.
     this.closeTowerMenu();
@@ -4282,7 +4406,9 @@ class GameScene extends Phaser.Scene {
         this.isPlacing = false;
         if (this.ghost) this.ghost.setVisible(false);
       }
-      this.clearRangeRing();
+      if (!this.isTowerViewMode) {
+        this.clearRangeRing();
+      }
       this.panLast.x = pointer.x;
       this.panLast.y = pointer.y;
       return true;
@@ -4305,6 +4431,12 @@ class GameScene extends Phaser.Scene {
 
     // Если был потяг (панорамирование) — это не тап, ничего не строим.
     if (wasPanning) return;
+
+    // Одиночный клик по пустому полю во время режима просмотра — закрываем его.
+    if (this.isTowerViewMode) {
+      this.closeTowerMenu();
+      return;
+    }
 
     // Установка новой башни: строим там, где отпустили палец/мышь.
     if (this.isPlacing) {
