@@ -94,6 +94,34 @@ const TOWER_TYPES = {
       { name: 'Миниган M134', damage: 38, fireRate: 10.0, range: 4.0, accuracy: 0.72, upgradeCost: 650 },
     ],
   },
+  disinfector: {
+    name: 'Дезинфектор',
+    cost: 85,
+    range: 2.8,
+    fireRate: 3.2,
+    damage: 10,
+    accuracy: 1.0,
+    cureChance: 0.06,
+    sprayCone: (45 * Math.PI) / 180,
+    footprint: 0.75,
+    weaponScale: 0.6,
+    baseTexture: 'tower',
+    texture: 'tower',
+    color: 0x2ecc71,
+    baseOrigin: { x: 0.5, y: 0.5 },
+    gunOrigin: { x: 0.5, y: 0.5 },
+    gunOrbit: 0.28,
+    gunOrbitX: 1.15,
+    gunOrbitY: 0.5,
+    gunMount: { x: 0, y: 0.1 },
+    levels: [
+      { name: 'Аэрозоль', damage: 10, cureChance: 0.06, fireRate: 3.2, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
+      { name: 'Опрыскиватель', damage: 16, cureChance: 0.09, fireRate: 3.6, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
+      { name: 'Газомёт', damage: 24, cureChance: 0.13, fireRate: 4.0, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
+      { name: 'Химраспылитель', damage: 36, cureChance: 0.18, fireRate: 4.5, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
+      { name: 'Био-очиститель', damage: 52, cureChance: 0.25, fireRate: 5.0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
+    ],
+  },
 };
 
 const ENEMY_HIT_COLOR = 0xffffff; // вспышка врага при попадании
@@ -139,6 +167,32 @@ const ENEMY_TYPES = {
   },
   boss: { hp: 4500, speed: 0.7, color: 0x2c3e50, reward: 500, size: 1.15, livesDamage: 5 },
 };
+
+// Множитель шанса исцеления врага дезинфектором.
+// Босс — полный иммунитет (0). Танк — мизерный шанс (споры глубоко вросли).
+function getEnemyCureMultiplier(enemy) {
+  if (!enemy || !enemy.typeKey) return 1.0;
+  switch (enemy.typeKey) {
+    case 'boss':
+      return 0; // Полный иммунитет
+    case 'tank':
+      return 0.05; // Мизерный шанс (~0.3% на ур. 1, ~1.25% на ур. 5)
+    case 'shielded':
+      return enemy.shield > 0 ? 0.15 : 0.4; // Щит сдерживает газ
+    case 'armored':
+      return 0.35; // Панцирь защищает от газа
+    case 'splitter':
+      return 0.6;
+    case 'normal':
+      return 1.0;
+    case 'fast':
+      return 1.2;
+    case 'small':
+      return 1.4; // Мелкие споры очищаются легче всего
+    default:
+      return 1.0;
+  }
+}
 
 // ----------------------------- Волны -----------------------------
 const SPAWN_INTERVAL = 1000;      // базовая задержка между спавном, мс
@@ -493,6 +547,7 @@ class Enemy extends Phaser.GameObjects.Rectangle {
     this.hp = hp;               // здоровье (по умолчанию базовое)
     this.maxHp = hp;            // максимум здоровья (для отображения)
     this.isDead = false;        // мёртв/исчезает — не двигается и не цель для башен
+    this.isCured = false;       // излечен газом дезинфектора — идёт назад и бьёт споры
 
     // Размер — в iso-пикселях (ISO_HW), не зависит от экрана.
     const size = this.sizeFactor * ISO_HW;
@@ -518,9 +573,99 @@ class Enemy extends Phaser.GameObjects.Rectangle {
     this.refreshDepth();
   }
 
+  // Излечение врага газом: меняет цвет, вспыхивает и начинает обратное движение.
+  cure() {
+    if (this.isDead || this.isCured) return;
+    this.isCured = true;
+    this.baseFill = 0x2ecc71; // чистый зеленый оттенок очищенных клеток
+    this.setFillStyle(this.baseFill);
+    this.flash();
+
+    if (this.scene && this.scene.showFloatingText) {
+      this.scene.showFloatingText(this.x, this.y - 18 * DPR, 'ВЫЛЕЧЕН!', 0x2ecc71);
+    }
+  }
+
+  // Движение назад к спавну (для излеченных врагов).
+  moveBackwards(delta) {
+    const segments = this.route.segments;
+    let seg = segments[this.segment];
+    this.progress -= (this.speed * (delta / 1000)) / seg.length;
+
+    while (this.progress < 0 && this.segment > 0) {
+      this.segment -= 1;
+      seg = segments[this.segment];
+      this.progress += 1;
+    }
+
+    if (this.segment === 0 && this.progress <= 0) {
+      this.progress = 0;
+      this.wx = seg.a.x;
+      this.wy = seg.a.y;
+      this.dirX = -seg.dir.x;
+      this.dirY = -seg.dir.y;
+      this.syncScreen();
+      this.arriveAtStart();
+      return;
+    }
+
+    seg = segments[this.segment];
+    this.wx = Phaser.Math.Linear(seg.a.x, seg.b.x, this.progress);
+    this.wy = Phaser.Math.Linear(seg.a.y, seg.b.y, this.progress);
+    this.dirX = -seg.dir.x;
+    this.dirY = -seg.dir.y;
+    this.syncScreen();
+  }
+
+  // Излеченный враг дошёл назад до входа — спасается и приносит золото.
+  arriveAtStart() {
+    this.isDead = true;
+    if (this.scene) {
+      this.scene.gold += this.reward;
+      this.scene.updateUI();
+      if (this.scene.showFloatingText) {
+        this.scene.showFloatingText(this.x, this.y - 20 * DPR, `+${this.reward}`, 0xffd700);
+      }
+    }
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 0,
+      scale: 1.5,
+      duration: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => this.destroy(),
+    });
+  }
+
+  // Бой излеченного врага со встречными заражёнными спорами.
+  checkFriendlyCombat(delta) {
+    if (!this.isCured || this.isDead || !this.scene) return;
+
+    const contactRange = (this.sizeFactor || 0.6) * 0.45;
+    for (const other of this.scene.enemies) {
+      if (!other.active || other.isDead || other.isCured) continue;
+
+      const dist = Math.hypot(this.wx - other.wx, this.wy - other.wy);
+      if (dist <= contactRange + (other.sizeFactor || 0.6) * 0.45) {
+        const dps = 55;
+        const dmg = dps * (delta / 1000);
+        other.takeDamage(dmg);
+        this.takeDamage(dmg);
+
+        if (this.isDead) break;
+      }
+    }
+  }
+
   // Движение по сегментам Route в world-координатах.
   // delta — мс; экранные координаты в логике движения не участвуют.
   moveAlongPath(delta) {
+    if (this.isCured) {
+      this.moveBackwards(delta);
+      this.checkFriendlyCombat(delta);
+      return;
+    }
+
     const segments = this.route.segments;
     if (this.segment >= segments.length) {
       this.arriveAtEnd();
@@ -599,10 +744,11 @@ class Enemy extends Phaser.GameObjects.Rectangle {
   // Смерть: плавно увеличиваем и растворяем квадрат, затем удаляем.
   die() {
     this.isDead = true;
-    this.scene.onEnemyKilled(this); // сообщаем сцене (награда золотом)
-
-    // Разделяющийся враг оставляет после себя мелких.
-    if (this.config.splitInto) this.scene.onEnemySplit(this);
+    if (!this.isCured) {
+      this.scene.onEnemyKilled(this); // сообщаем сцене (награда золотом)
+      // Разделяющийся враг оставляет после себя мелких.
+      if (this.config.splitInto) this.scene.onEnemySplit(this);
+    }
 
     this.scene.tweens.add({
       targets: this,
@@ -705,6 +851,8 @@ class Tower {
     this.fireRate = lvl1 ? lvl1.fireRate : type.fireRate;   // выстрелов в секунду
     this.damage = lvl1 ? lvl1.damage : type.damage;       // урон за выстрел
     this.accuracy = lvl1 && lvl1.accuracy !== undefined ? lvl1.accuracy : (type.accuracy !== undefined ? type.accuracy : 1);
+    this.cureChance = lvl1 && lvl1.cureChance !== undefined ? lvl1.cureChance : (type.cureChance || 0);
+    this.sprayCone = lvl1 && lvl1.sprayCone !== undefined ? lvl1.sprayCone : (type.sprayCone || null);
     this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
     this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
     this.hasRotated = false;         // развернули ли установку (доступно только 1 раз)
@@ -807,6 +955,8 @@ class Tower {
       this.fireRate = lvl.fireRate;
       this.damage = lvl.damage;
       this.accuracy = lvl.accuracy !== undefined ? lvl.accuracy : 1;
+      this.cureChance = lvl.cureChance !== undefined ? lvl.cureChance : (this.config.cureChance || 0);
+      this.sprayCone = lvl.sprayCone !== undefined ? lvl.sprayCone : (this.config.sprayCone || null);
       const hadArc = Boolean(this.arc);
       this.arc = lvl.arc || null;
       if (this.arc && !hadArc) {
@@ -881,7 +1031,7 @@ class Tower {
     const pos = this.getPosition();
 
     for (const enemy of enemies) {
-      if (!enemy.active || enemy.isDead) continue;
+      if (!enemy.active || enemy.isDead || enemy.isCured) continue;
 
       const distance = Math.hypot(this.gx - enemy.wx, this.gy - enemy.wy);
       if (distance > this.range) continue;
@@ -903,13 +1053,50 @@ class Tower {
     return best;
   }
 
-  // Создаём снаряд, летящий в цель.
+  // Создаём снаряд или распыляем струю газа в цель.
   // С шансом (1 - accuracy) выстрел уходит в «разброс» и не наносит урон.
   shoot(pos, target) {
+    if (this.typeKey === 'disinfector') {
+      this.shootGas(pos, target);
+      return;
+    }
     const willHit = Math.random() < this.accuracy;
     this.scene.playSfx('sfx_shot', 0.25);
     const projectile = new Projectile(this.scene, pos.x, pos.y, target, this.damage, willHit, this.accuracy);
     this.scene.projectiles.push(projectile);
+  }
+
+  // Распыление струи дезинфицирующего газа (конус перед башней).
+  shootGas(pos, target) {
+    this.scene.playSfx('sfx_shot', 0.12);
+    const aimAngle = this.aimAngle;
+    const cone = this.sprayCone || ((45 * Math.PI) / 180);
+    const rangePx = this.range * ISO_HW;
+
+    if (this.scene.createGasSpray) {
+      this.scene.createGasSpray(pos.x, pos.y, aimAngle, rangePx * 0.7);
+    }
+
+    for (const enemy of this.scene.enemies) {
+      if (!enemy.active || enemy.isDead || enemy.isCured) continue;
+
+      const dist = Math.hypot(this.gx - enemy.wx, this.gy - enemy.wy);
+      if (dist > this.range) continue;
+
+      const enemyAngle = Math.atan2((enemy.y - pos.y) / ISO_HH, (enemy.x - pos.x) / ISO_HW);
+      const diff = Math.abs(angleDiff(enemyAngle, aimAngle));
+
+      if (diff <= cone / 2 || enemy === target) {
+        enemy.takeDamage(this.damage);
+        if (!enemy.isDead && !enemy.isCured) {
+          const mult = getEnemyCureMultiplier(enemy);
+          const chance = (this.cureChance || 0.06) * mult;
+          if (chance > 0 && Math.random() < chance) {
+            enemy.cure();
+          }
+        }
+      }
+    }
   }
 }
 
@@ -2621,7 +2808,7 @@ class GameScene extends Phaser.Scene {
         shielded: 'Щитоносец',
         boss: 'Босс',
       };
-      let text = `${NAMES[e.typeKey] || e.typeKey}\nHP ${Math.max(0, Math.ceil(e.hp))}/${e.maxHp}`;
+      let text = `${NAMES[e.typeKey] || e.typeKey}${e.isCured ? ' (Вылечен)' : ''}\nHP ${Math.max(0, Math.ceil(e.hp))}/${e.maxHp}`;
       if (e.shield > 0) text += `\nЩит ${Math.ceil(e.shield)}`;
       this.enemyInfoText.setText(text);
       this.enemyInfoBg.setVisible(true);
@@ -2701,6 +2888,56 @@ class GameScene extends Phaser.Scene {
     if (this.cache.audio.exists(key)) {
       this.sound.play(key, { volume });
     }
+  }
+
+  // Визуальный эффект распыления газа (облако зелёных частиц/пуфов)
+  createGasSpray(startX, startY, angle, distance) {
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      const spread = (Math.random() - 0.5) * 0.55;
+      const a = angle + spread;
+      const dist = Phaser.Math.Between(distance * 0.35, distance * 0.95);
+      const targetX = startX + Math.cos(a) * dist;
+      const targetY = startY + Math.sin(a) * dist * (ISO_HH / ISO_HW);
+
+      const puff = this.add.circle(startX, startY, 7 * DPR, 0x2ecc71, 0.65).setDepth(45);
+      this.tweens.add({
+        targets: puff,
+        x: targetX,
+        y: targetY,
+        scaleX: 2.2,
+        scaleY: 2.2,
+        alpha: 0,
+        duration: Phaser.Math.Between(260, 380),
+        ease: 'Quad.easeOut',
+        onComplete: () => puff.destroy(),
+      });
+    }
+  }
+
+  // Всплывающий текст (для лечения, бонусов и статусов)
+  showFloatingText(x, y, text, color = 0x2ecc71) {
+    const colorStr = typeof color === 'string' ? color : `#${color.toString(16).padStart(6, '0')}`;
+    const t = this.add
+      .text(x, y, text, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(13 * DPR)}px`,
+        fontStyle: 'bold',
+        color: colorStr,
+        stroke: '#000000',
+        strokeThickness: 3 * DPR,
+      })
+      .setOrigin(0.5)
+      .setDepth(150);
+
+    this.tweens.add({
+      targets: t,
+      y: y - 24 * DPR,
+      alpha: 0,
+      duration: 800,
+      ease: 'Quad.easeOut',
+      onComplete: () => t.destroy(),
+    });
   }
 
   // Экран поражения.
@@ -2892,9 +3129,12 @@ class GameScene extends Phaser.Scene {
 
     let title =
       `${tower.getWeaponName()} · ур. ${tower.level}\n` +
-      `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)} · Точн: ${Math.round(
-        tower.accuracy * 100
-      )}%`;
+      `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
+    if (tower.cureChance) {
+      title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
+    } else {
+      title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
+    }
 
     if (tower.arc) {
       if (!tower.hasRotated) {
@@ -4151,7 +4391,7 @@ class GameScene extends Phaser.Scene {
   checkWaveEnd() {
     if (!this.isWaveActive || this.enemiesLeftToSpawn > 0) return;
 
-    const alive = this.enemies.some((enemy) => enemy.active && !enemy.isDead);
+    const alive = this.enemies.some((enemy) => enemy.active && !enemy.isDead && !enemy.isCured);
     if (alive) return;
 
     this.endWave();
