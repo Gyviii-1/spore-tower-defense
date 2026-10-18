@@ -83,7 +83,7 @@ const TOWER_TYPES = {
       { name: 'РПК', damage: 12, fireRate: 11.0, range: 3.6, accuracy: 0.82, upgradeCost: 110 },
       { name: 'ПКМ', damage: 17, fireRate: 12.0, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
       { name: 'Миниган M134', damage: 14, fireRate: 25.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
-      { name: 'Спаренный миниган', damage: 12, fireRate: 25.0, dualBarrels: true, range: 4.2, accuracy: 0.72, upgradeCost: 650 },
+      { name: 'Спаренный миниган', damage: 14, fireRate: 25.0, dualBarrels: true, range: 4.2, accuracy: 0.72, upgradeCost: 650 },
     ],
   },
   disinfector: {
