@@ -1209,7 +1209,7 @@ class MenuScene extends Phaser.Scene {
     this.tabInventory = this.makeTab('Турели', 'inventory');
     this.tabLobby = this.makeTab('Меню', 'lobby');
     this.tabTop = this.makeTab('Топ', 'top');
-    this.tabShop = this.makeTab('База', 'shop');
+    this.tabShop = this.makeTab('Магазин', 'shop');
     this.tabBar.add([this.tabInventory, this.tabLobby, this.tabTop, this.tabShop]);
   }
 
@@ -1587,7 +1587,7 @@ class MenuScene extends Phaser.Scene {
       });
     }
 
-    // Вкладки внизу (порядок: Турели, Меню, Топ, База)
+    // Вкладки внизу (порядок: Турели, Меню, Топ, Магазин)
     const tabY = height * 0.94;
     const tabWidths = [width * 0.15, width * 0.38, width * 0.62, width * 0.85];
     const tabFont = `${Math.max(12 * DPR, Math.round(size * 0.032))}px`;
