@@ -65,7 +65,7 @@ const TOWER_TYPES = {
     cost: 75,
     range: 3.2,
     fireRate: 10.0,
-    damage: 6,
+    damage: 8,
     accuracy: 0.85, // 85% попаданий
     footprint: 1.0,  // крупнее стрелка
     weaponScale: 0.75, // пулемёт крупнее пистолета
@@ -79,11 +79,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'АК-47', damage: 6, fireRate: 10.0, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
-      { name: 'РПК', damage: 10, fireRate: 11.0, range: 3.6, accuracy: 0.82, upgradeCost: 110 },
-      { name: 'ПКМ', damage: 15, fireRate: 12.0, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
-      { name: 'Миниган M134', damage: 12, fireRate: 25.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
-      { name: 'Спаренный миниган', damage: 9, fireRate: 25.0, dualBarrels: true, range: 4.2, accuracy: 0.72, upgradeCost: 650 },
+      { name: 'АК-47', damage: 8, fireRate: 10.0, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
+      { name: 'РПК', damage: 12, fireRate: 11.0, range: 3.6, accuracy: 0.82, upgradeCost: 110 },
+      { name: 'ПКМ', damage: 17, fireRate: 12.0, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
+      { name: 'Миниган M134', damage: 14, fireRate: 25.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
+      { name: 'Спаренный миниган', damage: 12, fireRate: 25.0, dualBarrels: true, range: 4.2, accuracy: 0.72, upgradeCost: 650 },
     ],
   },
   disinfector: {
