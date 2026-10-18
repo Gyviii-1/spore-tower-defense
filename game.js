@@ -2492,111 +2492,191 @@ class GameScene extends Phaser.Scene {
     });
 
     // Меню башни (улучшение/продажа).
-    // ВАЖНО: без контейнера — интерактив в контейнере со scrollFactor(0)
-    // ломает хит-тест кликов. Делаем прямые объекты, зафиксированные на экране.
-    this.towerMenuOffsets = { bg: 0, title: -45 * DPR, upgrade: 0, sell: 45 * DPR };
-
+    // Меню башни (в стиле окна прокачки из референса: иконка, Lv., полоса уровней, карточка).
+    // Все интерактивные элементы — прямые объекты со scrollFactor(0) и depth(102-105).
     this.towerMenuBg = this.add
-      .rectangle(0, 0, 200 * DPR, 150 * DPR, 0x000000, 0.9)
-      .setStrokeStyle(2 * DPR, TOWER_COLOR)
+      .rectangle(0, 0, 260 * DPR, 260 * DPR, 0x000000, 0.001)
       .setDepth(102)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive();
-    // Клик по фону меню не должен «проваливаться» в игровое поле.
     this.towerMenuBg.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
     });
 
-    this.towerMenuTitle = this.add
-      .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${13 * DPR}px`,
-        color: '#ffffff',
-        fontStyle: 'bold',
-        align: 'center',
-        lineSpacing: 4 * DPR,
-      })
-      .setOrigin(0.5)
-      .setDepth(103)
+    this.towerMenuGfx = this.add.graphics().setDepth(103).setScrollFactor(0).setVisible(false);
+
+    // Иконка башни в квадратной рамке
+    this.towerMenuIconBase = this.add
+      .image(0, 0, 'tower')
+      .setDisplaySize(38 * DPR, 38 * DPR)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false);
 
-    this.towerMenuUpgrade = this.add
+    this.towerMenuIconGun = this.add
+      .image(0, 0, 'tower')
+      .setDisplaySize(38 * DPR, 38 * DPR)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    // Заголовок: Lv. X и название оружия
+    this.towerMenuHeader = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${14 * DPR}px`,
-        color: '#e63946',
-      })
-      .setOrigin(0.5)
-      .setDepth(103)
-      .setScrollFactor(0)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-
-    this.towerMenuRotate = this.add
-      .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${13 * DPR}px`,
-        color: '#f39c12',
+        color: '#ffffff',
         fontStyle: 'bold',
       })
+      .setOrigin(0, 0.5)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    // Кнопка закрытия окна (крестик в правом верхнем углу)
+    this.towerMenuClose = this.add
+      .text(0, 0, '✖', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${13 * DPR}px`,
+        color: '#8a94a6',
+        padding: { x: 6 * DPR, y: 3 * DPR },
+      })
       .setOrigin(0.5)
-      .setDepth(103)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
+    this.towerMenuClose.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.closeTowerMenu();
+    });
 
+    // Зелёная кнопка улучшения
+    this.towerMenuUpgrade = this.add
+      .text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${12 * DPR}px`,
+        color: '#ffffff',
+        fontStyle: 'bold',
+        padding: { x: 8 * DPR, y: 5 * DPR },
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    this.towerMenuUpgrade.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.upgradeSelectedTower();
+    });
+
+    // Карточка с характеристиками
+    this.towerMenuStats = this.add
+      .text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${11.5 * DPR}px`,
+        color: '#c8d1dc',
+        lineSpacing: 3 * DPR,
+      })
+      .setOrigin(0, 0)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    // Кнопка поворота (для стационарных установок)
+    this.towerMenuRotate = this.add
+      .text(0, 0, '🔄 Повернуть', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${11 * DPR}px`,
+        color: '#f39c12',
+        fontStyle: 'bold',
+        padding: { x: 7 * DPR, y: 4 * DPR },
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    this.towerMenuRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.startAimingTower();
+    });
+
+    // Кнопки подтверждения / отмены поворота
     this.towerMenuConfirmRotate = this.add
       .text(0, 0, '✅ Зафиксировать', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${13 * DPR}px`,
+        fontSize: `${12 * DPR}px`,
         color: '#2ecc71',
         fontStyle: 'bold',
+        padding: { x: 10 * DPR, y: 5 * DPR },
       })
       .setOrigin(0.5)
-      .setDepth(103)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
+    this.towerMenuConfirmRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.confirmAimingTower();
+    });
 
     this.towerMenuCancelRotate = this.add
       .text(0, 0, '✖ Отмена', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${13 * DPR}px`,
+        fontSize: `${12 * DPR}px`,
         color: '#95a5a6',
         fontStyle: 'bold',
+        padding: { x: 10 * DPR, y: 5 * DPR },
       })
       .setOrigin(0.5)
-      .setDepth(103)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
+    this.towerMenuCancelRotate.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.cancelAimingTower();
+    });
 
+    // Кнопка режима просмотра
+    this.towerMenuView = this.add
+      .text(0, 0, '👁 Просмотр', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${11 * DPR}px`,
+        color: '#48dbfb',
+        fontStyle: 'bold',
+        padding: { x: 7 * DPR, y: 4 * DPR },
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setScrollFactor(0)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    this.towerMenuView.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.enterTowerViewMode();
+    });
+
+    // Кнопка продажи башни
     this.towerMenuSell = this.add
       .text(0, 0, '', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${14 * DPR}px`,
+        fontSize: `${11 * DPR}px`,
         color: '#e74c3c',
-      })
-      .setOrigin(0.5)
-      .setDepth(103)
-      .setScrollFactor(0)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-
-    this.towerMenuView = this.add
-      .text(0, 0, '👁 Режим просмотра', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${13 * DPR}px`,
-        color: '#48dbfb',
         fontStyle: 'bold',
+        padding: { x: 7 * DPR, y: 4 * DPR },
       })
       .setOrigin(0.5)
-      .setDepth(103)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
+    this.towerMenuSell.on('pointerdown', (pointer, localX, localY, event) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      this.sellSelectedTower();
+    });
 
     // Плашка режима просмотра (когда окно скрыто, а круг оставлен)
     this.towerViewPill = this.add
@@ -2607,56 +2687,33 @@ class GameScene extends Phaser.Scene {
         padding: { x: 14 * DPR, y: 7 * DPR },
       })
       .setOrigin(0.5)
-      .setDepth(103)
+      .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
-
-    this.towerMenuParts = [
-      this.towerMenuBg,
-      this.towerMenuTitle,
-      this.towerMenuRotate,
-      this.towerMenuConfirmRotate,
-      this.towerMenuCancelRotate,
-      this.towerMenuView,
-      this.towerMenuUpgrade,
-      this.towerMenuSell,
-    ];
-
-    this.towerMenuView.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.enterTowerViewMode();
-    });
-
     this.towerViewPill.on('pointerdown', (pointer, localX, localY, event) => {
       if (event && event.stopPropagation) event.stopPropagation();
       this.exitTowerViewMode(true);
     });
 
-    this.towerMenuRotate.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.startAimingTower();
-    });
+    // Совместимость со старым кодом
+    this.towerMenuTitle = this.towerMenuStats;
 
-    this.towerMenuConfirmRotate.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.confirmAimingTower();
-    });
-
-    this.towerMenuCancelRotate.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.cancelAimingTower();
-    });
-
-    this.towerMenuUpgrade.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.upgradeSelectedTower();
-    });
-
-    this.towerMenuSell.on('pointerdown', (pointer, localX, localY, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.sellSelectedTower();
-    });
+    this.towerMenuParts = [
+      this.towerMenuBg,
+      this.towerMenuGfx,
+      this.towerMenuIconBase,
+      this.towerMenuIconGun,
+      this.towerMenuHeader,
+      this.towerMenuClose,
+      this.towerMenuUpgrade,
+      this.towerMenuStats,
+      this.towerMenuRotate,
+      this.towerMenuConfirmRotate,
+      this.towerMenuCancelRotate,
+      this.towerMenuView,
+      this.towerMenuSell,
+    ];
 
     // Панель выбора башни для постройки (внизу экрана).
     this.createBuildMenu();
@@ -2791,15 +2848,62 @@ class GameScene extends Phaser.Scene {
     for (const part of this.cheatParts) {
       roundTarget(this, part, { color: 0x3a3a3a, alpha: 1, radius: 10 * DPR });
     }
-    // Окно прокачки — скруглённое.
-    roundTarget(this, this.towerMenuBg, {
-      kind: 'rect',
-      color: 0x000000,
-      alpha: 0.9,
-      radius: 12 * DPR,
-      strokeColor: TOWER_COLOR,
-      strokeAlpha: 1,
-      strokeWidth: 2 * DPR,
+    // Скруглённые стилизованные кнопки окна прокачки
+    roundTarget(this, this.towerMenuUpgrade, {
+      color: 0x27ae60,
+      alpha: 1,
+      radius: 8 * DPR,
+      strokeColor: 0x4cd137,
+      strokeAlpha: 0.9,
+      strokeWidth: 1.5 * DPR,
+    });
+    roundTarget(this, this.towerMenuClose, {
+      color: 0x1a1f2b,
+      alpha: 1,
+      radius: 6 * DPR,
+      strokeColor: 0x2f384a,
+      strokeAlpha: 0.9,
+      strokeWidth: 1 * DPR,
+    });
+    roundTarget(this, this.towerMenuView, {
+      color: 0x131a24,
+      alpha: 1,
+      radius: 7 * DPR,
+      strokeColor: 0x48dbfb,
+      strokeAlpha: 0.8,
+      strokeWidth: 1 * DPR,
+    });
+    roundTarget(this, this.towerMenuSell, {
+      color: 0x221417,
+      alpha: 1,
+      radius: 7 * DPR,
+      strokeColor: 0xe74c3c,
+      strokeAlpha: 0.8,
+      strokeWidth: 1 * DPR,
+    });
+    roundTarget(this, this.towerMenuRotate, {
+      color: 0x241a10,
+      alpha: 1,
+      radius: 7 * DPR,
+      strokeColor: 0xf39c12,
+      strokeAlpha: 0.8,
+      strokeWidth: 1 * DPR,
+    });
+    roundTarget(this, this.towerMenuConfirmRotate, {
+      color: 0x14281a,
+      alpha: 1,
+      radius: 7 * DPR,
+      strokeColor: 0x2ecc71,
+      strokeAlpha: 0.9,
+      strokeWidth: 1.5 * DPR,
+    });
+    roundTarget(this, this.towerMenuCancelRotate, {
+      color: 0x1e222a,
+      alpha: 1,
+      radius: 7 * DPR,
+      strokeColor: 0x95a5a6,
+      strokeAlpha: 0.8,
+      strokeWidth: 1 * DPR,
     });
     // Плашка режима просмотра — скруглённая с голубой обводкой.
     roundTarget(this, this.towerViewPill, {
@@ -3171,6 +3275,7 @@ class GameScene extends Phaser.Scene {
       this.aimingTower = null;
     }
     this.selectedTower = null;
+    if (this.towerMenuGfx) this.towerMenuGfx.clear();
     if (this.towerMenuParts) {
       for (const part of this.towerMenuParts) part.setVisible(false);
     }
@@ -3224,6 +3329,7 @@ class GameScene extends Phaser.Scene {
     if (!tower) return;
     this.isTowerViewMode = true;
     this.viewModeTappedGround = false;
+    if (this.towerMenuGfx) this.towerMenuGfx.clear();
     if (this.towerMenuParts) {
       for (const part of this.towerMenuParts) part.setVisible(false);
     }
@@ -3260,17 +3366,38 @@ class GameScene extends Phaser.Scene {
     updateRoundBgs(this);
   }
 
-  // Обновить тексты меню по текущей башне.
+  // Обновить тексты и состояния окна прокачки башни.
   refreshTowerMenu() {
     const tower = this.selectedTower;
     if (!tower) return;
 
     this.towerMenuBg.setVisible(true);
-    this.towerMenuTitle.setVisible(true);
+    this.towerMenuGfx.setVisible(true);
+    this.towerMenuIconBase.setVisible(true);
+    this.towerMenuHeader.setVisible(true);
+    this.towerMenuClose.setVisible(true);
+    this.towerMenuStats.setVisible(true);
 
-    if (this.aimingTower) {
-      this.towerMenuTitle.setText(
-        'НАПРАВЛЕНИЕ (1 РАЗ)\nНажми или потяни на поле,\nчтобы направить сектор'
+    // 1. Иконка башни в квадратном превью-боксе
+    const base = this.resolveBase(tower.typeKey, DIR_FORWARD);
+    const baseKey = (base && base.key) || tower.config.texture;
+    this.towerMenuIconBase.setTexture(baseKey);
+
+    const gun = this.resolveGun(tower.typeKey, tower.level, DIR_FORWARD);
+    if (gun && this.textures.exists(gun.key)) {
+      this.towerMenuIconGun.setTexture(gun.key).setVisible(true);
+    } else {
+      this.towerMenuIconGun.setVisible(false);
+    }
+
+    // 2. Заголовок уровня и имени
+    this.towerMenuHeader.setText(`Lv. ${tower.level} · ${tower.getWeaponName()}`);
+
+    const isAiming = Boolean(this.aimingTower);
+
+    if (isAiming) {
+      this.towerMenuStats.setText(
+        '🎯 НАПРАВЛЕНИЕ СЕКТОРА\nПотяните или нажмите на поле,\nчтобы направить сектор обстрела'
       );
       this.towerMenuConfirmRotate.setVisible(true);
       this.towerMenuCancelRotate.setVisible(true);
@@ -3287,51 +3414,91 @@ class GameScene extends Phaser.Scene {
     this.towerMenuUpgrade.setVisible(true);
     this.towerMenuSell.setVisible(true);
 
-    let title = `${tower.getWeaponName()} · ур. ${tower.level}\n`;
+    const next = tower.config.levels && tower.config.levels[tower.level];
+
+    // 3. Зелёная кнопка улучшения
+    if (tower.canUpgrade()) {
+      const cost = tower.getUpgradeCost();
+      const hasGold = this.gold >= cost;
+      this.towerMenuUpgrade.setText(`УЛУЧШИТЬ · ${cost} 🟡`);
+      if (this.towerMenuUpgrade._roundItem) {
+        this.towerMenuUpgrade._roundItem.color = hasGold ? 0x27ae60 : 0x2c2226;
+        this.towerMenuUpgrade._roundItem.strokeColor = hasGold ? 0x4cd137 : 0xd63031;
+      }
+      this.towerMenuUpgrade.setColor(hasGold ? '#ffffff' : '#ff7675');
+    } else {
+      this.towerMenuUpgrade.setText('МАКС. УРОВЕНЬ');
+      if (this.towerMenuUpgrade._roundItem) {
+        this.towerMenuUpgrade._roundItem.color = 0x1b202c;
+        this.towerMenuUpgrade._roundItem.strokeColor = 0x2c3547;
+      }
+      this.towerMenuUpgrade.setColor('#7f8c8d');
+    }
+
+    // 4. Характеристики и превью следующего уровня
+    let stats = '';
     if (tower.continuous) {
-      title += `Урон: ${tower.damage}/с (БЕЗ КД) · Рад: ${tower.range.toFixed(1)}`;
-      if (tower.cureChance) {
-        title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%/с`;
+      stats += `Урон: ${tower.damage}/с (БЕЗ КД)`;
+      if (next) stats += ` ➔ ${next.damage}/с`;
+      stats += `\nРадиус: ${tower.range.toFixed(1)}`;
+      if (next && next.range !== undefined) stats += ` ➔ ${next.range.toFixed(1)}`;
+      if (tower.cureChance || (next && next.cureChance)) {
+        const cur = Math.round((tower.cureChance || 0) * 100);
+        const nxt = next && next.cureChance ? Math.round(next.cureChance * 100) : cur;
+        stats += `\nИсцеление: ${cur}%/с`;
+        if (next && nxt !== cur) stats += ` ➔ ${nxt}%/с`;
       }
     } else if (tower.typeKey === 'disinfector') {
-      const cdStr = (1 / tower.fireRate).toFixed(2);
-      title += `Урон: ${tower.damage} · ${tower.fireRate.toFixed(1)}/с (кд ${cdStr}с) · Рад: ${tower.range.toFixed(1)}`;
-      if (tower.cureChance) {
-        title += ` · Шанс: ${Math.round(tower.cureChance * 100)}%`;
+      stats += `Урон: ${tower.damage}`;
+      if (next && next.damage !== undefined) stats += ` ➔ ${next.damage}`;
+      stats += ` · Темп: ${tower.fireRate.toFixed(1)}/с`;
+      if (next && next.fireRate !== undefined) stats += ` ➔ ${next.fireRate.toFixed(1)}/с`;
+      stats += `\nРадиус: ${tower.range.toFixed(1)}`;
+      if (next && next.range !== undefined) stats += ` ➔ ${next.range.toFixed(1)}`;
+      if (tower.cureChance || (next && next.cureChance)) {
+        const cur = Math.round((tower.cureChance || 0) * 100);
+        const nxt = next && next.cureChance ? Math.round(next.cureChance * 100) : cur;
+        stats += ` · Шанс: ${cur}%`;
+        if (next && nxt !== cur) stats += ` ➔ ${nxt}%`;
+      }
+      if (next && next.continuous) {
+        stats += `\n⭐ След. уровень: БЕЗ КД (сплошной газ)!`;
       }
     } else {
-      const dmgStr = tower.dualBarrels ? `${tower.damage} × 2` : `${tower.damage}`;
-      title += `Урон: ${dmgStr} · ${tower.fireRate.toFixed(1)}/с · Рад: ${tower.range.toFixed(1)}`;
-      title += ` · Точн: ${Math.round(tower.accuracy * 100)}%`;
+      const curDmg = tower.dualBarrels ? `${tower.damage} × 2` : `${tower.damage}`;
+      const nxtDmg = next ? (next.levels && next.level === 5 ? `${next.damage} × 2` : `${next.damage}`) : '';
+      stats += `Урон: ${curDmg}`;
+      if (next && nxtDmg !== curDmg) stats += ` ➔ ${nxtDmg}`;
+      stats += ` · Темп: ${tower.fireRate.toFixed(1)}/с`;
+      if (next && next.fireRate !== undefined) stats += ` ➔ ${next.fireRate.toFixed(1)}/с`;
+      stats += `\nРадиус: ${tower.range.toFixed(1)}`;
+      if (next && next.range !== undefined) stats += ` ➔ ${next.range.toFixed(1)}`;
+      stats += ` · Точность: ${Math.round(tower.accuracy * 100)}%`;
+      if (next && next.accuracy !== undefined && Math.round(next.accuracy * 100) !== Math.round(tower.accuracy * 100)) {
+        stats += ` ➔ ${Math.round(next.accuracy * 100)}%`;
+      }
+      if (next && next.dualBarrels && !tower.dualBarrels) {
+        stats += `\n⭐ След. уровень: 2 независимых ствола!`;
+      }
     }
 
     if (tower.arc) {
       if (!tower.hasRotated) {
-        title += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (не зафиксирован)`;
-        this.towerMenuRotate.setVisible(true).setText('🔄 Развернуть (1 раз)');
+        stats += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (не зафиксирован)`;
+        this.towerMenuRotate.setVisible(true);
       } else {
-        title += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (зафиксирован)`;
+        stats += `\nСектор: ${Math.round((tower.arc * 180) / Math.PI)}° (зафиксирован)`;
         this.towerMenuRotate.setVisible(false);
       }
     } else {
       this.towerMenuRotate.setVisible(false);
     }
-    this.towerMenuTitle.setText(title);
 
-    if (tower.canUpgrade()) {
-      const nextName = tower.getNextWeaponName();
-      const upText = nextName
-        ? `Улучшить: ${nextName} (${tower.getUpgradeCost()})`
-        : `Улучшить (${tower.getUpgradeCost()})`;
-      this.towerMenuUpgrade.setText(upText).setColor('#e63946');
-    } else {
-      this.towerMenuUpgrade.setText('МАКС. УРОВЕНЬ').setColor('#7f8c8d');
-    }
-
-    this.towerMenuSell.setText(`✖ Продать (+${tower.getSellValue()})`);
+    this.towerMenuStats.setText(stats);
+    this.towerMenuSell.setText(`💰 Продать (+${tower.getSellValue()})`);
   }
 
-  // Расположить меню рядом с башней, не выпуская его за края экрана.
+  // Расположить окно прокачки рядом с башней и отрисовать дизайн по референсу.
   positionTowerMenu() {
     const tower = this.selectedTower;
     if (!tower) return;
@@ -3340,8 +3507,10 @@ class GameScene extends Phaser.Scene {
     const height = this.scale.height;
     const isAiming = Boolean(this.aimingTower);
     const hasArcNotRotated = Boolean(tower.arc && !tower.hasRotated && !isAiming);
-    const menuW = 230 * DPR;
-    const menuH = isAiming ? 155 * DPR : (hasArcNotRotated ? 210 * DPR : 175 * DPR);
+
+    const pad = 10 * DPR;
+    const menuW = Math.min(width - 20 * DPR, 268 * DPR);
+    const menuH = isAiming ? 170 * DPR : (hasArcNotRotated ? 275 * DPR : 248 * DPR);
     const halfW = menuW / 2;
     const halfH = menuH / 2;
     const margin = 8 * DPR;
@@ -3351,24 +3520,117 @@ class GameScene extends Phaser.Scene {
     const x = Phaser.Math.Clamp(anchor.x + halfW, halfW + margin, width - halfW - margin);
     const y = Phaser.Math.Clamp(anchor.y + halfH, halfH + margin, height - halfH - margin);
 
+    const left = x - halfW;
+    const top = y - halfH;
+
     this.towerMenuBg.setSize(menuW, menuH);
     this.towerMenuBg.setPosition(x, y);
 
+    // Размеры и координаты элементов
+    const iconBoxSize = 50 * DPR;
+    const iconX = left + pad;
+    const iconY = top + pad;
+    const iconCenterX = iconX + iconBoxSize / 2;
+    const iconCenterY = iconY + iconBoxSize / 2;
+
+    const closeSize = 22 * DPR;
+    const closeX = left + menuW - pad - closeSize / 2;
+    const closeY = top + pad + closeSize / 2;
+
+    const headerX = iconX + iconBoxSize + 8 * DPR;
+    const headerY = top + pad + 12 * DPR;
+
+    const upBtnW = (left + menuW - pad) - headerX;
+    const upBtnH = 26 * DPR;
+    const upBtnCenterX = headerX + upBtnW / 2;
+    const upBtnCenterY = iconY + iconBoxSize - upBtnH / 2;
+
+    const barY = iconY + iconBoxSize + 8 * DPR;
+    const barGap = 5 * DPR;
+    const segW = (menuW - pad * 2 - 3 * barGap) / 4;
+    const segH = 12 * DPR;
+
+    const cardY = barY + segH + 8 * DPR;
+    const cardW = menuW - pad * 2;
+    const cardH = (top + menuH - pad) - cardY;
+
+    // Отрисовка графики окна, рамки и 4-сегментной полосы прогресса
+    const gfx = this.towerMenuGfx;
+    gfx.clear();
+
+    // 1. Внешний корпус окна (тёмный контейнер со скруглением и обводкой)
+    gfx.fillStyle(0x11141d, 0.97);
+    gfx.fillRoundedRect(left, top, menuW, menuH, 14 * DPR);
+    gfx.lineStyle(1.5 * DPR, 0x283144, 1);
+    gfx.strokeRoundedRect(left, top, menuW, menuH, 14 * DPR);
+
+    // 2. Рамка иконки башни (квадратная со скруглением)
+    gfx.fillStyle(0x161a25, 1);
+    gfx.fillRoundedRect(iconX, iconY, iconBoxSize, iconBoxSize, 8 * DPR);
+    gfx.lineStyle(1.5 * DPR, 0x323c50, 1);
+    gfx.strokeRoundedRect(iconX, iconY, iconBoxSize, iconBoxSize, 8 * DPR);
+
+    // 3. Четырёхсегментная полоса уровней с диагональными штрихами
+    for (let i = 0; i < 4; i++) {
+      const segX = left + pad + i * (segW + barGap);
+      const isFilled = tower.level >= i + 2;
+      const bgCol = isFilled ? 0x27ae60 : 0x202431;
+      const stripeCol = isFilled ? 0x55efc4 : 0x303749;
+      const stripeAlpha = isFilled ? 0.45 : 0.6;
+      const strokeCol = isFilled ? 0x4cd137 : 0x2d3546;
+
+      gfx.fillStyle(bgCol, 1);
+      gfx.fillRoundedRect(segX, barY, segW, segH, 4 * DPR);
+
+      // Диагональные полосы под углом 45 градусов
+      for (let off = -segH; off < segW + segH; off += 7 * DPR) {
+        const x1 = Math.max(segX, segX + off);
+        const y1 = barY + (x1 - (segX + off));
+        const x2 = Math.min(segX + segW, segX + off + segH);
+        const y2 = barY + (x2 - (segX + off));
+        if (x2 > x1 && y1 >= barY && y2 <= barY + segH) {
+          gfx.lineStyle(2 * DPR, stripeCol, stripeAlpha);
+          gfx.lineBetween(x1, y1, x2, y2);
+        }
+      }
+
+      gfx.lineStyle(1.5 * DPR, strokeCol, 0.95);
+      gfx.strokeRoundedRect(segX, barY, segW, segH, 4 * DPR);
+    }
+
+    // 4. Нижняя карточка характеристик
+    gfx.fillStyle(0x151823, 1);
+    gfx.fillRoundedRect(left + pad, cardY, cardW, cardH, 10 * DPR);
+    gfx.lineStyle(1 * DPR, 0x283042, 1);
+    gfx.strokeRoundedRect(left + pad, cardY, cardW, cardH, 10 * DPR);
+
+    // Размещение спрайтов и текста
+    this.towerMenuIconBase.setPosition(iconCenterX, iconCenterY).setDisplaySize(38 * DPR, 38 * DPR);
+    if (this.towerMenuIconGun.visible) {
+      this.towerMenuIconGun.setPosition(iconCenterX, iconCenterY).setDisplaySize(38 * DPR, 38 * DPR);
+    }
+
+    this.towerMenuHeader.setPosition(headerX, headerY);
+    this.towerMenuClose.setPosition(closeX, closeY);
+
+    if (!isAiming) {
+      this.towerMenuUpgrade.setPosition(upBtnCenterX, upBtnCenterY);
+    }
+
+    this.towerMenuStats.setPosition(left + pad + 10 * DPR, cardY + 8 * DPR);
+
+    const btnY = cardY + cardH - 18 * DPR;
+
     if (isAiming) {
-      this.towerMenuTitle.setPosition(x, y - 38 * DPR);
-      this.towerMenuConfirmRotate.setPosition(x, y + 14 * DPR);
-      this.towerMenuCancelRotate.setPosition(x, y + 46 * DPR);
+      this.towerMenuConfirmRotate.setPosition(left + pad + cardW * 0.30, btnY);
+      this.towerMenuCancelRotate.setPosition(left + pad + cardW * 0.72, btnY);
     } else if (hasArcNotRotated) {
-      this.towerMenuTitle.setPosition(x, y - 68 * DPR);
-      this.towerMenuRotate.setPosition(x, y - 30 * DPR);
-      this.towerMenuView.setPosition(x, y + 6 * DPR);
-      this.towerMenuUpgrade.setPosition(x, y + 42 * DPR);
-      this.towerMenuSell.setPosition(x, y + 76 * DPR);
+      this.towerMenuView.setPosition(left + pad + cardW * 0.20, btnY);
+      this.towerMenuRotate.setPosition(left + pad + cardW * 0.52, btnY);
+      this.towerMenuSell.setPosition(left + pad + cardW * 0.82, btnY);
     } else {
-      this.towerMenuTitle.setPosition(x, y - 54 * DPR);
-      this.towerMenuView.setPosition(x, y - 12 * DPR);
-      this.towerMenuUpgrade.setPosition(x, y + 24 * DPR);
-      this.towerMenuSell.setPosition(x, y + 58 * DPR);
+      this.towerMenuView.setPosition(left + pad + cardW * 0.28, btnY);
+      this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
     }
 
     updateRoundBgs(this);
