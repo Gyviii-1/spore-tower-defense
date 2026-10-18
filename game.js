@@ -708,6 +708,7 @@ class Tower {
     this.arc = lvl1 && lvl1.arc ? lvl1.arc : null;
     this.mountAngle = dirToAngle(DIR_FORWARD); // базовый угол наведения/установки
     this.hasRotated = false;         // развернули ли установку (доступно только 1 раз)
+    this.isAiming = false;           // в процессе ручного разворота игроком
     this.cooldown = 0;               // время до следующего выстрела, сек
     this.totalSpent = type.cost;     // сколько золота вложено (для продажи)
     this.aimAngle = dirToAngle(DIR_FORWARD); // куда направлена пушка (радианы)
@@ -827,6 +828,11 @@ class Tower {
 
   // Обновление башни: перезарядка, поиск цели, наведение, выстрел.
   update(delta, enemies) {
+    if (this.isAiming) {
+      // Пока игрок крутит башню вручную — она не ищет цели и не стреляет
+      return;
+    }
+
     this.cooldown -= delta / 1000;
 
     const pos = this.getPosition();
@@ -1894,6 +1900,7 @@ class GameScene extends Phaser.Scene {
 
     // Выбранная башня (для меню улучшения/продажи).
     this.selectedTower = null;
+    this.aimingTower = null;
     // Тип башни, который строим по клику (переключается панелью внизу).
     // По умолчанию НИЧЕГО не выбрано — игрок выбирает башню сам.
     this.selectedTowerType = null;
@@ -2659,6 +2666,9 @@ class GameScene extends Phaser.Scene {
   // ------------------------- Меню башни -------------------------
   // Открыть меню выбранной башни.
   openTowerMenu(tower) {
+    if (this.aimingTower) {
+      this.aimingTower.isAiming = false;
+    }
     this.selectedTower = tower;
     this.aimingTower = null;
     this.hideEnemyInfo();
@@ -2673,6 +2683,7 @@ class GameScene extends Phaser.Scene {
   // Закрыть меню башни.
   closeTowerMenu() {
     if (this.aimingTower) {
+      this.aimingTower.isAiming = false;
       if (this.previousMountAngle !== undefined) {
         this.aimingTower.setMountAngle(this.previousMountAngle);
         this.applyTowerFacing(this.aimingTower);
@@ -2691,6 +2702,7 @@ class GameScene extends Phaser.Scene {
     const tower = this.selectedTower;
     if (!tower || !tower.arc || tower.hasRotated) return;
     this.aimingTower = tower;
+    tower.isAiming = true;
     this.previousMountAngle = tower.mountAngle;
     this.refreshTowerMenu();
     this.positionTowerMenu();
@@ -2702,6 +2714,7 @@ class GameScene extends Phaser.Scene {
     if (!this.aimingTower) return;
     const tower = this.aimingTower;
     tower.hasRotated = true; // Зафиксировано навсегда! Только 1 раз!
+    tower.isAiming = false;
     this.aimingTower = null;
     this.refreshTowerMenu();
     this.positionTowerMenu();
@@ -2713,6 +2726,7 @@ class GameScene extends Phaser.Scene {
   cancelAimingTower() {
     if (!this.aimingTower) return;
     const tower = this.aimingTower;
+    tower.isAiming = false;
     if (this.previousMountAngle !== undefined) {
       tower.setMountAngle(this.previousMountAngle);
       this.applyTowerFacing(tower);
