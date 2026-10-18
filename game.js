@@ -81,17 +81,9 @@ const TOWER_TYPES = {
     levels: [
       { name: 'АК-47', damage: 24, fireRate: 2.2, range: 3.2, accuracy: 0.85, upgradeCost: 0 },
       { name: 'РПК', damage: 34, fireRate: 3.0, range: 3.6, accuracy: 0.80, upgradeCost: 110 },
-      {
-        name: 'Корд (установка)',
-        damage: 85,
-        fireRate: 2.6,
-        range: 4.2,
-        accuracy: 0.88,
-        arc: (130 * Math.PI) / 180, // ~130° сектор огня
-        upgradeCost: 220,
-      },
-      { name: 'Спаренный пулемёт', damage: 50, fireRate: 5.2, range: 3.8, accuracy: 0.78, upgradeCost: 380 },
-      { name: 'Миниган M134', damage: 38, fireRate: 10.0, range: 4.0, accuracy: 0.72, upgradeCost: 650 },
+      { name: 'ПКМ', damage: 46, fireRate: 3.8, range: 3.8, accuracy: 0.80, upgradeCost: 220 },
+      { name: 'Миниган M134', damage: 34, fireRate: 9.0, range: 4.0, accuracy: 0.74, upgradeCost: 380 },
+      { name: 'Спаренный миниган', damage: 30, fireRate: 15.0, range: 4.2, accuracy: 0.70, upgradeCost: 650 },
     ],
   },
   disinfector: {
@@ -99,7 +91,7 @@ const TOWER_TYPES = {
     cost: 85,
     range: 2.8,
     fireRate: 1.4,
-    damage: 22,
+    damage: 10,
     accuracy: 1.0,
     cureChance: 0.08,
     sprayCone: (45 * Math.PI) / 180,
@@ -115,11 +107,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Аэрозоль', damage: 22, cureChance: 0.08, fireRate: 1.4, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
-      { name: 'Опрыскиватель', damage: 28, cureChance: 0.12, fireRate: 2.5, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
-      { name: 'Газомёт', damage: 28, cureChance: 0.18, fireRate: 4.5, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
-      { name: 'Химраспылитель', damage: 21, cureChance: 0.25, fireRate: 8.5, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
-      { name: 'Био-очиститель', damage: 230, cureChance: 0.35, continuous: true, fireRate: 0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
+      { name: 'Аэрозоль', damage: 10, cureChance: 0.08, fireRate: 1.4, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
+      { name: 'Опрыскиватель', damage: 14, cureChance: 0.12, fireRate: 2.2, range: 3.0, accuracy: 1.0, upgradeCost: 75 },
+      { name: 'Газомёт', damage: 15, cureChance: 0.16, fireRate: 3.6, range: 3.3, accuracy: 1.0, upgradeCost: 150 },
+      { name: 'Химраспылитель', damage: 13, cureChance: 0.22, fireRate: 6.0, range: 3.6, accuracy: 1.0, upgradeCost: 290 },
+      { name: 'Био-очиститель', damage: 95, cureChance: 0.30, continuous: true, fireRate: 0, range: 4.0, accuracy: 1.0, upgradeCost: 520 },
     ],
   },
 };
