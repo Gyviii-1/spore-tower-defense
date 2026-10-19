@@ -1564,9 +1564,6 @@ class Tower {
     if (this.scene.createGasSpray) {
       this.scene.createGasSpray(pos.x, pos.y, aimAngle, rangePx * 0.7, this.level);
     }
-    if (target && this.scene.createGasSplash) {
-      this.scene.createGasSplash(target.x, target.y, splashRadius * ISO_HW * 0.85);
-    }
 
     for (const enemy of this.scene.enemies) {
       if (!enemy.active || enemy.isDead || enemy.isCured) continue;
@@ -4076,37 +4073,6 @@ class GameScene extends Phaser.Scene {
       ease: 'Quad.easeOut',
       onComplete: () => puff.destroy(),
     });
-  }
-
-  // Визуальный эффект сплеша ядовитого газа вокруг цели
-  createGasSplash(targetX, targetY, radiusPx = 36) {
-    const splash = this.add.ellipse(targetX, targetY, radiusPx * 2, radiusPx * 2 * (ISO_HH / ISO_HW), 0x2ecc71, 0.45).setDepth(44);
-    this.tweens.add({
-      targets: splash,
-      scaleX: 1.35,
-      scaleY: 1.35,
-      alpha: 0,
-      duration: 320,
-      ease: 'Quad.easeOut',
-      onComplete: () => splash.destroy(),
-    });
-
-    for (let i = 0; i < 4; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const d = Math.random() * radiusPx * 0.7;
-      const px = targetX + Math.cos(a) * d;
-      const py = targetY + Math.sin(a) * d * (ISO_HH / ISO_HW);
-      const puff = this.add.circle(px, py, 6 * DPR, 0x27ae60, 0.6).setDepth(45);
-      this.tweens.add({
-        targets: puff,
-        scaleX: 1.9,
-        scaleY: 1.9,
-        alpha: 0,
-        duration: 280 + Math.random() * 120,
-        ease: 'Quad.easeOut',
-        onComplete: () => puff.destroy(),
-      });
-    }
   }
 
   // Визуальный эффект цепной молнии между целями
