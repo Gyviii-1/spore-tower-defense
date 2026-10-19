@@ -3560,12 +3560,12 @@ class MenuScene extends Phaser.Scene {
 
   createTabs() {
     this.tabBar = this.add.container(0, 0).setDepth(10);
+    this.tabInventory = this.makeTab('Инвентарь', 'inventory');
     this.tabLobby = this.makeTab('Меню', 'lobby');
     this.tabPass = this.makeTab('Пасс', 'pass');
-    this.tabInventory = this.makeTab('Инвентарь', 'inventory');
-    this.tabShop = this.makeTab('Магазин', 'shop');
     this.tabTop = this.makeTab('Топ', 'top');
-    this.tabBar.add([this.tabLobby, this.tabPass, this.tabInventory, this.tabShop, this.tabTop]);
+    this.tabShop = this.makeTab('Магазин', 'shop');
+    this.tabBar.add([this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop]);
   }
 
   makeTab(label, key) {
@@ -3621,7 +3621,7 @@ class MenuScene extends Phaser.Scene {
     const isLobby = key === 'lobby';
     if (this.title) this.title.setVisible(isLobby);
 
-    const tabs = [this.tabLobby, this.tabPass, this.tabInventory, this.tabShop, this.tabTop];
+    const tabs = [this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop];
     for (const tab of tabs) {
       if (!tab) continue;
       const active = tab.tabKey === key;
@@ -4162,11 +4162,11 @@ class MenuScene extends Phaser.Scene {
     this.shopMinScrollOffset = Math.min(0, this.shopVisibleH - this.shopContentH);
     this.applyShopScroll(this.shopScrollOffset || 0);
 
-    // Вкладки внизу (порядок: Меню, Пасс, Инвентарь, Магазин, Топ)
+    // Вкладки внизу (порядок: Инвентарь, Меню, Пасс, Топ, Магазин)
     const tabY = height * 0.94;
     const tabPositions = [width * 0.10, width * 0.30, width * 0.50, width * 0.70, width * 0.90];
     const tabFont = `${Math.max(11 * DPR, Math.round(size * 0.028))}px`;
-    const tabs = [this.tabLobby, this.tabPass, this.tabInventory, this.tabShop, this.tabTop];
+    const tabs = [this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop];
     tabs.forEach((tab, i) => {
       if (tab) {
         tab.setPosition(tabPositions[i], tabY);
