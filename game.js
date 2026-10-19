@@ -19,6 +19,34 @@ const API_BASE = location.hostname.endsWith('vercel.app')
 
 const UI_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
+// HiDPI-масштаб: рендерим канвас в физическом разрешении экрана, а UI
+// задаём в «CSS-пикселях», умножая абсолютные размеры на DPR.
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// Коэффициент рендера шрифтов для абсолютной чёткости текста (High-DPI / Retina):
+// Phaser по умолчанию рендерит текст в 1x, из-за чего на мобильных и масштабируемых контейнерах
+// возникает мыло. Задаём гарантированный рендер в высоком разрешении.
+const TEXT_RESOLUTION = Math.max(DPR * 2, 2.5);
+
+if (typeof Phaser !== 'undefined' && Phaser.GameObjects) {
+  if (Phaser.GameObjects.GameObjectFactory && Phaser.GameObjects.GameObjectFactory.prototype.text) {
+    const _origFactoryText = Phaser.GameObjects.GameObjectFactory.prototype.text;
+    Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style) {
+      const mergedStyle = Object.assign({ resolution: TEXT_RESOLUTION }, style);
+      return _origFactoryText.call(this, x, y, text, mergedStyle);
+    };
+  }
+  if (Phaser.GameObjects.TextStyle && Phaser.GameObjects.TextStyle.prototype.setStyle) {
+    const _origTextStyleSetStyle = Phaser.GameObjects.TextStyle.prototype.setStyle;
+    Phaser.GameObjects.TextStyle.prototype.setStyle = function (style, updateText, setDefaults) {
+      if (style && style.resolution === undefined) {
+        style.resolution = TEXT_RESOLUTION;
+      }
+      return _origTextStyleSetStyle.call(this, style, updateText, setDefaults);
+    };
+  }
+}
+
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
 const BG_COLOR = 0x0a0c12;        // цвет фона сцены (тёмный графит лаборатории)
 const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
@@ -399,6 +427,7 @@ const GAME_DIFFICULTIES = {
     speedMultiplier: 0.90,
     rewardMultiplier: 1.15,
     totalWaves: 20,
+    passXpPerWave: 25,
     desc: 'Замедленные мутанты, сниженное здоровье, больше золота (20 волн).'
   },
   medium: {
@@ -413,6 +442,7 @@ const GAME_DIFFICULTIES = {
     speedMultiplier: 1.0,
     rewardMultiplier: 1.0,
     totalWaves: 25,
+    passXpPerWave: 40,
     desc: 'Стандартный протокол лаборатории. Сбалансированный натиск (25 волн).'
   },
   hard: {
@@ -427,6 +457,7 @@ const GAME_DIFFICULTIES = {
     speedMultiplier: 1.12,
     rewardMultiplier: 0.90,
     totalWaves: 30,
+    passXpPerWave: 60,
     desc: 'Критический прорыв био-угрозы. Быстрые мутанты, дефицит бюджета (30 волн).'
   }
 };
@@ -501,6 +532,72 @@ const GAME_MAPS = {
   }
 };
 
+// ---------------------- Боевой Пасс (Прогрессия & Награды) ----------------------
+const BATTLE_PASS_TIERS = [
+  { level: 1, xpReq: 0, free: '150 🟡 Золота', prem: 'Скин «Ночной Дозор» (Стрелок)' },
+  { level: 2, xpReq: 250, free: '250 🟡 Золота', prem: '+50 🛡️ Броня базы' },
+  { level: 3, xpReq: 600, free: '+10% Опыт волн', prem: 'Скин «Штурмовик» (Пулемётчик)' },
+  { level: 4, xpReq: 1100, free: '350 🟡 Золота', prem: 'Ускорение перезарядки -5%' },
+  { level: 5, xpReq: 1800, free: 'Эмблема Ветерана', prem: 'Скин «Киберпанк» (Очиститель)' },
+  { level: 6, xpReq: 2700, free: '500 🟡 Золота', prem: '+100 🛡️ Броня базы' },
+  { level: 7, xpReq: 3800, free: '+15% Золото за мутантов', prem: 'Скин «Молния» (Тесла)' },
+  { level: 8, xpReq: 5100, free: '750 🟡 Золота', prem: 'Боезапас +20%' },
+  { level: 9, xpReq: 6600, free: 'Камуфляж «Призрак»', prem: 'Скин «Призрак» (Снайпер)' },
+  { level: 10, xpReq: 8500, free: 'Титул «Защитник Сектора»', prem: 'Легендарный скин «Омега-Прайм»' },
+];
+
+function getPlayerPassXp() {
+  try {
+    const val = parseInt(localStorage.getItem('spore_td_pass_xp') || '0', 10);
+    return isNaN(val) || val < 0 ? 0 : val;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function savePlayerPassXp(xp) {
+  try {
+    localStorage.setItem('spore_td_pass_xp', String(Math.max(0, Math.floor(xp))));
+  } catch (e) {}
+}
+
+function getPassProgress(totalXp) {
+  let currentLevel = 1;
+  for (let i = 0; i < BATTLE_PASS_TIERS.length; i++) {
+    if (totalXp >= BATTLE_PASS_TIERS[i].xpReq) {
+      currentLevel = BATTLE_PASS_TIERS[i].level;
+    } else {
+      break;
+    }
+  }
+
+  const currentTier = BATTLE_PASS_TIERS[currentLevel - 1];
+  const nextTier = BATTLE_PASS_TIERS[currentLevel] || null;
+
+  let currentTierXp = 0;
+  let nextTierNeeded = 0;
+  let percent = 1;
+
+  if (nextTier) {
+    currentTierXp = totalXp - currentTier.xpReq;
+    nextTierNeeded = nextTier.xpReq - currentTier.xpReq;
+    percent = Math.min(1, Math.max(0, currentTierXp / nextTierNeeded));
+  } else {
+    currentTierXp = totalXp - currentTier.xpReq;
+    nextTierNeeded = currentTier.xpReq;
+    percent = 1;
+  }
+
+  return {
+    totalXp: totalXp,
+    level: currentLevel,
+    currentTierXp: currentTierXp,
+    nextTierNeeded: nextTierNeeded,
+    percent: percent,
+    isMax: !nextTier,
+  };
+}
+
 const PROJECTILE_COLOR = 0xf1c40f; // цвет снаряда (жёлтый)
 const PROJECTILE_SPEED = 14;       // скорость снаряда
 const PROJECTILE_DAMAGE = 20;      // урон за попадание
@@ -524,10 +621,6 @@ const ASSET_VER = '?v=20261010g';
 // Зона тапа при этом остаётся на клетке (не смещается).
 const BASE_LIFT = 0.2;
 
-// HiDPI-масштаб: рендерим канвас в физическом разрешении экрана, а UI
-// задаём в «CSS-пикселях», умножая абсолютные размеры на DPR. Ограничиваем
-// двойкой ради производительности на слабых телефонах.
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
 // ЕДИНОЕ преобразование world <-> экран (iso-пиксели). Больше нигде нет iso-математики.
 function worldToScreen(wx, wy) {
@@ -3063,7 +3156,7 @@ class MenuScene extends Phaser.Scene {
     this.passTitle = this.add
       .text(0, 0, 'БОЕВОЙ ПАСС', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
+        fontSize: '24px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
@@ -3072,7 +3165,7 @@ class MenuScene extends Phaser.Scene {
     this.passSubtitle = this.add
       .text(0, 0, 'СЕЗОН 1: ОМЕГА-ПРОРЫВ', {
         fontFamily: UI_FONT,
-        fontSize: '13px',
+        fontSize: '15px',
         color: '#38bdf8',
         fontStyle: 'bold',
       })
@@ -3080,18 +3173,18 @@ class MenuScene extends Phaser.Scene {
 
     this.passHeaderGfx = this.add.graphics();
     this.passLevelBadge = this.add
-      .text(0, 0, 'УРОВЕНЬ 3', {
+      .text(0, 0, 'УРОВЕНЬ 1', {
         fontFamily: UI_FONT,
-        fontSize: '13px',
+        fontSize: '15px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
 
     this.passXpText = this.add
-      .text(0, 0, '350 / 1000 XP', {
+      .text(0, 0, '0 / 250 XP', {
         fontFamily: UI_FONT,
-        fontSize: '11px',
+        fontSize: '13.5px',
         color: '#94a3b8',
       })
       .setOrigin(0.5);
@@ -3099,10 +3192,10 @@ class MenuScene extends Phaser.Scene {
     this.passPremiumBtn = this.add
       .text(0, 0, 'ПРЕМИУМ ПАСС ★', {
         fontFamily: UI_FONT,
-        fontSize: '11px',
+        fontSize: '13px',
         color: '#ffffff',
         backgroundColor: '#d97706',
-        padding: { x: 10 * DPR, y: 6 * DPR },
+        padding: { x: 12 * DPR, y: 7 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -3130,26 +3223,18 @@ class MenuScene extends Phaser.Scene {
     this.passScrollZone = this.add.zone(0, 0, 10, 10).setOrigin(0, 0);
     this.passScrollZone.setInteractive({ useHandCursor: true });
 
-    this.passTiers = [
-      { level: 1, free: '150 🟡 Золота', prem: 'Скин «Ночной Дозор» (Стрелок)' },
-      { level: 2, free: '250 🟡 Золота', prem: '+50 🛡️ Броня базы' },
-      { level: 3, free: '+10% Опыт волн', prem: 'Скин «Штурмовик» (Пулемётчик)' },
-      { level: 4, free: '350 🟡 Золота', prem: 'Ускорение перезарядки -5%' },
-      { level: 5, free: 'Эмблема Ветерана', prem: 'Скин «Киберпанк» (Очиститель)' },
-      { level: 6, free: '500 🟡 Золота', prem: '+100 🛡️ Броня базы' },
-      { level: 7, free: '+15% Золото за мутантов', prem: 'Скин «Молния» (Тесла)' },
-      { level: 8, free: '750 🟡 Золота', prem: 'Боезапас +20%' },
-      { level: 9, free: 'Камуфляж «Призрак»', prem: 'Скин «Призрак» (Снайпер)' },
-      { level: 10, free: 'Титул «Защитник Сектора»', prem: 'Легендарный скин «Омега-Прайм»' },
-    ];
-
+    this.passTiers = BATTLE_PASS_TIERS;
     this.passTierRows = [];
+
+    const totalXp = getPlayerPassXp();
+    const progress = getPassProgress(totalXp);
+
     for (let i = 0; i < this.passTiers.length; i++) {
       const tier = this.passTiers[i];
       const row = this.add.container(0, 0);
-      const isUnlocked = i < 3;
+      const isUnlocked = progress.level >= tier.level;
 
-      const rowBg = this.add.rectangle(0, 0, 320, 64, 0x131722, 0.95);
+      const rowBg = this.add.rectangle(0, 0, 320, 68, 0x131722, 0.95);
       roundTarget(this, rowBg, {
         kind: 'rect',
         color: isUnlocked ? 0x161e2e : 0x11151f,
@@ -3162,24 +3247,24 @@ class MenuScene extends Phaser.Scene {
       const lvlText = this.add
         .text(-128, 0, `УР. ${tier.level}`, {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '15px',
           color: isUnlocked ? '#38bdf8' : '#64748b',
           fontStyle: 'bold',
         })
         .setOrigin(0.5);
 
       const freeText = this.add
-        .text(-80, -12, `Бесплатно: ${tier.free}`, {
+        .text(-80, -13, `Бесплатно: ${tier.free}`, {
           fontFamily: UI_FONT,
-          fontSize: '12px',
+          fontSize: '13.5px',
           color: '#e2e8f0',
         })
         .setOrigin(0, 0.5);
 
       const premText = this.add
-        .text(-80, 12, `Премиум: ${tier.prem}`, {
+        .text(-80, 13, `Премиум: ${tier.prem}`, {
           fontFamily: UI_FONT,
-          fontSize: '11px',
+          fontSize: '12.5px',
           color: '#fbbf24',
         })
         .setOrigin(0, 0.5);
@@ -3187,10 +3272,10 @@ class MenuScene extends Phaser.Scene {
       const statusBtn = this.add
         .text(124, 0, isUnlocked ? 'ЗАБРАНО' : '🔒', {
           fontFamily: UI_FONT,
-          fontSize: '11px',
+          fontSize: '13px',
           color: isUnlocked ? '#4ade80' : '#64748b',
           backgroundColor: '#1a2232',
-          padding: { x: 7 * DPR, y: 5 * DPR },
+          padding: { x: 8 * DPR, y: 6 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3206,12 +3291,20 @@ class MenuScene extends Phaser.Scene {
 
       statusBtn.on('pointerdown', (pointer, lx, ly, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
-        if (isUnlocked) {
-          this.showToast(`Награда уровня ${tier.level} уже получена!`);
+        const curProgress = getPassProgress(getPlayerPassXp());
+        if (curProgress.level >= tier.level) {
+          this.showToast(`Награда уровня ${tier.level} («${tier.free}») получена!`);
         } else {
-          this.showToast(`Достигните уровня ${tier.level} в боях, чтобы открыть награду!`);
+          const needed = tier.xpReq - curProgress.totalXp;
+          this.showToast(`Уровень ${tier.level} заблокирован. Нужно ещё ${needed} XP (играйте волны)!`);
         }
       });
+
+      row._rowBg = rowBg;
+      row._lvlText = lvlText;
+      row._freeText = freeText;
+      row._premText = premText;
+      row._statusBtn = statusBtn;
 
       row.add([rowBg, lvlText, freeText, premText, statusBtn]);
       this.passTierRows.push(row);
@@ -3231,8 +3324,51 @@ class MenuScene extends Phaser.Scene {
       this.passScrollZone,
     ]);
 
+    this.refreshBattlePassUI();
     this.initPassScroll();
   }
+
+  refreshBattlePassUI() {
+    const totalXp = getPlayerPassXp();
+    const progress = getPassProgress(totalXp);
+
+    if (this.passLevelBadge) {
+      this.passLevelBadge.setText(`УРОВЕНЬ ${progress.level}`);
+    }
+    if (this.passXpText) {
+      this.passXpText.setText(
+        progress.isMax
+          ? `${progress.totalXp} XP (МАКСИМУМ)`
+          : `${progress.currentTierXp} / ${progress.nextTierNeeded} XP`
+      );
+    }
+
+    if (this.passTierRows && this.passTiers) {
+      this.passTiers.forEach((tier, i) => {
+        const row = this.passTierRows[i];
+        if (!row) return;
+        const isUnlocked = progress.level >= tier.level;
+
+        if (row._rowBg && row._rowBg._roundItem) {
+          row._rowBg._roundItem.color = isUnlocked ? 0x161e2e : 0x11151f;
+          row._rowBg._roundItem.strokeColor = isUnlocked ? 0x2e4162 : 0x222a3a;
+        }
+        if (row._lvlText) {
+          row._lvlText.setColor(isUnlocked ? '#38bdf8' : '#64748b');
+        }
+        if (row._statusBtn) {
+          row._statusBtn.setText(isUnlocked ? 'ЗАБРАНО' : '🔒');
+          row._statusBtn.setColor(isUnlocked ? '#4ade80' : '#64748b');
+          if (row._statusBtn._roundItem) {
+            row._statusBtn._roundItem.color = isUnlocked ? 0x15281e : 0x181e2b;
+            row._statusBtn._roundItem.strokeColor = isUnlocked ? 0x22c55e : 0x334155;
+          }
+        }
+      });
+    }
+    updateRoundBgs(this);
+  }
+
 
   initPassScroll() {
     this.passScrollOffset = 0;
@@ -3301,7 +3437,7 @@ class MenuScene extends Phaser.Scene {
     this.shopTitle = this.add
       .text(0, 0, 'МАГАЗИН И СНАБЖЕНИЕ', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
+        fontSize: '24px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
@@ -3310,7 +3446,7 @@ class MenuScene extends Phaser.Scene {
     this.shopSubtitle = this.add
       .text(0, 0, 'Поддержка разработки и тактические контейнеры', {
         fontFamily: UI_FONT,
-        fontSize: '13px',
+        fontSize: '15px',
         color: '#707e94',
       })
       .setOrigin(0.5);
@@ -3328,11 +3464,11 @@ class MenuScene extends Phaser.Scene {
 
     this.shopRows = [];
 
-    // Раздел 1: Поддержка & Донат
+    // Раздел 1: Поддержка & Донат (СТРОГО "Скоро")
     const sec1Title = this.add
       .text(0, 0, '─── ПОДДЕРЖКА ПРОЕКТА ───', {
         fontFamily: UI_FONT,
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#e63946',
         fontStyle: 'bold',
       })
@@ -3349,7 +3485,7 @@ class MenuScene extends Phaser.Scene {
 
     for (const pack of donationPacks) {
       const row = this.add.container(0, 0);
-      const bg = this.add.rectangle(0, 0, 320, 64, 0x131722, 0.95);
+      const bg = this.add.rectangle(0, 0, 320, 68, 0x131722, 0.95);
       roundTarget(this, bg, {
         kind: 'rect',
         color: 0x131722,
@@ -3362,43 +3498,44 @@ class MenuScene extends Phaser.Scene {
       const title = this.add
         .text(-138, -14, pack.name, {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '15px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
       const sub = this.add
-        .text(-138, 12, `${pack.gold} · ${pack.desc}`, {
+        .text(-138, 14, `${pack.gold} · ${pack.price}`, {
           fontFamily: UI_FONT,
-          fontSize: '11px',
+          fontSize: '13.5px',
           color: '#94a3b8',
         })
         .setOrigin(0, 0.5);
 
+      // Кнопка доната СТРОГО "Скоро"
       const buyBtn = this.add
-        .text(120, 0, pack.price, {
+        .text(120, 0, 'Скоро', {
           fontFamily: UI_FONT,
-          fontSize: '11px',
-          color: '#ffffff',
-          backgroundColor: '#2563eb',
-          padding: { x: 8 * DPR, y: 6 * DPR },
+          fontSize: '13px',
+          color: '#94a3b8',
+          backgroundColor: '#1e2433',
+          padding: { x: 10 * DPR, y: 6 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, buyBtn, {
-        color: 0x1e3a8a,
-        alpha: 1,
+        color: 0x1a2130,
+        alpha: 0.95,
         radius: 7 * DPR,
-        strokeColor: 0x3b82f6,
+        strokeColor: 0x334155,
         strokeWidth: 1 * DPR,
       });
 
       buyBtn.on('pointerdown', (pointer, lx, ly, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
-        this.showToast('Оплата Telegram Stars на этапе подключения!');
+        this.showToast('Донат и покупка наборов будут доступны в следующем обновлении!');
       });
 
       row.add([bg, title, sub, buyBtn]);
@@ -3410,7 +3547,7 @@ class MenuScene extends Phaser.Scene {
     const sec2Title = this.add
       .text(0, 0, '─── ТАКТИЧЕСКИЕ КЕЙСЫ ───', {
         fontFamily: UI_FONT,
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#e63946',
         fontStyle: 'bold',
       })
@@ -3427,7 +3564,7 @@ class MenuScene extends Phaser.Scene {
 
     for (const crate of crates) {
       const row = this.add.container(0, 0);
-      const bg = this.add.rectangle(0, 0, 320, 64, 0x121620, 0.95);
+      const bg = this.add.rectangle(0, 0, 320, 68, 0x121620, 0.95);
       roundTarget(this, bg, {
         kind: 'rect',
         color: 0x121620,
@@ -3440,17 +3577,17 @@ class MenuScene extends Phaser.Scene {
       const title = this.add
         .text(-138, -14, `${crate.icon} ${crate.name}`, {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '15px',
           color: '#e2e8f0',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
       const sub = this.add
-        .text(-138, 12, crate.desc, {
+        .text(-138, 14, crate.desc, {
           fontFamily: UI_FONT,
-          fontSize: '11px',
-          color: '#64748b',
+          fontSize: '13.5px',
+          color: '#8492a6',
         })
         .setOrigin(0, 0.5);
 
@@ -3458,7 +3595,7 @@ class MenuScene extends Phaser.Scene {
       const soonBtn = this.add
         .text(126, 0, 'Скоро', {
           fontFamily: UI_FONT,
-          fontSize: '11px',
+          fontSize: '13px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
           padding: { x: 10 * DPR, y: 6 * DPR },
@@ -3469,7 +3606,7 @@ class MenuScene extends Phaser.Scene {
 
       roundTarget(this, soonBtn, {
         color: 0x1a2130,
-        alpha: 0.9,
+        alpha: 0.95,
         radius: 7 * DPR,
         strokeColor: 0x334155,
         strokeWidth: 1 * DPR,
@@ -3477,7 +3614,7 @@ class MenuScene extends Phaser.Scene {
 
       soonBtn.on('pointerdown', (pointer, lx, ly, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
-        this.showToast('Кейсы будут доступны в следующем обновлении!');
+        this.showToast('Кейсы со скинами будут доступны в следующем обновлении!');
       });
 
       row.add([bg, title, sub, soonBtn]);
@@ -3616,6 +3753,10 @@ class MenuScene extends Phaser.Scene {
     }
     if (this.shopScrollZone && this.shopScrollZone.input) {
       this.shopScrollZone.input.enabled = (key === 'shop');
+    }
+
+    if (key === 'pass') {
+      this.refreshBattlePassUI();
     }
 
     const isLobby = key === 'lobby';
@@ -3809,32 +3950,32 @@ class MenuScene extends Phaser.Scene {
 
     // 1. Заголовок лобби
     if (this.title) {
-      this.title.setPosition(width / 2, height * 0.08);
-      this.title.setStyle({ fontSize: `${Math.min(28 * DPR, Math.max(20 * DPR, Math.round(size * 0.052)))}px` });
+      this.title.setPosition(width / 2, height * 0.075);
+      this.title.setStyle({ fontSize: `${Math.min(30 * DPR, Math.max(22 * DPR, Math.round(size * 0.056)))}px` });
     }
 
-    // 2. Карточка профиля игрока (компактная, аккуратная, симметричная)
-    const cardWidth = Math.min(width * 0.92, 460 * DPR);
-    const cardHeight = Math.round(82 * DPR);
-    const cardTop = height * 0.12;
+    // 2. Карточка профиля игрока (чёткая, крупная, аккуратная)
+    const cardWidth = Math.min(width * 0.92, 480 * DPR);
+    const cardHeight = Math.round(96 * DPR);
+    const cardTop = height * 0.115;
     const cardX = width / 2 - cardWidth / 2;
 
     if (this.cardBg) {
       this.cardBg.clear();
       this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 12 * DPR);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
       this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 12 * DPR);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
     }
 
-    const nickSize = `${Math.round(Math.min(18 * DPR, Math.max(14 * DPR, size * 0.034)))}px`;
-    const labelSize = `${Math.round(Math.min(11 * DPR, Math.max(9 * DPR, size * 0.022)))}px`;
-    const valSize = `${Math.round(Math.min(20 * DPR, Math.max(16 * DPR, size * 0.038)))}px`;
+    const nickSize = `${Math.round(Math.min(22 * DPR, Math.max(17 * DPR, size * 0.040)))}px`;
+    const labelSize = `${Math.round(Math.min(14 * DPR, Math.max(12 * DPR, size * 0.028)))}px`;
+    const valSize = `${Math.round(Math.min(26 * DPR, Math.max(22 * DPR, size * 0.048)))}px`;
 
-    const nickY = cardTop + 18 * DPR;
-    const dividerY = cardTop + 34 * DPR;
-    const statLabelY = cardTop + 48 * DPR;
-    const statValY = cardTop + 67 * DPR;
+    const nickY = cardTop + 20 * DPR;
+    const dividerY = cardTop + 38 * DPR;
+    const statLabelY = cardTop + 54 * DPR;
+    const statValY = cardTop + 76 * DPR;
 
     if (this.playerNick) {
       this.playerNick.setPosition(width / 2, nickY);
@@ -3872,8 +4013,8 @@ class MenuScene extends Phaser.Scene {
     }
 
     // 3. Селектор карты (Сектор Омега / Био-Реактор / Катакомбы)
-    const mapBoxY = cardTop + cardHeight + 12 * DPR;
-    const mapBoxH = 80 * DPR;
+    const mapBoxY = cardTop + cardHeight + 14 * DPR;
+    const mapBoxH = 92 * DPR;
     const mapBoxW = cardWidth;
     const mapBoxX = width / 2 - mapBoxW / 2;
 
@@ -3886,44 +4027,44 @@ class MenuScene extends Phaser.Scene {
     if (this.mapBoxBg) {
       this.mapBoxBg.clear();
       this.mapBoxBg.fillStyle(0x131722, 0.95);
-      this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 12 * DPR);
+      this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
       this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
-      this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 12 * DPR);
+      this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
     }
 
     if (this.mapLabel) {
       this.mapLabel.setPosition(width / 2, mapBoxY + 16 * DPR);
-      this.mapLabel.setStyle({ fontSize: `${Math.round(10.5 * DPR)}px` });
+      this.mapLabel.setStyle({ fontSize: `${Math.round(13 * DPR)}px` });
     }
     if (this.mapPrevBtn) {
-      this.mapPrevBtn.setPosition(mapBoxX + 24 * DPR, mapBoxY + 40 * DPR);
-      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(26 * DPR)}px` });
+      this.mapPrevBtn.setPosition(mapBoxX + 26 * DPR, mapBoxY + 44 * DPR);
+      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(30 * DPR)}px` });
     }
     if (this.mapTitle) {
-      this.mapTitle.setPosition(width / 2, mapBoxY + 40 * DPR);
-      this.mapTitle.setStyle({ fontSize: `${Math.round(15 * DPR)}px` });
+      this.mapTitle.setPosition(width / 2, mapBoxY + 44 * DPR);
+      this.mapTitle.setStyle({ fontSize: `${Math.round(19 * DPR)}px` });
     }
     if (this.mapNextBtn) {
-      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 24 * DPR, mapBoxY + 40 * DPR);
-      this.mapNextBtn.setStyle({ fontSize: `${Math.round(26 * DPR)}px` });
+      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 26 * DPR, mapBoxY + 44 * DPR);
+      this.mapNextBtn.setStyle({ fontSize: `${Math.round(30 * DPR)}px` });
     }
     if (this.mapDesc) {
-      this.mapDesc.setPosition(width / 2, mapBoxY + 63 * DPR);
-      this.mapDesc.setStyle({ fontSize: `${Math.round(11 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
+      this.mapDesc.setPosition(width / 2, mapBoxY + 72 * DPR);
+      this.mapDesc.setStyle({ fontSize: `${Math.round(13 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
     }
 
     // 4. Селектор сложности (Лёгкий / Средний / Трудный)
-    const diffBoxY = mapBoxY + mapBoxH + 12 * DPR;
+    const diffBoxY = mapBoxY + mapBoxH + 14 * DPR;
     const diffLabelY = diffBoxY + 8 * DPR;
     if (this.diffLabel) {
       this.diffLabel.setPosition(width / 2, diffLabelY);
-      this.diffLabel.setStyle({ fontSize: `${Math.round(10.5 * DPR)}px` });
+      this.diffLabel.setStyle({ fontSize: `${Math.round(13 * DPR)}px` });
     }
 
     const btnGap = 8 * DPR;
     const diffBtnW = Math.floor((cardWidth - 2 * btnGap) / 3);
-    const diffBtnH = 34 * DPR;
-    const diffBtnY = diffBoxY + 36 * DPR;
+    const diffBtnH = 42 * DPR;
+    const diffBtnY = diffBoxY + 40 * DPR;
 
     const diffKeys = ['easy', 'medium', 'hard'];
     diffKeys.forEach((k, idx) => {
@@ -3931,7 +4072,7 @@ class MenuScene extends Phaser.Scene {
       if (btn) {
         const bx = width / 2 + (idx - 1) * (diffBtnW + btnGap);
         btn.setPosition(bx, diffBtnY);
-        btn.setStyle({ fontSize: `${Math.round(12.5 * DPR)}px`, padding: { x: 10 * DPR, y: 6 * DPR } });
+        btn.setStyle({ fontSize: `${Math.round(15 * DPR)}px`, padding: { x: 10 * DPR, y: 8 * DPR } });
         if (btn._roundItem) {
           btn._roundItem.w = diffBtnW;
           btn._roundItem.h = diffBtnH;
@@ -3940,33 +4081,33 @@ class MenuScene extends Phaser.Scene {
     });
 
     if (this.diffDesc) {
-      this.diffDesc.setPosition(width / 2, diffBoxY + 68 * DPR);
-      this.diffDesc.setStyle({ fontSize: `${Math.round(11 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
+      this.diffDesc.setPosition(width / 2, diffBoxY + 76 * DPR);
+      this.diffDesc.setStyle({ fontSize: `${Math.round(13 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
     }
 
     // 5. Кнопка В БОЙ
     if (this.playButton) {
-      const playY = Math.min(height * 0.82, diffBoxY + 110 * DPR);
-      const playFont = `${Math.round(Math.min(22 * DPR, Math.max(18 * DPR, size * 0.046)))}px`;
+      const playY = Math.min(height * 0.83, diffBoxY + 128 * DPR);
+      const playFont = `${Math.round(Math.min(26 * DPR, Math.max(22 * DPR, size * 0.054)))}px`;
       this.playButton.setPosition(width / 2, playY);
       this.playButton.setStyle({
         fontSize: playFont,
-        padding: { x: 44 * DPR, y: 12 * DPR },
+        padding: { x: 48 * DPR, y: 15 * DPR },
       });
     }
 
     // Инвентарь
     if (this.inventoryTitle) {
-      this.inventoryTitle.setPosition(width / 2, height * 0.12);
-      this.inventoryTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+      this.inventoryTitle.setPosition(width / 2, height * 0.11);
+      this.inventoryTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
     }
     if (this.inventorySubtitle) {
-      this.inventorySubtitle.setPosition(width / 2, height * 0.165);
-      this.inventorySubtitle.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.024))}px` });
+      this.inventorySubtitle.setPosition(width / 2, height * 0.16);
+      this.inventorySubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
     }
     const rowScale = Math.min((width * 0.9) / 320, 1.3 * DPR);
     const rowStep = 76 * rowScale + 12 * DPR;
-    const invStart = height * 0.23;
+    const invStart = height * 0.22;
     this.inventoryRows.forEach((row, index) => {
       row.setPosition(width / 2, invStart + index * rowStep);
       row.setScale(rowScale);
@@ -3979,13 +4120,13 @@ class MenuScene extends Phaser.Scene {
     // Топ игроков (широкая карточка с поддержкой скролла для 10+ игроков)
     if (this.topTitle) {
       this.topTitle.setPosition(width / 2, height * 0.11);
-      this.topTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+      this.topTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
     }
     if (this.statsText) {
-      this.statsText.setPosition(width / 2, height * 0.17);
+      this.statsText.setPosition(width / 2, height * 0.165);
       this.statsText.setStyle({
-        fontSize: `${Math.max(11 * DPR, Math.round(size * 0.026))}px`,
-        wordWrap: { width: Math.min(width * 0.9, 440 * DPR) },
+        fontSize: `${Math.max(13.5 * DPR, Math.round(size * 0.028))}px`,
+        wordWrap: { width: Math.min(width * 0.9, 460 * DPR) },
       });
     }
 
@@ -4030,16 +4171,16 @@ class MenuScene extends Phaser.Scene {
     // Боевой Пасс
     if (this.passTitle) {
       this.passTitle.setPosition(width / 2, height * 0.11);
-      this.passTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+      this.passTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
     }
     if (this.passSubtitle) {
       this.passSubtitle.setPosition(width / 2, height * 0.16);
-      this.passSubtitle.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.026))}px` });
+      this.passSubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
     }
 
     const passCardW = Math.min(width * 0.94, 550 * DPR);
     const headerTop = height * 0.19;
-    const headerH = 46 * DPR;
+    const headerH = 48 * DPR;
     if (this.passHeaderGfx) {
       this.passHeaderGfx.clear();
       this.passHeaderGfx.fillStyle(0x131722, 0.95);
@@ -4047,15 +4188,18 @@ class MenuScene extends Phaser.Scene {
       this.passHeaderGfx.lineStyle(1 * DPR, 0x242d40, 1);
       this.passHeaderGfx.strokeRoundedRect(width / 2 - passCardW / 2, headerTop, passCardW, headerH, 10 * DPR);
 
-      // XP прогресс бар
+      // XP прогресс бар с реальным расчётом
+      const totalXp = getPlayerPassXp();
+      const progress = getPassProgress(totalXp);
+
       const barX = width / 2 - passCardW * 0.14;
       const barY = headerTop + headerH * 0.65;
       const barW = passCardW * 0.32;
-      const barH = 6 * DPR;
+      const barH = 7 * DPR;
       this.passHeaderGfx.fillStyle(0x1e2738, 1);
-      this.passHeaderGfx.fillRoundedRect(barX, barY, barW, barH, 3 * DPR);
+      this.passHeaderGfx.fillRoundedRect(barX, barY, barW, barH, 3.5 * DPR);
       this.passHeaderGfx.fillStyle(0x38bdf8, 1);
-      this.passHeaderGfx.fillRoundedRect(barX, barY, barW * 0.35, barH, 3 * DPR);
+      this.passHeaderGfx.fillRoundedRect(barX, barY, Math.max(6 * DPR, barW * progress.percent), barH, 3.5 * DPR);
     }
     if (this.passLevelBadge) {
       this.passLevelBadge.setPosition(width / 2 - passCardW * 0.32, headerTop + headerH * 0.5);
@@ -4109,11 +4253,11 @@ class MenuScene extends Phaser.Scene {
     // Магазин
     if (this.shopTitle) {
       this.shopTitle.setPosition(width / 2, height * 0.11);
-      this.shopTitle.setStyle({ fontSize: `${Math.round(size * 0.048)}px` });
+      this.shopTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
     }
     if (this.shopSubtitle) {
-      this.shopSubtitle.setPosition(width / 2, height * 0.165);
-      this.shopSubtitle.setStyle({ fontSize: `${Math.max(11 * DPR, Math.round(size * 0.026))}px` });
+      this.shopSubtitle.setPosition(width / 2, height * 0.16);
+      this.shopSubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
     }
 
     const shopCardW = Math.min(width * 0.94, 550 * DPR);
@@ -4163,14 +4307,14 @@ class MenuScene extends Phaser.Scene {
     this.applyShopScroll(this.shopScrollOffset || 0);
 
     // Вкладки внизу (порядок: Инвентарь, Меню, Пасс, Топ, Магазин)
-    const tabY = height * 0.94;
+    const tabY = height * 0.93;
     const tabPositions = [width * 0.10, width * 0.30, width * 0.50, width * 0.70, width * 0.90];
-    const tabFont = `${Math.max(11 * DPR, Math.round(size * 0.028))}px`;
+    const tabFont = `${Math.round(Math.max(14 * DPR, size * 0.034))}px`;
     const tabs = [this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop];
     tabs.forEach((tab, i) => {
       if (tab) {
         tab.setPosition(tabPositions[i], tabY);
-        tab.setStyle({ fontSize: tabFont });
+        tab.setStyle({ fontSize: tabFont, padding: { x: 8 * DPR, y: 6 * DPR } });
       }
     });
 
@@ -6116,7 +6260,11 @@ class GameScene extends Phaser.Scene {
     }
     if (this.waveSpawnTimer) this.waveSpawnTimer.remove(false);
     this.showGameOver();
-    this.showMessage(`Сектор зачищен! Все ${this.currentWave} волн пройдены!`);
+
+    const bonusXp = 200;
+    savePlayerPassXp(getPlayerPassXp() + bonusXp);
+
+    this.showMessage(`Сектор зачищен! Все ${this.currentWave} волн пройдены! (+${bonusXp} XP Пасса)`);
     this.saveRecord();
   }
 
@@ -7242,6 +7390,11 @@ class GameScene extends Phaser.Scene {
     this.gold += WAVE_CLEAR_BONUS;
     this.updateUI();
 
+    const xpPerWave = (this.diffDef && this.diffDef.passXpPerWave)
+      ? this.diffDef.passXpPerWave
+      : (this.selectedDifficulty === 'hard' ? 60 : this.selectedDifficulty === 'easy' ? 25 : 40);
+    savePlayerPassXp(getPlayerPassXp() + xpPerWave);
+
     const maxWaves = (this.diffDef && this.diffDef.totalWaves) || 20;
     if (this.currentWave >= maxWaves) {
       this.triggerVictory();
@@ -7249,7 +7402,7 @@ class GameScene extends Phaser.Scene {
     }
 
     this.startButton.setVisible(true);
-    this.showMessage(`Волна ${this.currentWave} зачищена! +${WAVE_CLEAR_BONUS} золота`);
+    this.showMessage(`Волна ${this.currentWave} зачищена! +${WAVE_CLEAR_BONUS} 🟡 | +${xpPerWave} XP Пасса`);
 
     // Чит: авто-старт следующей волны.
     if (this.autoWave && !this.isGameOver) {
@@ -7682,10 +7835,13 @@ const config = {
   type: Phaser.AUTO, // WebGL, а при его отсутствии — Canvas
   parent: 'game',
   backgroundColor: BG_COLOR,
+  roundPixels: true,
   render: {
     antialias: true,
+    roundPixels: true,
     // Мипмапы убирают «мыло» при уменьшении спрайтов (важно на телефоне).
     mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+    powerPreference: 'high-performance',
   },
   scale: {
     // NONE: размер задаём сами (в физических пикселях) под плотность экрана.

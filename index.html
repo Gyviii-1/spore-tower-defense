@@ -18,6 +18,9 @@
       height: 100%;
       overflow: hidden;
       background: #0a0c12;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
       /* Чтобы тапы не выделяли текст и не зумили страницу на мобильных */
       -webkit-user-select: none;
       user-select: none;
@@ -45,6 +48,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Наш игровой код. Firebase (firebase-config.js) подгружается лениво,
        только при сохранении рекорда — чтобы сайт открывался быстрее. -->
-  <script type="module" src="game.js?v=20261019tabs"></script>
+  <script type="module" src="game.js?v=20261019crisp"></script>
 </body>
 </html>
