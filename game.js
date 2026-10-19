@@ -64,11 +64,11 @@ const TOWER_SELL_RATIO = 0.7;     // возврат золота при прод
 const TOWER_TYPES = {
   gunner: {
     name: 'Стрелок',
-    cost: 35,
-    range: 2.8,
-    fireRate: 2.0,
-    damage: 22,
-    spreadDeg: 2.8, // баллистический разброс в градусах (без процентов)
+    cost: 40,
+    range: 3.0,
+    fireRate: 2.2,
+    damage: 24,
+    spreadDeg: 5.5, // увеличенный разброс (повышенный баланс)
     bulletSpeed: 14,
     footprint: 0.7, // размер корпуса в клетках
     weaponScale: 0.5, // во сколько раз пушка меньше корпуса
@@ -82,20 +82,20 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,                 // сжатие орбиты по вертикали
     gunMount: { x: 0, y: 0.1 },     // доп. сдвиг пушки (в долях клетки) — ниже
     levels: [
-      { name: 'ПМ', damage: 22, fireRate: 2.0, range: 2.8, spreadDeg: 2.8, bulletSpeed: 14, upgradeCost: 0 },
-      { name: 'Глок', damage: 28, fireRate: 2.6, range: 3.0, spreadDeg: 2.0, bulletSpeed: 15, upgradeCost: 50 },
-      { name: 'Тек-9', damage: 22, fireRate: 4.8, range: 3.0, spreadDeg: 3.6, bulletSpeed: 14, upgradeCost: 100 },
-      { name: 'Дигл', damage: 140, fireRate: 1.2, range: 3.6, spreadDeg: 1.4, bulletSpeed: 18, upgradeCost: 210 },
-      { name: 'P90', damage: 38, fireRate: 7.5, range: 3.5, spreadDeg: 2.0, bulletSpeed: 17, upgradeCost: 390 },
+      { name: 'ПМ', damage: 24, fireRate: 2.2, range: 3.0, spreadDeg: 5.5, bulletSpeed: 14, upgradeCost: 0 },
+      { name: 'Глок', damage: 32, fireRate: 2.8, range: 3.2, spreadDeg: 4.8, bulletSpeed: 15, upgradeCost: 55 },
+      { name: 'Тек-9', damage: 26, fireRate: 5.0, range: 3.2, spreadDeg: 6.8, bulletSpeed: 14, upgradeCost: 110 },
+      { name: 'Дигл', damage: 155, fireRate: 1.3, range: 3.8, spreadDeg: 3.8, bulletSpeed: 18, upgradeCost: 230 },
+      { name: 'P90', damage: 42, fireRate: 8.0, range: 3.6, spreadDeg: 5.0, bulletSpeed: 17, upgradeCost: 420 },
     ],
   },
   minigun: {
     name: 'Пулемётчик',
-    cost: 80,
-    range: 3.3,
-    fireRate: 6.0,
+    cost: 85,
+    range: 3.4,
+    fireRate: 6.5,
     damage: 18,
-    spreadDeg: 3.2,
+    spreadDeg: 7.0, // ощутимый разброс автоматического огня
     bulletSpeed: 15,
     footprint: 1.0,  // крупнее стрелка
     weaponScale: 0.75, // пулемёт крупнее пистолета
@@ -109,21 +109,22 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'АК-47', damage: 18, fireRate: 6.0, range: 3.3, spreadDeg: 3.2, bulletSpeed: 15, upgradeCost: 0 },
-      { name: 'РПК', damage: 24, fireRate: 7.5, range: 3.6, spreadDeg: 2.6, bulletSpeed: 16, upgradeCost: 120 },
-      { name: 'ПКМ', damage: 32, fireRate: 9.0, range: 3.9, spreadDeg: 2.2, bulletSpeed: 17, upgradeCost: 240 },
-      { name: 'Миниган M134', damage: 20, fireRate: 22.0, range: 4.1, spreadDeg: 3.6, bulletSpeed: 18, upgradeCost: 440 },
-      { name: 'Спаренный миниган', damage: 20, fireRate: 24.0, dualBarrels: true, range: 4.3, spreadDeg: 4.0, bulletSpeed: 18, upgradeCost: 720 },
+      { name: 'АК-47', damage: 18, fireRate: 6.5, range: 3.4, spreadDeg: 7.0, bulletSpeed: 15, upgradeCost: 0 },
+      { name: 'РПК', damage: 25, fireRate: 8.0, range: 3.7, spreadDeg: 6.2, bulletSpeed: 16, upgradeCost: 130 },
+      { name: 'ПКМ', damage: 34, fireRate: 9.5, range: 4.0, spreadDeg: 5.5, bulletSpeed: 17, upgradeCost: 260 },
+      { name: 'Миниган M134', damage: 22, fireRate: 22.0, range: 4.2, spreadDeg: 8.0, bulletSpeed: 18, upgradeCost: 480 },
+      { name: 'Спаренный миниган', damage: 22, fireRate: 25.0, dualBarrels: true, range: 4.4, spreadDeg: 9.0, bulletSpeed: 18, upgradeCost: 780 },
     ],
   },
   sniper: {
     name: 'Снайпер',
-    cost: 95,
-    range: 4.8,
-    fireRate: 0.7,
-    damage: 70,
-    spreadDeg: 0.6, // экстремальная кучность на дальних дистанциях
-    bulletSpeed: 24,
+    cost: 105,
+    range: 5.2,
+    fireRate: 0.75,
+    damage: 85,
+    spreadDeg: 2.2, // снайперский разброс увеличен
+    onlyElevation: true, // ставится ТОЛЬКО на возвышенности
+    bulletSpeed: 25,
     footprint: 0.75,
     weaponScale: 0.65,
     baseTexture: 'tower',
@@ -136,23 +137,23 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'СКС', damage: 70, fireRate: 0.7, range: 4.8, spreadDeg: 0.6, bulletSpeed: 22, upgradeCost: 0 },
-      { name: 'СВД', damage: 120, fireRate: 0.75, range: 5.2, spreadDeg: 0.4, bulletSpeed: 25, upgradeCost: 130 },
-      { name: 'ВСС Винторез', damage: 180, fireRate: 0.95, range: 5.0, spreadDeg: 0.35, bulletSpeed: 24, upgradeCost: 260 },
-      { name: 'Barrett M82', damage: 380, fireRate: 0.50, range: 5.8, spreadDeg: 0.20, bulletSpeed: 28, upgradeCost: 480 },
-      { name: 'Рельсотрон "Гарпун"', damage: 800, fireRate: 0.45, range: 6.5, spreadDeg: 0.08, bulletSpeed: 36, upgradeCost: 820 },
+      { name: 'СКС', damage: 85, fireRate: 0.75, range: 5.2, spreadDeg: 2.2, bulletSpeed: 24, upgradeCost: 0 },
+      { name: 'СВД', damage: 145, fireRate: 0.80, range: 5.5, spreadDeg: 1.8, bulletSpeed: 27, upgradeCost: 140 },
+      { name: 'ВСС Винторез', damage: 215, fireRate: 1.05, range: 5.3, spreadDeg: 1.5, bulletSpeed: 26, upgradeCost: 290 },
+      { name: 'Barrett M82', damage: 450, fireRate: 0.55, range: 6.2, spreadDeg: 1.1, bulletSpeed: 30, upgradeCost: 520 },
+      { name: 'Рельсотрон "Гарпун"', damage: 950, fireRate: 0.50, range: 7.0, spreadDeg: 0.6, bulletSpeed: 38, upgradeCost: 900 },
     ],
   },
   disinfector: {
     name: 'Дезинфектор',
-    cost: 90,
-    range: 2.8,
-    fireRate: 1.4,
-    damage: 14,
+    cost: 95,
+    range: 3.0,
+    fireRate: 1.5,
+    damage: 16,
     spreadDeg: 0,
-    cureChance: 0.08,
-    splashRadius: 1.2,
-    sprayCone: (40 * Math.PI) / 180,
+    cureChance: 0.10,
+    splashRadius: 1.3,
+    sprayCone: (42 * Math.PI) / 180,
     footprint: 0.75,
     weaponScale: 0.6,
     baseTexture: 'tower',
@@ -165,22 +166,22 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Аэрозоль', damage: 14, splashRadius: 1.2, cureChance: 0.08, fireRate: 1.4, range: 2.8, upgradeCost: 0 },
-      { name: 'Опрыскиватель', damage: 22, splashRadius: 1.3, cureChance: 0.12, fireRate: 2.2, range: 3.0, upgradeCost: 85 },
-      { name: 'Газомёт', damage: 34, splashRadius: 1.5, cureChance: 0.16, fireRate: 3.6, range: 3.3, upgradeCost: 170 },
-      { name: 'Химраспылитель', damage: 52, splashRadius: 1.6, cureChance: 0.22, fireRate: 6.0, range: 3.6, upgradeCost: 320 },
-      { name: 'Био-очиститель', damage: 110, splashRadius: 1.8, cureChance: 0.30, continuous: true, fireRate: 0, range: 4.0, upgradeCost: 580 },
+      { name: 'Аэрозоль', damage: 16, splashRadius: 1.3, cureChance: 0.10, fireRate: 1.5, range: 3.0, upgradeCost: 0 },
+      { name: 'Опрыскиватель', damage: 25, splashRadius: 1.4, cureChance: 0.14, fireRate: 2.4, range: 3.2, upgradeCost: 90 },
+      { name: 'Газомёт', damage: 38, splashRadius: 1.6, cureChance: 0.18, fireRate: 3.8, range: 3.5, upgradeCost: 180 },
+      { name: 'Химраспылитель', damage: 58, splashRadius: 1.7, cureChance: 0.24, fireRate: 6.2, range: 3.8, upgradeCost: 350 },
+      { name: 'Био-очиститель', damage: 125, splashRadius: 2.0, cureChance: 0.32, continuous: true, fireRate: 0, range: 4.2, upgradeCost: 620 },
     ],
   },
   tesla: {
     name: 'Тесла',
-    cost: 115,
-    range: 2.8,
-    fireRate: 1.1,
-    damage: 30,
+    cost: 120,
+    range: 3.0,
+    fireRate: 1.15,
+    damage: 34,
     spreadDeg: 0,
     chainCount: 2,
-    chainRange: 2.4,
+    chainRange: 2.5,
     footprint: 0.8,
     weaponScale: 0.65,
     baseTexture: 'tower',
@@ -193,11 +194,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Разрядник', damage: 30, chainCount: 2, fireRate: 1.1, range: 2.8, upgradeCost: 0 },
-      { name: 'Трансформатор', damage: 44, chainCount: 2, fireRate: 1.2, range: 3.0, upgradeCost: 110 },
-      { name: 'Катушка Тесла', damage: 64, chainCount: 3, fireRate: 1.3, range: 3.3, upgradeCost: 230 },
-      { name: 'Плазмотрон', damage: 92, chainCount: 3, fireRate: 1.4, range: 3.6, upgradeCost: 420 },
-      { name: 'Громовержец', damage: 135, chainCount: 4, fireRate: 1.6, range: 4.0, upgradeCost: 680 },
+      { name: 'Разрядник', damage: 34, chainCount: 2, fireRate: 1.15, range: 3.0, upgradeCost: 0 },
+      { name: 'Трансформатор', damage: 50, chainCount: 2, fireRate: 1.25, range: 3.2, upgradeCost: 120 },
+      { name: 'Катушка Тесла', damage: 72, chainCount: 3, fireRate: 1.35, range: 3.5, upgradeCost: 250 },
+      { name: 'Плазмотрон', damage: 104, chainCount: 3, fireRate: 1.50, range: 3.8, upgradeCost: 450 },
+      { name: 'Громовержец', damage: 155, chainCount: 4, fireRate: 1.70, range: 4.2, upgradeCost: 720 },
     ],
   },
 };
@@ -206,7 +207,7 @@ const TOWER_TYPES = {
 const TOWER_EXTRA_INFO = {
   gunner: {
     role: 'Стрелковый пост · Одиночный и полуавтоматический огонь',
-    traitDesc: 'Армейские пистолеты и PDW. Низкий разброс (1.4°–2.8°). На 4 ур. — крупнокалиберный Desert Eagle (.50 AE), на 5 ур. — FN P90 (7.5 выстр/с).',
+    traitDesc: 'Армейские пистолеты и PDW. Разброс (3.8°–6.8°). На 4 ур. — крупнокалиберный Desert Eagle (.50 AE), на 5 ур. — FN P90 (8 выстр/с).',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Уставной защитный камуфляж Охраны', unlocked: true, tint: null },
       { id: 'specops', name: 'Спецназ "Альфа"', desc: 'Матовая антибликовая броня штурмовых групп', unlocked: true, tint: 0x666666 },
@@ -215,7 +216,7 @@ const TOWER_EXTRA_INFO = {
   },
   minigun: {
     role: 'Тяжёлый пулемётчик · Заградительный шквал огня',
-    traitDesc: 'Автоматы и пулемёты до 24 выстр/с. Эффективен на средних и ближних дистанциях. На 4 ур. — M134 Minigun, на 5 ур. — спаренная турель.',
+    traitDesc: 'Автоматы и пулемёты до 25 выстр/с. Разброс (5.5°–9°). Эффективен на ближней дистанции. На 4 ур. — M134, на 5 ур. — спаренная турель.',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Заводской вороненый металл', unlocked: true, tint: null },
       { id: 'cyber', name: 'Кибернетика', desc: 'Хромированный титан с неоновой подсветкой', unlocked: true, tint: 0x00f0ff },
@@ -223,8 +224,8 @@ const TOWER_EXTRA_INFO = {
     ],
   },
   sniper: {
-    role: 'Высокоточный пост · Снайперская стрельба',
-    traitDesc: 'Экстремальная дальность и минимальный разброс (до 0.08°). На 4 ур. — крупнокалиберный Barrett .50 BMG, на 5 ур. — рельсотрон "Гарпун".',
+    role: 'Высокоточный пост · Ставится ТОЛЬКО на возвышенностях',
+    traitDesc: 'Экстремальная дальность. Требует высотной позиции на карте! Разброс (0.6°–2.2°). На 4 ур. — Barrett .50 BMG, на 5 ур. — рельсотрон.',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Маскировочный халат наблюдателя периметра', unlocked: true, tint: null },
       { id: 'stealth', name: 'Тень', desc: 'Поглощающее инфракрасный спектр нановолокно', unlocked: true, tint: 0x554d66 },
@@ -261,53 +262,53 @@ const ENEMY_HP_SCALE = 0.12;      // прирост HP врагов за вол�
 // splitInto / splitCount — на кого распадается при смерти.
 // livesDamage — сколько жизней снимает, если дойдёт до конца.
 const ENEMY_TYPES = {
-  normal: { hp: 65, speed: 1.8, color: 0xe74c3c, reward: 10, size: 0.60 },
-  fast: { hp: 45, speed: 3.6, color: 0xf39c12, reward: 8, size: 0.45 },
+  normal: { hp: 70, speed: 1.7, color: 0xe74c3c, reward: 12, size: 0.60 },
+  fast: { hp: 48, speed: 3.4, color: 0xf39c12, reward: 10, size: 0.45 },
   armored: {
-    hp: 180,
-    speed: 1.3,
+    hp: 195,
+    speed: 1.25,
     color: 0x7f8c8d,
-    reward: 22,
+    reward: 26,
     size: 0.62,
     damageMultiplier: 0.65,
   },
   stalker: {
-    hp: 140,
-    speed: 2.7,
+    hp: 150,
+    speed: 2.6,
     color: 0x9b59b6,
-    reward: 24,
+    reward: 28,
     size: 0.50,
     damageMultiplier: 0.85,
   },
   regenerator: {
-    hp: 360,
-    speed: 1.2,
+    hp: 380,
+    speed: 1.15,
     color: 0x16a085,
-    reward: 36,
+    reward: 42,
     size: 0.68,
-    regen: 22,
+    regen: 24,
   },
-  tank: { hp: 650, speed: 0.8, color: 0x8e44ad, reward: 60, size: 0.80 },
+  tank: { hp: 700, speed: 0.75, color: 0x8e44ad, reward: 75, size: 0.80 },
   splitter: {
-    hp: 280,
-    speed: 1.5,
+    hp: 300,
+    speed: 1.45,
     color: 0x27ae60,
-    reward: 28,
+    reward: 34,
     size: 0.70,
     splitInto: 'small',
     splitCount: 2,
   },
-  small: { hp: 45, speed: 2.8, color: 0xe63946, reward: 5, size: 0.34 },
+  small: { hp: 50, speed: 2.7, color: 0xe63946, reward: 6, size: 0.34 },
   shielded: {
-    hp: 320,
-    speed: 1.3,
+    hp: 340,
+    speed: 1.25,
     color: 0x2980b9,
-    reward: 45,
+    reward: 52,
     size: 0.70,
-    shield: 250,
+    shield: 260,
     shieldColor: 0x66ccff,
   },
-  boss: { hp: 4500, speed: 0.7, color: 0x2c3e50, reward: 500, size: 1.15, livesDamage: 5 },
+  boss: { hp: 4800, speed: 0.65, color: 0x2c3e50, reward: 550, size: 1.15, livesDamage: 5 },
 };
 
 // Множитель шанса исцеления врага дезинфектором.
@@ -462,18 +463,22 @@ const GAME_DIFFICULTIES = {
   }
 };
 
-// Доступные карты игры с путями и атмосферой
+// Доступные карты игры с путями, возвышенностями и атмосферой
 const GAME_MAPS = {
   lab: {
     id: 'lab',
     name: 'Сектор Омега: Лаборатория',
     shortName: 'Лаборатория',
+    badge: 'ЛАБОРАТОРИЯ',
     desc: 'Герметичные шлюзы и центральный лабораторный коридор.',
     theme: {
       cellColor: 0x161a24,
       roadColor: 0x475569,
       gridColor: 0x263044,
-      accentColor: 0x38bdf8
+      accentColor: 0x38bdf8,
+      elevationTop: 0x2b3954,
+      elevationSide: 0x182234,
+      elevationBorder: 0x4ea8de,
     },
     waypoints: [
       { x: 0.5, y: 0.5 },
@@ -484,18 +489,28 @@ const GAME_MAPS = {
       { x: 8.5, y: 6.5 },
       { x: 8.5, y: 9.5 },
       { x: 9.5, y: 9.5 },
-    ]
+    ],
+    // Возвышенные платформы (для снайперов и лучшего обзора)
+    elevations: [
+      { x: 3, y: 1, w: 2, h: 2, label: 'Платформа А' },
+      { x: 4, y: 4, w: 2, h: 2, label: 'Платформа Б' },
+      { x: 3, y: 7, w: 2, h: 2, label: 'Платформа В' },
+    ],
   },
   reactor: {
     id: 'reactor',
     name: 'Энергоблок: Био-Реактор',
     shortName: 'Био-Реактор',
+    badge: 'РЕАКТОР',
     desc: 'Обходные мостки вокруг реактора с охладительным контуром.',
     theme: {
       cellColor: 0x1c172a,
       roadColor: 0x5b4778,
       gridColor: 0x2d2244,
-      accentColor: 0xa855f7
+      accentColor: 0xa855f7,
+      elevationTop: 0x3b2a59,
+      elevationSide: 0x221736,
+      elevationBorder: 0xc084fc,
     },
     waypoints: [
       { x: 0.5, y: 1.5 },
@@ -506,18 +521,26 @@ const GAME_MAPS = {
       { x: 8.5, y: 2.5 },
       { x: 8.5, y: 9.5 },
       { x: 9.5, y: 9.5 },
-    ]
+    ],
+    elevations: [
+      { x: 3, y: 3, w: 2, h: 3, label: 'Охладитель' },
+      { x: 6, y: 5, w: 2, h: 3, label: 'Генератор' },
+    ],
   },
   catacombs: {
     id: 'catacombs',
     name: 'Дренажный Сектор: Катакомбы',
     shortName: 'Катакомбы',
+    badge: 'КАТАКОМБЫ',
     desc: 'Подземные коллекторы под комплексом. Гнездовье спор.',
     theme: {
       cellColor: 0x12221b,
       roadColor: 0x365345,
       gridColor: 0x1f382c,
-      accentColor: 0x22c55e
+      accentColor: 0x22c55e,
+      elevationTop: 0x1f3d30,
+      elevationSide: 0x13271f,
+      elevationBorder: 0x4ade80,
     },
     waypoints: [
       { x: 0.5, y: 2.5 },
@@ -528,8 +551,12 @@ const GAME_MAPS = {
       { x: 8.5, y: 8.5 },
       { x: 8.5, y: 9.5 },
       { x: 9.5, y: 9.5 },
-    ]
-  }
+    ],
+    elevations: [
+      { x: 3, y: 0, w: 3, h: 2, label: 'Уступ Вверху' },
+      { x: 4, y: 6, w: 3, h: 2, label: 'Уступ Внизу' },
+    ],
+  },
 };
 
 // ---------------------- Боевой Пасс (Прогрессия & Награды) ----------------------
@@ -596,6 +623,105 @@ function getPassProgress(totalXp) {
     percent: percent,
     isMax: !nextTier,
   };
+}
+
+// ---------------------- Система Квестов & Заданий ----------------------
+// Автоматическая генерация и пул постоянных тактических заданий со справедливыми наградами
+const QUEST_POOL = [
+  { id: 'kill_spores', title: 'Зачистка Сектора', desc: 'Уничтожьте 60 мутантов любого типа', type: 'kills', target: 60, reward: 250, icon: '☣️' },
+  { id: 'kill_armored', title: 'Бронебойщик', desc: 'Ликвидируйте 15 бронированных мутантов', type: 'kill_type', enemyType: 'armored', target: 15, reward: 320, icon: '🛡️' },
+  { id: 'kill_stalkers', title: 'Охота на Тени', desc: 'Уничтожьте 12 быстрых сталкеров', type: 'kill_type', enemyType: 'stalker', target: 12, reward: 350, icon: '👁️' },
+  { id: 'kill_bosses', title: 'Угроза Альфа', desc: 'Уничтожьте 2 боссов био-угрозы', type: 'kill_type', enemyType: 'boss', target: 2, reward: 600, icon: '👑' },
+  { id: 'build_towers', title: 'Инженер Обороны', desc: 'Постройте 8 оборонительных турелей', type: 'build', target: 8, reward: 220, icon: '🏗️' },
+  { id: 'build_sniper', title: 'Снайперская Точка', desc: 'Разместите 3 снайпера на возвышенностях', type: 'build_type', towerType: 'sniper', target: 3, reward: 300, icon: '🎯' },
+  { id: 'survive_waves', title: 'Неотступность', desc: 'Успешно отразите 15 боевых волн', type: 'waves', target: 15, reward: 400, icon: '⚔️' },
+  { id: 'reach_wave_20', title: 'Ветеран Сектора', desc: 'Достигните 20-й волны в любом режиме', type: 'reach_wave', target: 20, reward: 550, icon: '🎖️' },
+  { id: 'win_game', title: 'Полная Победа', desc: 'Завершите бой победой над всеми волнами', type: 'victory', target: 1, reward: 750, icon: '🏆' },
+];
+
+function getPlayerQuests() {
+  try {
+    const raw = localStorage.getItem('spore_td_quests');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+
+  // Начальная генерация квестов (3 активных задачи)
+  const initial = [
+    { ...QUEST_POOL[0], progress: 0, claimed: false },
+    { ...QUEST_POOL[4], progress: 0, claimed: false },
+    { ...QUEST_POOL[6], progress: 0, claimed: false },
+  ];
+  savePlayerQuests(initial);
+  return initial;
+}
+
+function savePlayerQuests(quests) {
+  try {
+    localStorage.setItem('spore_td_quests', JSON.stringify(quests));
+  } catch (e) {}
+}
+
+function updateQuestProgress(actionType, param = null, amount = 1) {
+  const quests = getPlayerQuests();
+  let changed = false;
+
+  for (const q of quests) {
+    if (q.claimed) continue;
+    let match = false;
+    if (q.type === 'kills' && actionType === 'kill') match = true;
+    else if (q.type === 'kill_type' && actionType === 'kill' && q.enemyType === param) match = true;
+    else if (q.type === 'build' && actionType === 'build') match = true;
+    else if (q.type === 'build_type' && actionType === 'build' && q.towerType === param) match = true;
+    else if (q.type === 'waves' && actionType === 'wave_clear') match = true;
+    else if (q.type === 'reach_wave' && actionType === 'wave_start') {
+      if (param >= q.target && q.progress < q.target) {
+        q.progress = q.target;
+        changed = true;
+      }
+    } else if (q.type === 'victory' && actionType === 'victory') match = true;
+
+    if (match) {
+      q.progress = Math.min(q.target, (q.progress || 0) + amount);
+      changed = true;
+    }
+  }
+
+  if (changed) savePlayerQuests(quests);
+}
+
+function claimQuestReward(questId) {
+  const quests = getPlayerQuests();
+  const q = quests.find((item) => item.id === questId);
+  if (!q || q.claimed || (q.progress || 0) < q.target) return 0;
+
+  q.claimed = true;
+  const reward = q.reward || 100;
+
+  // Добавляем золото в профиль игрока
+  try {
+    const curGold = parseInt(localStorage.getItem('spore_gold') || localStorage.getItem('spore_td_gold') || '0', 10);
+    const newGold = (isNaN(curGold) ? 0 : curGold) + reward;
+    localStorage.setItem('spore_gold', String(newGold));
+    localStorage.setItem('spore_td_gold', String(newGold));
+  } catch (e) {}
+
+  // Авто-генерация: заменяем завершённый квест на новый из пула
+  const usedIds = new Set(quests.map((item) => item.id));
+  const available = QUEST_POOL.filter((item) => !usedIds.has(item.id));
+  if (available.length > 0) {
+    const nextQuest = available[Math.floor(Math.random() * available.length)];
+    // Через небольшую задержку подставляем новый квест вместо забранного
+    const idx = quests.indexOf(q);
+    if (idx !== -1) {
+      quests[idx] = { ...nextQuest, progress: 0, claimed: false };
+    }
+  }
+
+  savePlayerQuests(quests);
+  return reward;
 }
 
 const PROJECTILE_COLOR = 0xf1c40f; // цвет снаряда (жёлтый)
@@ -2174,22 +2300,55 @@ class MenuScene extends Phaser.Scene {
 
     // Селектор карты
     this.mapBoxBg = this.add.graphics();
+    this.mapPreviewGfx = this.add.graphics();
     this.mapLabel = this.add
-      .text(0, 0, 'КАРТА', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, 'КАРТА', { fontFamily: UI_FONT, fontSize: '12px', color: '#8e9eb5', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapPrevBtn = this.add
-      .text(0, 0, '‹', { fontFamily: UI_FONT, fontSize: '24px', color: '#38bdf8', fontStyle: 'bold' })
+      .text(0, 0, '‹', {
+        fontFamily: UI_FONT,
+        fontSize: '26px',
+        color: '#38bdf8',
+        backgroundColor: '#1b2234',
+        padding: { x: 12 * DPR, y: 6 * DPR },
+        fontStyle: 'bold',
+      })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+    roundTarget(this, this.mapPrevBtn, {
+      color: 0x1b2234,
+      radius: 12 * DPR,
+      strokeColor: 0x2e3d5b,
+      strokeWidth: 1.2 * DPR,
+    });
+
     this.mapTitle = this.add
-      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold' })
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapNextBtn = this.add
-      .text(0, 0, '›', { fontFamily: UI_FONT, fontSize: '24px', color: '#38bdf8', fontStyle: 'bold' })
+      .text(0, 0, '›', {
+        fontFamily: UI_FONT,
+        fontSize: '26px',
+        color: '#38bdf8',
+        backgroundColor: '#1b2234',
+        padding: { x: 12 * DPR, y: 6 * DPR },
+        fontStyle: 'bold',
+      })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+    roundTarget(this, this.mapNextBtn, {
+      color: 0x1b2234,
+      radius: 12 * DPR,
+      strokeColor: 0x2e3d5b,
+      strokeWidth: 1.2 * DPR,
+    });
+
+    this.mapStatsText = this.add
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#38bdf8', fontStyle: 'bold' })
+      .setOrigin(0.5);
+
     this.mapDesc = this.add
-      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '11px', color: '#8898aa', align: 'center' })
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#94a3b8', align: 'center' })
       .setOrigin(0.5);
 
     this.mapPrevBtn.on('pointerdown', (p, x, y, ev) => {
@@ -2295,10 +2454,12 @@ class MenuScene extends Phaser.Scene {
       this.statRankLabel,
       this.statRankVal,
       this.mapBoxBg,
+      this.mapPreviewGfx,
       this.mapLabel,
       this.mapPrevBtn,
       this.mapTitle,
       this.mapNextBtn,
+      this.mapStatsText,
       this.mapDesc,
       this.diffLabel,
       this.diffButtons.easy,
@@ -2341,12 +2502,20 @@ class MenuScene extends Phaser.Scene {
     if (this.mapTitle) this.mapTitle.setText(mapDef.name);
     if (this.mapDesc) this.mapDesc.setText(mapDef.desc);
 
+    const elevCount = (mapDef.elevations && mapDef.elevations.length) || 0;
+    if (this.mapStatsText) {
+      this.mapStatsText.setText(`🏔️ Возвышенности: ${elevCount} позиции · 🎯 Зона снайпера · 35 волн`);
+    }
+
     if (this.mapBoxBg && this.mapBoxW && this.mapBoxH) {
       this.mapBoxBg.clear();
       this.mapBoxBg.fillStyle(0x131722, 0.95);
-      this.mapBoxBg.fillRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 12 * DPR);
-      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
-      this.mapBoxBg.strokeRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 12 * DPR);
+      this.mapBoxBg.fillRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 14 * DPR);
+      this.mapBoxBg.lineStyle(1.6 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
+      this.mapBoxBg.strokeRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 14 * DPR);
+
+      const previewCy = this.mapBoxY + 86 * DPR;
+      this.renderMapPreview(mapDef, this.mapBoxX + this.mapBoxW / 2, previewCy, this.mapBoxW * 0.72, 68 * DPR);
     }
 
     const diffDef = GAME_DIFFICULTIES[this.selectedDifficulty] || GAME_DIFFICULTIES.medium;
@@ -2366,6 +2535,163 @@ class MenuScene extends Phaser.Scene {
       }
     }
     updateRoundBgs(this);
+  }
+
+  renderMapPreview(mapDef, cx, cy, maxW, maxH) {
+    if (!this.mapPreviewGfx || !mapDef) return;
+    const gfx = this.mapPreviewGfx;
+    gfx.clear();
+
+    const theme = mapDef.theme || {
+      cellColor: 0x161a24,
+      roadColor: 0x475569,
+      gridColor: 0x263044,
+      accentColor: 0x38bdf8,
+      elevationTop: 0x2b3954,
+      elevationSide: 0x182234,
+      elevationBorder: 0x4ea8de,
+    };
+
+    const tileW = Math.min(22 * DPR, (maxW * 0.8) / 10);
+    const tileH = tileW * 0.52;
+
+    const project = (gx, gy, elevationLift = 0) => {
+      return {
+        x: cx + (gx - gy) * (tileW * 0.5),
+        y: cy + (gx + gy - 10) * (tileH * 0.5) - elevationLift,
+      };
+    };
+
+    // Остров
+    const topPt = project(0, 0);
+    const rightPt = project(10, 0);
+    const botPt = project(10, 10);
+    const leftPt = project(0, 10);
+
+    const depth = 8 * DPR;
+    gfx.fillStyle(Phaser.Display.Color.IntegerToColor(theme.cellColor).darken(40).color, 0.9);
+    gfx.beginPath();
+    gfx.moveTo(leftPt.x, leftPt.y);
+    gfx.lineTo(botPt.x, botPt.y);
+    gfx.lineTo(botPt.x, botPt.y + depth);
+    gfx.lineTo(leftPt.x, leftPt.y + depth);
+    gfx.closePath();
+    gfx.fillPath();
+
+    gfx.fillStyle(Phaser.Display.Color.IntegerToColor(theme.cellColor).darken(55).color, 0.9);
+    gfx.beginPath();
+    gfx.moveTo(botPt.x, botPt.y);
+    gfx.lineTo(rightPt.x, rightPt.y);
+    gfx.lineTo(rightPt.x, rightPt.y + depth);
+    gfx.lineTo(botPt.x, botPt.y + depth);
+    gfx.closePath();
+    gfx.fillPath();
+
+    // Верхняя плоскость
+    gfx.fillStyle(theme.cellColor, 0.95);
+    gfx.beginPath();
+    gfx.moveTo(topPt.x, topPt.y);
+    gfx.lineTo(rightPt.x, rightPt.y);
+    gfx.lineTo(botPt.x, botPt.y);
+    gfx.lineTo(leftPt.x, leftPt.y);
+    gfx.closePath();
+    gfx.fillPath();
+
+    gfx.lineStyle(1.2 * DPR, theme.gridColor, 0.8);
+    gfx.strokePath();
+
+    // Дорожка
+    const wp = mapDef.waypoints || [];
+    if (wp.length > 1) {
+      gfx.lineStyle(5.5 * DPR, theme.roadColor, 0.95);
+      gfx.beginPath();
+      const p0 = project(wp[0].x, wp[0].y);
+      gfx.moveTo(p0.x, p0.y);
+      for (let i = 1; i < wp.length; i++) {
+        const pt = project(wp[i].x, wp[i].y);
+        gfx.lineTo(pt.x, pt.y);
+      }
+      gfx.strokePath();
+
+      gfx.lineStyle(1.8 * DPR, theme.accentColor, 0.9);
+      gfx.beginPath();
+      gfx.moveTo(p0.x, p0.y);
+      for (let i = 1; i < wp.length; i++) {
+        const pt = project(wp[i].x, wp[i].y);
+        gfx.lineTo(pt.x, pt.y);
+      }
+      gfx.strokePath();
+
+      // Старт
+      gfx.fillStyle(0x22c55e, 1);
+      gfx.fillCircle(p0.x, p0.y, 3.5 * DPR);
+      gfx.lineStyle(1 * DPR, 0xffffff, 1);
+      gfx.strokeCircle(p0.x, p0.y, 3.5 * DPR);
+
+      // База
+      const pLast = project(wp[wp.length - 1].x, wp[wp.length - 1].y);
+      gfx.fillStyle(0xef4444, 1);
+      gfx.fillCircle(pLast.x, pLast.y, 3.8 * DPR);
+      gfx.lineStyle(1 * DPR, 0xffffff, 1);
+      gfx.strokeCircle(pLast.x, pLast.y, 3.8 * DPR);
+    }
+
+    // Возвышенности
+    const elevations = mapDef.elevations || [];
+    const lift = 6 * DPR;
+    elevations.forEach((elev) => {
+      const ex0 = elev.x;
+      const ey0 = elev.y;
+      const ex1 = elev.x + (elev.w || 2);
+      const ey1 = elev.y + (elev.h || 2);
+
+      const bTop = project(ex0, ey0);
+      const bRight = project(ex1, ey0);
+      const bBot = project(ex1, ey1);
+      const bLeft = project(ex0, ey1);
+
+      const tTop = project(ex0, ey0, lift);
+      const tRight = project(ex1, ey0, lift);
+      const tBot = project(ex1, ey1, lift);
+      const tLeft = project(ex0, ey1, lift);
+
+      // Левая боковая
+      gfx.fillStyle(theme.elevationSide || 0x182234, 0.95);
+      gfx.beginPath();
+      gfx.moveTo(tLeft.x, tLeft.y);
+      gfx.lineTo(tBot.x, tBot.y);
+      gfx.lineTo(bBot.x, bBot.y);
+      gfx.lineTo(bLeft.x, bLeft.y);
+      gfx.closePath();
+      gfx.fillPath();
+
+      // Правая боковая
+      gfx.fillStyle(Phaser.Display.Color.IntegerToColor(theme.elevationSide || 0x182234).darken(20).color, 0.95);
+      gfx.beginPath();
+      gfx.moveTo(tBot.x, tBot.y);
+      gfx.lineTo(tRight.x, tRight.y);
+      gfx.lineTo(bRight.x, bRight.y);
+      gfx.lineTo(bBot.x, bBot.y);
+      gfx.closePath();
+      gfx.fillPath();
+
+      // Верхняя грань
+      gfx.fillStyle(theme.elevationTop || 0x2b3954, 0.98);
+      gfx.beginPath();
+      gfx.moveTo(tTop.x, tTop.y);
+      gfx.lineTo(tRight.x, tRight.y);
+      gfx.lineTo(tBot.x, tBot.y);
+      gfx.lineTo(tLeft.x, tLeft.y);
+      gfx.closePath();
+      gfx.fillPath();
+
+      gfx.lineStyle(1.4 * DPR, theme.elevationBorder || 0x4ea8de, 1);
+      gfx.strokePath();
+
+      const centerPt = project((ex0 + ex1) / 2, (ey0 + ey1) / 2, lift);
+      gfx.fillStyle(theme.elevationBorder || 0x4ea8de, 1);
+      gfx.fillCircle(centerPt.x, centerPt.y, 2.2 * DPR);
+    });
   }
 
   createInventory() {
@@ -3153,8 +3479,9 @@ class MenuScene extends Phaser.Scene {
   createBattlePass() {
     this.passPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
+    // Заголовок: ЗАДАНИЯ И КВЕСТЫ
     this.passTitle = this.add
-      .text(0, 0, 'БОЕВОЙ ПАСС', {
+      .text(0, 0, 'БОЕВЫЕ ЗАДАНИЯ', {
         fontFamily: UI_FONT,
         fontSize: '24px',
         color: '#ffffff',
@@ -3163,7 +3490,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.passSubtitle = this.add
-      .text(0, 0, 'СЕЗОН 1: ОМЕГА-ПРОРЫВ', {
+      .text(0, 0, 'Ежедневные протоколы · Награда золотом за выполнение', {
         fontFamily: UI_FONT,
         fontSize: '15px',
         color: '#38bdf8',
@@ -3171,46 +3498,34 @@ class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.passHeaderGfx = this.add.graphics();
-    this.passLevelBadge = this.add
-      .text(0, 0, 'УРОВЕНЬ 1', {
-        fontFamily: UI_FONT,
-        fontSize: '15px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-
-    this.passXpText = this.add
-      .text(0, 0, '0 / 250 XP', {
-        fontFamily: UI_FONT,
-        fontSize: '13.5px',
-        color: '#94a3b8',
-      })
-      .setOrigin(0.5);
-
-    this.passPremiumBtn = this.add
-      .text(0, 0, 'ПРЕМИУМ ПАСС ★', {
+    // Баннер-заглушка: БОЕВОЙ ПАСС ВРЕМЕННО ЗАКРЫТ (СКОРО)
+    this.passLockBanner = this.add.container(0, 0);
+    this.passLockBg = this.add.rectangle(0, 0, 320, 52, 0x131722, 0.95);
+    roundTarget(this, this.passLockBg, {
+      kind: 'rect',
+      color: 0x131722,
+      alpha: 0.95,
+      radius: 10 * DPR,
+      strokeColor: 0xe63946,
+      strokeWidth: 1.2 * DPR,
+    });
+    this.passLockIcon = this.add.text(-120, 0, '🔒', { fontSize: '20px' }).setOrigin(0.5);
+    this.passLockTitle = this.add
+      .text(-96, -8, 'БОЕВОЙ ПАСС · ЗАКРЫТ (СКОРО)', {
         fontFamily: UI_FONT,
         fontSize: '13px',
-        color: '#ffffff',
-        backgroundColor: '#d97706',
-        padding: { x: 12 * DPR, y: 7 * DPR },
+        color: '#ff4d5e',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    roundTarget(this, this.passPremiumBtn, {
-      color: 0xd97706,
-      alpha: 1,
-      radius: 8 * DPR,
-      strokeColor: 0xf59e0b,
-      strokeWidth: 1.5 * DPR,
-    });
-    this.passPremiumBtn.on('pointerdown', (pointer, lx, ly, event) => {
-      if (event && event.stopPropagation) event.stopPropagation();
-      this.showToast('Премиум-пропуск станет доступен в следующем сезоне!');
-    });
+      .setOrigin(0, 0.5);
+    this.passLockSub = this.add
+      .text(-96, 10, 'Сезонная прогрессия наград на калибровке', {
+        fontFamily: UI_FONT,
+        fontSize: '11.5px',
+        color: '#94a3b8',
+      })
+      .setOrigin(0, 0.5);
+    this.passLockBanner.add([this.passLockBg, this.passLockIcon, this.passLockTitle, this.passLockSub]);
 
     this.passCardGfx = this.add.graphics();
     this.passMaskGfx = this.make.graphics();
@@ -3223,150 +3538,127 @@ class MenuScene extends Phaser.Scene {
     this.passScrollZone = this.add.zone(0, 0, 10, 10).setOrigin(0, 0);
     this.passScrollZone.setInteractive({ useHandCursor: true });
 
-    this.passTiers = BATTLE_PASS_TIERS;
-    this.passTierRows = [];
-
-    const totalXp = getPlayerPassXp();
-    const progress = getPassProgress(totalXp);
-
-    for (let i = 0; i < this.passTiers.length; i++) {
-      const tier = this.passTiers[i];
-      const row = this.add.container(0, 0);
-      const isUnlocked = progress.level >= tier.level;
-
-      const rowBg = this.add.rectangle(0, 0, 320, 68, 0x131722, 0.95);
-      roundTarget(this, rowBg, {
-        kind: 'rect',
-        color: isUnlocked ? 0x161e2e : 0x11151f,
-        alpha: 0.95,
-        radius: 10 * DPR,
-        strokeColor: isUnlocked ? 0x2e4162 : 0x222a3a,
-        strokeWidth: 1 * DPR,
-      });
-
-      const lvlText = this.add
-        .text(-128, 0, `УР. ${tier.level}`, {
-          fontFamily: UI_FONT,
-          fontSize: '15px',
-          color: isUnlocked ? '#38bdf8' : '#64748b',
-          fontStyle: 'bold',
-        })
-        .setOrigin(0.5);
-
-      const freeText = this.add
-        .text(-80, -13, `Бесплатно: ${tier.free}`, {
-          fontFamily: UI_FONT,
-          fontSize: '13.5px',
-          color: '#e2e8f0',
-        })
-        .setOrigin(0, 0.5);
-
-      const premText = this.add
-        .text(-80, 13, `Премиум: ${tier.prem}`, {
-          fontFamily: UI_FONT,
-          fontSize: '12.5px',
-          color: '#fbbf24',
-        })
-        .setOrigin(0, 0.5);
-
-      const statusBtn = this.add
-        .text(124, 0, isUnlocked ? 'ЗАБРАНО' : '🔒', {
-          fontFamily: UI_FONT,
-          fontSize: '13px',
-          color: isUnlocked ? '#4ade80' : '#64748b',
-          backgroundColor: '#1a2232',
-          padding: { x: 8 * DPR, y: 6 * DPR },
-          fontStyle: 'bold',
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-
-      roundTarget(this, statusBtn, {
-        color: isUnlocked ? 0x15281e : 0x181e2b,
-        alpha: 0.9,
-        radius: 6 * DPR,
-        strokeColor: isUnlocked ? 0x22c55e : 0x334155,
-        strokeWidth: 1 * DPR,
-      });
-
-      statusBtn.on('pointerdown', (pointer, lx, ly, event) => {
-        if (event && event.stopPropagation) event.stopPropagation();
-        const curProgress = getPassProgress(getPlayerPassXp());
-        if (curProgress.level >= tier.level) {
-          this.showToast(`Награда уровня ${tier.level} («${tier.free}») получена!`);
-        } else {
-          const needed = tier.xpReq - curProgress.totalXp;
-          this.showToast(`Уровень ${tier.level} заблокирован. Нужно ещё ${needed} XP (играйте волны)!`);
-        }
-      });
-
-      row._rowBg = rowBg;
-      row._lvlText = lvlText;
-      row._freeText = freeText;
-      row._premText = premText;
-      row._statusBtn = statusBtn;
-
-      row.add([rowBg, lvlText, freeText, premText, statusBtn]);
-      this.passTierRows.push(row);
-      this.passListContainer.add(row);
-    }
+    this.questRows = [];
 
     this.passPage.add([
       this.passTitle,
       this.passSubtitle,
-      this.passHeaderGfx,
-      this.passLevelBadge,
-      this.passXpText,
-      this.passPremiumBtn,
+      this.passLockBanner,
       this.passCardGfx,
       this.passListContainer,
       this.passScrollbarGfx,
       this.passScrollZone,
     ]);
 
-    this.refreshBattlePassUI();
+    this.refreshQuestsUI();
     this.initPassScroll();
   }
 
-  refreshBattlePassUI() {
-    const totalXp = getPlayerPassXp();
-    const progress = getPassProgress(totalXp);
+  refreshQuestsUI() {
+    if (!this.passListContainer) return;
+    this.passListContainer.removeAll(true);
+    this.questRows = [];
 
-    if (this.passLevelBadge) {
-      this.passLevelBadge.setText(`УРОВЕНЬ ${progress.level}`);
-    }
-    if (this.passXpText) {
-      this.passXpText.setText(
-        progress.isMax
-          ? `${progress.totalXp} XP (МАКСИМУМ)`
-          : `${progress.currentTierXp} / ${progress.nextTierNeeded} XP`
-      );
-    }
+    const quests = getPlayerQuests();
+    for (let i = 0; i < quests.length; i++) {
+      const q = quests[i];
+      const row = this.add.container(0, 0);
+      const isDone = (q.progress || 0) >= q.target;
+      const isClaimed = Boolean(q.claimed);
 
-    if (this.passTierRows && this.passTiers) {
-      this.passTiers.forEach((tier, i) => {
-        const row = this.passTierRows[i];
-        if (!row) return;
-        const isUnlocked = progress.level >= tier.level;
+      const rowBg = this.add.rectangle(0, 0, 320, 84, 0x131722, 0.95);
+      roundTarget(this, rowBg, {
+        kind: 'rect',
+        color: isDone ? 0x142322 : 0x111622,
+        alpha: 0.95,
+        radius: 12 * DPR,
+        strokeColor: isDone ? 0x22c55e : 0x242e42,
+        strokeWidth: 1.2 * DPR,
+      });
 
-        if (row._rowBg && row._rowBg._roundItem) {
-          row._rowBg._roundItem.color = isUnlocked ? 0x161e2e : 0x11151f;
-          row._rowBg._roundItem.strokeColor = isUnlocked ? 0x2e4162 : 0x222a3a;
+      const icon = this.add.text(-128, 0, q.icon || '⚔️', { fontSize: '26px' }).setOrigin(0.5);
+
+      const title = this.add
+        .text(-102, -22, q.title, {
+          fontFamily: UI_FONT,
+          fontSize: '15.5px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+
+      const desc = this.add
+        .text(-102, -3, q.desc, {
+          fontFamily: UI_FONT,
+          fontSize: '12px',
+          color: '#8e9eb5',
+          wordWrap: { width: 145 * DPR },
+        })
+        .setOrigin(0, 0.5);
+
+      const progressVal = Math.min(q.target, q.progress || 0);
+      const progText = this.add
+        .text(-102, 22, `Прогресс: ${progressVal} / ${q.target}`, {
+          fontFamily: UI_FONT,
+          fontSize: '12px',
+          color: isDone ? '#4ade80' : '#38bdf8',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+
+      // Кнопка награды
+      const btnText = isClaimed ? 'ЗАБРАНО' : (isDone ? `+${q.reward} 🟡` : `${q.reward} 🟡`);
+      const btnColor = isClaimed ? '#64748b' : (isDone ? '#ffffff' : '#f1c40f');
+      const btnBgColor = isDone ? 0x22c55e : 0x1a2232;
+      const btnStroke = isDone ? 0x4ade80 : 0x334155;
+
+      const actionBtn = this.add
+        .text(118, 0, btnText, {
+          fontFamily: UI_FONT,
+          fontSize: '13px',
+          color: btnColor,
+          backgroundColor: '#1a2232',
+          padding: { x: 10 * DPR, y: 7 * DPR },
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: isDone && !isClaimed });
+
+      roundTarget(this, actionBtn, {
+        color: btnBgColor,
+        alpha: 0.95,
+        radius: 8 * DPR,
+        strokeColor: btnStroke,
+        strokeWidth: 1.2 * DPR,
+      });
+
+      actionBtn.on('pointerdown', (pointer, lx, ly, event) => {
+        if (event && event.stopPropagation) event.stopPropagation();
+        if (isClaimed) {
+          this.showToast('Награда уже получена!');
+          return;
         }
-        if (row._lvlText) {
-          row._lvlText.setColor(isUnlocked ? '#38bdf8' : '#64748b');
+        if (!isDone) {
+          this.showToast(`Выполните условие: ${q.desc}`);
+          return;
         }
-        if (row._statusBtn) {
-          row._statusBtn.setText(isUnlocked ? 'ЗАБРАНО' : '🔒');
-          row._statusBtn.setColor(isUnlocked ? '#4ade80' : '#64748b');
-          if (row._statusBtn._roundItem) {
-            row._statusBtn._roundItem.color = isUnlocked ? 0x15281e : 0x181e2b;
-            row._statusBtn._roundItem.strokeColor = isUnlocked ? 0x22c55e : 0x334155;
-          }
+        const rewarded = claimQuestReward(q.id);
+        if (rewarded > 0) {
+          this.showToast(`Получено +${rewarded} 🟡 за задание «${q.title}»!`);
+          this.refreshProfile();
+          this.refreshQuestsUI();
         }
       });
+
+      row.add([rowBg, icon, title, desc, progText, actionBtn]);
+      this.questRows.push(row);
+      this.passListContainer.add(row);
     }
     updateRoundBgs(this);
+  }
+
+  refreshBattlePassUI() {
+    this.refreshQuestsUI();
   }
 
 
@@ -3556,49 +3848,101 @@ class MenuScene extends Phaser.Scene {
     this.shopListContainer.add(sec2Title);
 
     const crates = [
-      { name: 'Ящик Стрелкового Оружия', desc: 'Скины «Спецназ», «Кибер» и модификации', icon: '🔫' },
-      { name: 'Контейнер Пулемётчика', desc: 'Тяжёлые скины «Джаггернаут», камуфляжи ПКМ', icon: '💥' },
-      { name: 'Био-Контейнер Очистителя', desc: 'Химкостюмы «Ликвидатор», крио-модули', icon: '☣️' },
-      { name: 'Энерго-Кейс Теслы', desc: 'Кибернетические дуги «Плазма», «Тесла-Прайм»', icon: '⚡' },
+      {
+        name: 'Обычный Кейс',
+        tier: 'common',
+        desc: 'Базовые армейские камуфляжи и тактические модули',
+        colorHex: 0x94a3b8,
+        glowHex: 0x64748b,
+        badge: 'ОБЫЧНЫЙ',
+      },
+      {
+        name: 'Редкий Кейс',
+        tier: 'rare',
+        desc: 'Редкие неоновые и защитные скины «Спецназ» и «Крио»',
+        colorHex: 0x38bdf8,
+        glowHex: 0x0284c7,
+        badge: 'РЕДКИЙ',
+      },
+      {
+        name: 'Легендарный Кейс',
+        tier: 'legendary',
+        desc: 'Эксклюзивные золотые и плазменные облики «Омега-Прайм»',
+        colorHex: 0xf59e0b,
+        glowHex: 0xd97706,
+        badge: 'ЛЕГЕНДАРНЫЙ',
+      },
     ];
 
     for (const crate of crates) {
       const row = this.add.container(0, 0);
-      const bg = this.add.rectangle(0, 0, 320, 68, 0x121620, 0.95);
+      const bg = this.add.rectangle(0, 0, 320, 80, 0x121620, 0.95);
       roundTarget(this, bg, {
         kind: 'rect',
         color: 0x121620,
         alpha: 0.95,
-        radius: 10 * DPR,
-        strokeColor: 0x222938,
-        strokeWidth: 1 * DPR,
+        radius: 12 * DPR,
+        strokeColor: crate.glowHex,
+        strokeWidth: 1.2 * DPR,
       });
 
+      // Отрисованный кодом стилизованный 3D-сундук
+      const chestGfx = this.add.graphics();
+      chestGfx.setPosition(-120, 0);
+
+      // Свечение сзади ящика
+      chestGfx.fillStyle(crate.glowHex, 0.25);
+      chestGfx.fillCircle(0, 0, 22 * DPR);
+
+      // Корпус сундука
+      chestGfx.fillStyle(0x182030, 1);
+      chestGfx.fillRoundedRect(-18 * DPR, -12 * DPR, 36 * DPR, 26 * DPR, 5 * DPR);
+      chestGfx.lineStyle(1.5 * DPR, crate.colorHex, 1);
+      chestGfx.strokeRoundedRect(-18 * DPR, -12 * DPR, 36 * DPR, 26 * DPR, 5 * DPR);
+
+      // Крышка сундука
+      chestGfx.fillStyle(crate.colorHex, 0.85);
+      chestGfx.fillRoundedRect(-19 * DPR, -16 * DPR, 38 * DPR, 8 * DPR, 3 * DPR);
+
+      // Замок сундука
+      chestGfx.fillStyle(0xffffff, 0.95);
+      chestGfx.fillCircle(0, -3 * DPR, 3.5 * DPR);
+
       const title = this.add
-        .text(-138, -14, `${crate.icon} ${crate.name}`, {
+        .text(-86, -18, crate.name, {
           fontFamily: UI_FONT,
-          fontSize: '15px',
-          color: '#e2e8f0',
+          fontSize: '16px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+
+      const badge = this.add
+        .text(-86, 0, crate.badge, {
+          fontFamily: UI_FONT,
+          fontSize: '11px',
+          color: `#${crate.colorHex.toString(16).padStart(6, '0')}`,
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
       const sub = this.add
-        .text(-138, 14, crate.desc, {
+        .text(-86, 18, crate.desc, {
           fontFamily: UI_FONT,
-          fontSize: '13.5px',
+          fontSize: '12px',
           color: '#8492a6',
+          wordWrap: { width: 140 * DPR },
         })
         .setOrigin(0, 0.5);
 
       // КНОПКА СТРОГО "Скоро"
       const soonBtn = this.add
-        .text(126, 0, 'Скоро', {
+        .text(122, 0, 'Скоро', {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '14px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
-          padding: { x: 10 * DPR, y: 6 * DPR },
+          padding: { x: 12 * DPR, y: 7 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3607,17 +3951,17 @@ class MenuScene extends Phaser.Scene {
       roundTarget(this, soonBtn, {
         color: 0x1a2130,
         alpha: 0.95,
-        radius: 7 * DPR,
+        radius: 8 * DPR,
         strokeColor: 0x334155,
         strokeWidth: 1 * DPR,
       });
 
       soonBtn.on('pointerdown', (pointer, lx, ly, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
-        this.showToast('Кейсы со скинами будут доступны в следующем обновлении!');
+        this.showToast(`${crate.name} появится в следующем обновлении со скинами!`);
       });
 
-      row.add([bg, title, sub, soonBtn]);
+      row.add([bg, chestGfx, title, badge, sub, soonBtn]);
       this.shopRows.push({ item: row, isHeader: false });
       this.shopListContainer.add(row);
     }
@@ -4014,7 +4358,7 @@ class MenuScene extends Phaser.Scene {
 
     // 3. Селектор карты (Сектор Омега / Био-Реактор / Катакомбы)
     const mapBoxY = cardTop + cardHeight + 14 * DPR;
-    const mapBoxH = 92 * DPR;
+    const mapBoxH = 172 * DPR;
     const mapBoxW = cardWidth;
     const mapBoxX = width / 2 - mapBoxW / 2;
 
@@ -4028,33 +4372,45 @@ class MenuScene extends Phaser.Scene {
       this.mapBoxBg.clear();
       this.mapBoxBg.fillStyle(0x131722, 0.95);
       this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
-      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
+      this.mapBoxBg.lineStyle(1.6 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
       this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
     }
 
     if (this.mapLabel) {
-      this.mapLabel.setPosition(width / 2, mapBoxY + 16 * DPR);
-      this.mapLabel.setStyle({ fontSize: `${Math.round(13 * DPR)}px` });
+      this.mapLabel.setPosition(width / 2, mapBoxY + 14 * DPR);
+      this.mapLabel.setText(`КАРТА · ${mapDef.badge || ''}`);
+      this.mapLabel.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
     }
     if (this.mapPrevBtn) {
-      this.mapPrevBtn.setPosition(mapBoxX + 26 * DPR, mapBoxY + 44 * DPR);
-      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(30 * DPR)}px` });
+      this.mapPrevBtn.setPosition(mapBoxX + 28 * DPR, mapBoxY + 36 * DPR);
+      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(24 * DPR)}px` });
     }
     if (this.mapTitle) {
-      this.mapTitle.setPosition(width / 2, mapBoxY + 44 * DPR);
-      this.mapTitle.setStyle({ fontSize: `${Math.round(19 * DPR)}px` });
+      this.mapTitle.setPosition(width / 2, mapBoxY + 36 * DPR);
+      this.mapTitle.setStyle({ fontSize: `${Math.round(18 * DPR)}px` });
     }
     if (this.mapNextBtn) {
-      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 26 * DPR, mapBoxY + 44 * DPR);
-      this.mapNextBtn.setStyle({ fontSize: `${Math.round(30 * DPR)}px` });
+      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 28 * DPR, mapBoxY + 36 * DPR);
+      this.mapNextBtn.setStyle({ fontSize: `${Math.round(24 * DPR)}px` });
     }
+
+    // Отрисовка мини-карты кодом в изометрии
+    this.renderMapPreview(mapDef, width / 2, mapBoxY + 86 * DPR, mapBoxW * 0.72, 68 * DPR);
+
+    const elevCount = (mapDef.elevations && mapDef.elevations.length) || 0;
+    if (this.mapStatsText) {
+      this.mapStatsText.setPosition(width / 2, mapBoxY + 134 * DPR);
+      this.mapStatsText.setText(`🏔️ Возвышенности: ${elevCount} позиции · 🎯 Зона снайпера · 35 волн`);
+      this.mapStatsText.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
+    }
+
     if (this.mapDesc) {
-      this.mapDesc.setPosition(width / 2, mapBoxY + 72 * DPR);
-      this.mapDesc.setStyle({ fontSize: `${Math.round(13 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
+      this.mapDesc.setPosition(width / 2, mapBoxY + 152 * DPR);
+      this.mapDesc.setStyle({ fontSize: `${Math.round(12 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
     }
 
     // 4. Селектор сложности (Лёгкий / Средний / Трудный)
-    const diffBoxY = mapBoxY + mapBoxH + 14 * DPR;
+    const diffBoxY = mapBoxY + mapBoxH + 12 * DPR;
     const diffLabelY = diffBoxY + 8 * DPR;
     if (this.diffLabel) {
       this.diffLabel.setPosition(width / 2, diffLabelY);
@@ -4063,8 +4419,8 @@ class MenuScene extends Phaser.Scene {
 
     const btnGap = 8 * DPR;
     const diffBtnW = Math.floor((cardWidth - 2 * btnGap) / 3);
-    const diffBtnH = 42 * DPR;
-    const diffBtnY = diffBoxY + 40 * DPR;
+    const diffBtnH = 40 * DPR;
+    const diffBtnY = diffBoxY + 38 * DPR;
 
     const diffKeys = ['easy', 'medium', 'hard'];
     diffKeys.forEach((k, idx) => {
@@ -4081,8 +4437,8 @@ class MenuScene extends Phaser.Scene {
     });
 
     if (this.diffDesc) {
-      this.diffDesc.setPosition(width / 2, diffBoxY + 76 * DPR);
-      this.diffDesc.setStyle({ fontSize: `${Math.round(13 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
+      this.diffDesc.setPosition(width / 2, diffBoxY + 74 * DPR);
+      this.diffDesc.setStyle({ fontSize: `${Math.round(12.5 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
     }
 
     // 5. Кнопка В БОЙ
@@ -4179,39 +4535,24 @@ class MenuScene extends Phaser.Scene {
     }
 
     const passCardW = Math.min(width * 0.94, 550 * DPR);
-    const headerTop = height * 0.19;
-    const headerH = 48 * DPR;
-    if (this.passHeaderGfx) {
-      this.passHeaderGfx.clear();
-      this.passHeaderGfx.fillStyle(0x131722, 0.95);
-      this.passHeaderGfx.fillRoundedRect(width / 2 - passCardW / 2, headerTop, passCardW, headerH, 10 * DPR);
-      this.passHeaderGfx.lineStyle(1 * DPR, 0x242d40, 1);
-      this.passHeaderGfx.strokeRoundedRect(width / 2 - passCardW / 2, headerTop, passCardW, headerH, 10 * DPR);
+    const bannerTop = height * 0.185;
+    const bannerH = 54 * DPR;
 
-      // XP прогресс бар с реальным расчётом
-      const totalXp = getPlayerPassXp();
-      const progress = getPassProgress(totalXp);
-
-      const barX = width / 2 - passCardW * 0.14;
-      const barY = headerTop + headerH * 0.65;
-      const barW = passCardW * 0.32;
-      const barH = 7 * DPR;
-      this.passHeaderGfx.fillStyle(0x1e2738, 1);
-      this.passHeaderGfx.fillRoundedRect(barX, barY, barW, barH, 3.5 * DPR);
-      this.passHeaderGfx.fillStyle(0x38bdf8, 1);
-      this.passHeaderGfx.fillRoundedRect(barX, barY, Math.max(6 * DPR, barW * progress.percent), barH, 3.5 * DPR);
-    }
-    if (this.passLevelBadge) {
-      this.passLevelBadge.setPosition(width / 2 - passCardW * 0.32, headerTop + headerH * 0.5);
-    }
-    if (this.passXpText) {
-      this.passXpText.setPosition(width / 2 + passCardW * 0.02, headerTop + headerH * 0.38);
-    }
-    if (this.passPremiumBtn) {
-      this.passPremiumBtn.setPosition(width / 2 + passCardW * 0.34, headerTop + headerH * 0.5);
+    if (this.passLockBanner) {
+      this.passLockBanner.setPosition(width / 2, bannerTop + bannerH * 0.5);
+      if (this.passLockBg && this.passLockBg._roundItem) {
+        this.passLockBg._roundItem.w = passCardW;
+        this.passLockBg._roundItem.h = bannerH;
+      }
+      if (this.passLockTitle) {
+        this.passLockTitle.setStyle({ fontSize: `${Math.round(14 * DPR)}px` });
+      }
+      if (this.passLockSub) {
+        this.passLockSub.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
+      }
     }
 
-    const passCardTop = height * 0.27;
+    const passCardTop = bannerTop + bannerH + 12 * DPR;
     const passCardBottom = height * 0.88;
     const passCardH = passCardBottom - passCardTop;
     const passCardX = width / 2 - passCardW / 2;
@@ -4240,13 +4581,17 @@ class MenuScene extends Phaser.Scene {
       this.passScrollZone.setPosition(passCardX, passCardTop).setSize(passCardW, passCardH);
     }
 
-    const tierRowScale = Math.min((passCardW * 0.96) / 320, 1.25 * DPR);
-    const tierStep = 68 * tierRowScale + 8 * DPR;
-    this.passTierRows.forEach((row, idx) => {
-      row.setPosition(width / 2, idx * tierStep + 34 * tierRowScale);
-      row.setScale(tierRowScale);
-    });
-    this.passContentH = this.passTierRows.length * tierStep + 10 * DPR;
+    const questRowScale = Math.min((passCardW * 0.94) / 320, 1.25 * DPR);
+    const questStep = 86 * questRowScale + 10 * DPR;
+    if (this.questRows && this.questRows.length > 0) {
+      this.questRows.forEach((row, idx) => {
+        row.setPosition(width / 2, idx * questStep + 44 * questRowScale);
+        row.setScale(questRowScale);
+      });
+      this.passContentH = this.questRows.length * questStep + 16 * DPR;
+    } else {
+      this.passContentH = 0;
+    }
     this.passMinScrollOffset = Math.min(0, this.passVisibleH - this.passContentH);
     this.applyPassScroll(this.passScrollOffset || 0);
 
@@ -6185,6 +6530,9 @@ class GameScene extends Phaser.Scene {
   onEnemyKilled(enemy) {
     this.gold += enemy.reward;
     this.updateUI();
+
+    // Обновляем прогресс квестов на убийства
+    updateQuestProgress('kill', enemy.typeKey, 1);
   }
 
   // Разделяющийся враг умер — выпускаем мелких в той же точке пути.
@@ -6263,6 +6611,9 @@ class GameScene extends Phaser.Scene {
 
     const bonusXp = 200;
     savePlayerPassXp(getPlayerPassXp() + bonusXp);
+
+    // Прогресс квеста на победу
+    updateQuestProgress('victory', null, 1);
 
     this.showMessage(`Сектор зачищен! Все ${this.currentWave} волн пройдены! (+${bonusXp} XP Пасса)`);
     this.saveRecord();
@@ -6580,7 +6931,7 @@ class GameScene extends Phaser.Scene {
     updateRoundBgs(this);
   }
 
-  // Земля — большой изометрический ромб (без видимой квадратной сетки).
+  // Земля — большой изометрический ромб и возвышенные платформы (высотные позиции)
   drawGround() {
     const g = this.groundGraphics;
     g.clear();
@@ -6596,6 +6947,52 @@ class GameScene extends Phaser.Scene {
     g.fillPoints(corners, true);
     g.lineStyle(3, gridCol, 1);
     g.strokePoints(corners, true);
+
+    // Отрисовка возвышенных платформ (3D изометрические подиумы)
+    const elevations = (this.mapDef && this.mapDef.elevations) || [];
+    const topCol = (this.mapDef && this.mapDef.theme && this.mapDef.theme.elevationTop) || 0x24324a;
+    const sideCol = (this.mapDef && this.mapDef.theme && this.mapDef.theme.elevationSide) || 0x141d2c;
+    const borderCol = (this.mapDef && this.mapDef.theme && this.mapDef.theme.elevationBorder) || 0x38bdf8;
+    const liftY = 16; // изометрическая высота платформы в пикселях
+
+    for (const el of elevations) {
+      const p0 = worldToScreen(el.x, el.y);
+      const p1 = worldToScreen(el.x + el.w, el.y);
+      const p2 = worldToScreen(el.x + el.w, el.y + el.h);
+      const p3 = worldToScreen(el.x, el.y + el.h);
+
+      // Нижняя грань (тени/боковины)
+      g.fillStyle(sideCol, 1);
+      // Левая боковая грань (от p3 к p2 вниз)
+      g.fillPoints([
+        { x: p3.x, y: p3.y - liftY },
+        { x: p2.x, y: p2.y - liftY },
+        { x: p2.x, y: p2.y },
+        { x: p3.x, y: p3.y },
+      ], true);
+
+      // Правая боковая грань (от p2 к p1 вниз)
+      g.fillPoints([
+        { x: p2.x, y: p2.y - liftY },
+        { x: p1.x, y: p1.y - liftY },
+        { x: p1.x, y: p1.y },
+        { x: p2.x, y: p2.y },
+      ], true);
+
+      // Верхняя площадка платформы (поднята на liftY)
+      const topPts = [
+        { x: p0.x, y: p0.y - liftY },
+        { x: p1.x, y: p1.y - liftY },
+        { x: p2.x, y: p2.y - liftY },
+        { x: p3.x, y: p3.y - liftY },
+      ];
+      g.fillStyle(topCol, 0.96);
+      g.fillPoints(topPts, true);
+
+      // Неоновый технологический кант возвышенности
+      g.lineStyle(2, borderCol, 0.9);
+      g.strokePoints(topPts, true);
+    }
   }
 
   // Дорога — одна цельная изополоса вдоль полилинии Route.
@@ -7315,6 +7712,9 @@ class GameScene extends Phaser.Scene {
     this.updateUI();
     this.showMessage(`Волна ${this.currentWave} началась!`);
 
+    // Прогресс квеста на достижение волны
+    updateQuestProgress('wave_start', this.currentWave, 1);
+
     // Первый враг выходит через небольшую паузу (500мс)
     if (this.waveSpawnTimer) {
       this.waveSpawnTimer.remove(false);
@@ -7390,6 +7790,9 @@ class GameScene extends Phaser.Scene {
     this.gold += WAVE_CLEAR_BONUS;
     this.updateUI();
 
+    // Прогресс квестов на отражение волн
+    updateQuestProgress('wave_clear', null, 1);
+
     const xpPerWave = (this.diffDef && this.diffDef.passXpPerWave)
       ? this.diffDef.passXpPerWave
       : (this.selectedDifficulty === 'hard' ? 60 : this.selectedDifficulty === 'easy' ? 25 : 40);
@@ -7431,14 +7834,36 @@ class GameScene extends Phaser.Scene {
     return null;
   }
 
+  // Находится ли точка (gx, gy) на возвышенности текущей карты
+  isOnElevation(gx, gy, radius = 0.3) {
+    const elevations = (this.mapDef && this.mapDef.elevations) || [];
+    for (const el of elevations) {
+      if (
+        gx >= el.x &&
+        gx <= el.x + el.w &&
+        gy >= el.y &&
+        gy <= el.y + el.h
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Можно ли поставить башню типа type в точку:
-  // в пределах поля, не на дороге и не пересекаясь с другими башнями.
+  // в пределах поля, не на дороге, не пересекаясь с другими башнями,
+  // а для снайпера — СТРОГО на возвышенности.
   isFreeSpot(gx, gy, type, ignoreTower = null) {
     const radius = type.footprint / 2;
 
     // Границы мира.
     if (gx - radius < 0 || gx + radius > WORLD_SIZE) return false;
     if (gy - radius < 0 || gy + radius > WORLD_SIZE) return false;
+
+    // Снайпер: может стоять ТОЛЬКО на возвышенностях
+    if (type.onlyElevation && !this.isOnElevation(gx, gy, radius)) {
+      return false;
+    }
 
     // Дорога: расстояние от центра до полилинии Route (источник истины).
     if (distanceToRoute(gx, gy, this.route) < radius + ROAD_WIDTH / 2) return false;
@@ -7562,6 +7987,11 @@ class GameScene extends Phaser.Scene {
 
     const type = TOWER_TYPES[this.selectedTowerType];
 
+    if (type.onlyElevation && !this.isOnElevation(gx, gy, type.footprint / 2)) {
+      this.showMessage('Снайпер устанавливается ТОЛЬКО на возвышенности!');
+      return false;
+    }
+
     if (!this.canPlace(gx, gy, type)) {
       this.showMessage('Здесь нельзя строить');
       return false;
@@ -7579,6 +8009,9 @@ class GameScene extends Phaser.Scene {
     this.createTowerSprite(tower);
     this.drawTowers(); // перерисовываем индикаторы уровня
     this.updateUI();
+
+    // Прогресс квестов на постройку
+    updateQuestProgress('build', this.selectedTowerType, 1);
     return true;
   }
 
