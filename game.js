@@ -137,10 +137,10 @@ const TOWER_TYPES = {
     gunMount: { x: 0, y: 0.1 },
     levels: [
       { name: 'Разрядник', damage: 24, chainCount: 2, fireRate: 1.0, range: 2.8, accuracy: 1.0, upgradeCost: 0 },
-      { name: 'Трансформатор', damage: 34, chainCount: 3, fireRate: 1.1, range: 3.0, accuracy: 1.0, upgradeCost: 100 },
-      { name: 'Катушка Тесла', damage: 48, chainCount: 4, fireRate: 1.2, range: 3.3, accuracy: 1.0, upgradeCost: 210 },
-      { name: 'Плазмотрон', damage: 68, chainCount: 5, fireRate: 1.3, range: 3.6, accuracy: 1.0, upgradeCost: 380 },
-      { name: 'Громовержец', damage: 98, chainCount: 7, fireRate: 1.5, range: 4.0, accuracy: 1.0, upgradeCost: 640 },
+      { name: 'Трансформатор', damage: 34, chainCount: 2, fireRate: 1.1, range: 3.0, accuracy: 1.0, upgradeCost: 100 },
+      { name: 'Катушка Тесла', damage: 48, chainCount: 3, fireRate: 1.2, range: 3.3, accuracy: 1.0, upgradeCost: 210 },
+      { name: 'Плазмотрон', damage: 68, chainCount: 3, fireRate: 1.3, range: 3.6, accuracy: 1.0, upgradeCost: 380 },
+      { name: 'Громовержец', damage: 98, chainCount: 4, fireRate: 1.5, range: 4.0, accuracy: 1.0, upgradeCost: 640 },
     ],
   },
 };
@@ -170,7 +170,7 @@ const TOWER_EXTRA_INFO = {
   },
   tesla: {
     role: 'Электрическая турель · Цепная молния',
-    traitDesc: 'Бьёт электрической дугой, перескакивающей между врагами по цепочке (до 7 целей на 5 ур.). Наносит мгновенный урон без промахов.',
+    traitDesc: 'Бьёт электрической дугой, перескакивающей между врагами по цепочке (до 4 целей на 5 ур.). Наносит мгновенный урон без промахов.',
     skins: [
       { id: 'default', name: 'Стандартный', desc: 'Тесла-генератор высокого напряжения', unlocked: true },
     ],
