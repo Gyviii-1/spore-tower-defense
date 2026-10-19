@@ -295,8 +295,12 @@ function getEnemyCureMultiplier(enemy) {
       return enemy.shield > 0 ? 0.15 : 0.4; // Щит сдерживает газ
     case 'armored':
       return 0.35; // Панцирь защищает от газа
+    case 'regenerator':
+      return 0.25; // Быстрая клеточная мутация сдерживает сыворотку
     case 'splitter':
       return 0.6;
+    case 'stalker':
+      return 0.95; // Быстрый метаболизм
     case 'normal':
       return 1.0;
     case 'fast':
@@ -320,10 +324,14 @@ function getEnemyGasDamageMultiplier(enemy) {
       return 0.35; // Полностью оброс спорами — плотная биомасса
     case 'shielded':
       return 0.50; // Споровый щит сдерживает газ
+    case 'regenerator':
+      return 0.55; // Плотная регенерирующая ткань
     case 'armored':
       return 0.60; // Плотная споровая корка (при этом металлическая броня пробивается)
     case 'splitter':
       return 0.75; // Глубокая споровая мутация
+    case 'stalker':
+      return 1.0;  // Подвижный охотник — стандартный урон
     case 'normal':
       return 1.0;  // Базовая спора — стандартный урон
     case 'fast':
@@ -646,9 +654,9 @@ function sliceSheet(scene, sheetKey, prefix) {
   });
 }
 
-// Процедурные текстуры оружия (1-5 ур.) для башен без отдельных png-файлов (Тесла и Дезинфектор)
+// Процедурные текстуры оружия (1-5 ур.) для башен без отдельных png-файлов (Тесла, Дезинфектор, Снайпер)
 function initProceduralWeaponTextures(scene) {
-  if (scene.textures.exists('tesla_1')) return;
+  if (scene.textures.exists('tesla_1') && scene.textures.exists('sniper_1')) return;
 
   const size = 64;
 
@@ -1128,6 +1136,7 @@ class Enemy extends Phaser.GameObjects.Rectangle {
     this.damageMultiplier = type.damageMultiplier || 1; // броня (множитель урона)
     this.shield = shield;        // запас щита (снимается первым)
     this.maxShield = shield;     // изначальный щит (для отображения)
+    this.regen = type.regen || 0; // споровая регенерация HP/с
 
     // Маршрут и непрерывная мировая позиция.
     this.route = route;
@@ -1260,6 +1269,11 @@ class Enemy extends Phaser.GameObjects.Rectangle {
       return;
     }
 
+    // Споровая регенерация тканей
+    if (this.regen > 0 && !this.isDead && this.hp < this.maxHp) {
+      this.hp = Math.min(this.maxHp, this.hp + this.regen * (delta / 1000));
+    }
+
     const segments = this.route.segments;
     if (this.segment >= segments.length) {
       this.arriveAtEnd();
@@ -1362,12 +1376,29 @@ class Enemy extends Phaser.GameObjects.Rectangle {
   }
 }
 
+// Расстояние от точки (px, py) до отрезка [(x1, y1), (x2, y2)] — защита от туннелирования пуль
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
 // ------------------------------ Снаряд ------------------------------
 // Баллистический снаряд: летит по прямой линии с реалистичным физическим разбросом.
 // Чем дальше цель, тем шире конус рассеивания и тем труднее попасть.
 class Projectile extends Phaser.GameObjects.Arc {
   constructor(scene, x, y, angle, speed, maxDistance, damage = PROJECTILE_DAMAGE, tower = null) {
-    super(scene, x, y, Math.max(3.2, ISO_HW * 0.065 * DPR), 0, 360, false, PROJECTILE_COLOR);
+    const isRailgun = tower && tower.typeKey === 'sniper' && tower.level === 5;
+    const isSniper = tower && tower.typeKey === 'sniper';
+    const bulletRadius = isRailgun
+      ? Math.max(4.5, ISO_HW * 0.09 * DPR)
+      : (isSniper ? Math.max(3.6, ISO_HW * 0.075 * DPR) : Math.max(3.2, ISO_HW * 0.065 * DPR));
+    const bulletColor = isRailgun ? 0x00f5d4 : (isSniper ? 0xffea79 : PROJECTILE_COLOR);
+    super(scene, x, y, bulletRadius, 0, 360, false, bulletColor);
 
     this.angleRad = angle;
     this.speed = speed;
@@ -1377,22 +1408,25 @@ class Projectile extends Phaser.GameObjects.Arc {
     this.distanceTraveled = 0;
     this.damage = damage;
     this.tower = tower;
-    this.hitRadius = Math.max(9 * DPR, 10);
+    this.hitRadius = Math.max(10 * DPR, 11);
 
     scene.add.existing(this);
     this.setDepth(50); // снаряды поверх мира (ниже UI 90+)
   }
 
-  // Физический прямолинейный полёт пули и проверка попадания в хитбоксы врагов
+  // Физический прямолинейный полёт пули и непрерывная проверка попадания в хитбоксы врагов
   flyToTarget(delta) {
     const dt = delta / 1000;
     const step = this.speed * dt;
+
+    const prevX = this.x;
+    const prevY = this.y;
 
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.distanceTraveled += step;
 
-    // Проверяем прямое попадание в любого активного врага
+    // Проверяем непрерывное физическое попадание вдоль отрезка полёта пули
     let hitEnemy = null;
     let closestDist = Infinity;
 
@@ -1402,7 +1436,7 @@ class Projectile extends Phaser.GameObjects.Arc {
       const ey = enemy.y;
       const enemyRadius = (enemy.sizeFactor ? enemy.sizeFactor * ISO_HW * 0.55 : 18);
       const hitThreshold = enemyRadius + this.hitRadius;
-      const d = Math.hypot(this.x - ex, this.y - ey);
+      const d = distToSegment(ex, ey, prevX, prevY, this.x, this.y);
       if (d <= hitThreshold && d < closestDist) {
         closestDist = d;
         hitEnemy = enemy;
@@ -1423,6 +1457,19 @@ class Projectile extends Phaser.GameObjects.Arc {
       this.destroy();
     }
   }
+}
+
+// Получить текущий надетый облик для турели
+function getEquippedTowerSkin(typeKey) {
+  try {
+    const skinId = localStorage.getItem(`spore_tower_skin_${typeKey}`) || 'default';
+    const extra = TOWER_EXTRA_INFO[typeKey];
+    if (extra && extra.skins) {
+      const found = extra.skins.find((s) => s.id === skinId);
+      if (found) return found;
+    }
+  } catch (e) {}
+  return { id: 'default', tint: null };
 }
 
 // ------------------------------ Башня ------------------------------
@@ -1486,7 +1533,8 @@ class Tower {
       let bestDist = Infinity;
       let bestAngle = dirToAngle(DIR_FORWARD);
       const pos = this.getPosition();
-      for (const wp of ROUTE_WAYPOINTS) {
+      const waypoints = (this.scene && this.scene.mapDef && this.scene.mapDef.waypoints) || ROUTE_WAYPOINTS;
+      for (const wp of waypoints) {
         const wpScreen = worldToScreen(wp.x, wp.y);
         const d = Math.hypot(wp.x - this.gx, wp.y - this.gy);
         if (d < bestDist) {
@@ -2177,6 +2225,7 @@ class MenuScene extends Phaser.Scene {
     this.selectedDifficulty = key;
     try {
       localStorage.setItem('spore_td_difficulty', key);
+      localStorage.setItem('spore_difficulty', key);
     } catch (e) {}
     this.updateLobbyControls();
   }
@@ -2189,6 +2238,7 @@ class MenuScene extends Phaser.Scene {
     this.selectedMap = keys[idx];
     try {
       localStorage.setItem('spore_td_map', this.selectedMap);
+      localStorage.setItem('spore_map', this.selectedMap);
     } catch (e) {}
     this.updateLobbyControls();
   }
@@ -2197,6 +2247,14 @@ class MenuScene extends Phaser.Scene {
     const mapDef = GAME_MAPS[this.selectedMap] || GAME_MAPS.lab;
     if (this.mapTitle) this.mapTitle.setText(mapDef.name);
     if (this.mapDesc) this.mapDesc.setText(mapDef.desc);
+
+    if (this.mapBoxBg && this.mapBoxW && this.mapBoxH) {
+      this.mapBoxBg.clear();
+      this.mapBoxBg.fillStyle(0x131722, 0.95);
+      this.mapBoxBg.fillRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 12 * DPR);
+      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
+      this.mapBoxBg.strokeRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 12 * DPR);
+    }
 
     const diffDef = GAME_DIFFICULTIES[this.selectedDifficulty] || GAME_DIFFICULTIES.medium;
     if (this.diffDesc) this.diffDesc.setText(diffDef.desc);
@@ -2429,6 +2487,10 @@ class MenuScene extends Phaser.Scene {
     const baseKey = this.getBaseTextureKey(typeKey) || type.texture;
     if (baseKey) {
       const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 10 * DPR, iconSize - 10 * DPR);
+      const equippedSkin = getEquippedTowerSkin(typeKey);
+      if (equippedSkin && equippedSkin.tint !== null && equippedSkin.tint !== undefined) {
+        baseImg.setTint(equippedSkin.tint);
+      }
       this.detailElements.add(baseImg);
     }
     const weaponKey = this.getWeaponTextureKey(typeKey, curLevel);
@@ -3745,38 +3807,34 @@ class MenuScene extends Phaser.Scene {
       this.bgDecor.lineBetween(0, height * 0.88, width, height * 0.88);
     }
 
-    // Заголовок
+    // 1. Заголовок лобби
     if (this.title) {
-      this.title.setPosition(width / 2, height * 0.14);
-      this.title.setStyle({ fontSize: `${Math.min(32 * DPR, Math.max(22 * DPR, Math.round(size * 0.056)))}px` });
+      this.title.setPosition(width / 2, height * 0.08);
+      this.title.setStyle({ fontSize: `${Math.min(28 * DPR, Math.max(20 * DPR, Math.round(size * 0.052)))}px` });
     }
 
-    // Карточка лобби (уменьшена в 1.5 раза)
-    const cardWidth = Math.min(width * 0.94, 510 * DPR);
-    const cardHeight = Phaser.Math.Clamp(Math.round(height * 0.27), 190 * DPR, 240 * DPR);
-    const cardY = height * 0.41;
+    // 2. Карточка профиля игрока (компактная, аккуратная, симметричная)
+    const cardWidth = Math.min(width * 0.92, 460 * DPR);
+    const cardHeight = Math.round(82 * DPR);
+    const cardTop = height * 0.12;
     const cardX = width / 2 - cardWidth / 2;
-    const cardTop = cardY - cardHeight / 2;
 
     if (this.cardBg) {
       this.cardBg.clear();
       this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 15 * DPR);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 12 * DPR);
       this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 15 * DPR);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 12 * DPR);
     }
 
-    // Шрифты: ник ~18-23px, подписи ~12-15px, рекорды/золото ~28-36px
-    const nickSize = `${Math.round(Math.min(23 * DPR, Math.max(16 * DPR, cardHeight * 0.095)))}px`;
-    const labelSize = `${Math.round(Math.min(15 * DPR, Math.max(11 * DPR, cardHeight * 0.065)))}px`;
-    const valSize = `${Math.round(Math.min(36 * DPR, Math.max(26 * DPR, cardHeight * 0.155)))}px`;
+    const nickSize = `${Math.round(Math.min(18 * DPR, Math.max(14 * DPR, size * 0.034)))}px`;
+    const labelSize = `${Math.round(Math.min(11 * DPR, Math.max(9 * DPR, size * 0.022)))}px`;
+    const valSize = `${Math.round(Math.min(20 * DPR, Math.max(16 * DPR, size * 0.038)))}px`;
 
-    const nickY = cardTop + cardHeight * 0.16;
-    const dividerY = cardTop + cardHeight * 0.32;
-    const statLabelY = cardTop + cardHeight * 0.50;
-    const statValY = cardTop + cardHeight * 0.77;
-    const vY1 = cardTop + cardHeight * 0.40;
-    const vY2 = cardTop + cardHeight * 0.88;
+    const nickY = cardTop + 18 * DPR;
+    const dividerY = cardTop + 34 * DPR;
+    const statLabelY = cardTop + 48 * DPR;
+    const statValY = cardTop + 67 * DPR;
 
     if (this.playerNick) {
       this.playerNick.setPosition(width / 2, nickY);
@@ -3786,17 +3844,16 @@ class MenuScene extends Phaser.Scene {
     if (this.cardDivider) {
       this.cardDivider.clear();
       // Горизонтальный разделитель под ником
-      this.cardDivider.lineStyle(1.2 * DPR, 0x1f2738, 0.8);
-      this.cardDivider.lineBetween(cardX + 18 * DPR, dividerY, cardX + cardWidth - 18 * DPR, dividerY);
-      // Тонкие вертикальные разделители колонок
-      const colStep = cardWidth * 0.31;
-      this.cardDivider.lineStyle(1.2 * DPR, 0x1a2130, 0.6);
-      this.cardDivider.lineBetween(width / 2 - colStep / 2, vY1, width / 2 - colStep / 2, vY2);
-      this.cardDivider.lineBetween(width / 2 + colStep / 2, vY1, width / 2 + colStep / 2, vY2);
+      this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
+      this.cardDivider.lineBetween(cardX + 16 * DPR, dividerY, cardX + cardWidth - 16 * DPR, dividerY);
+      // Вертикальные разделители колонок
+      const colStep = cardWidth * 0.32;
+      this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.6);
+      this.cardDivider.lineBetween(width / 2 - colStep / 2, dividerY + 6 * DPR, width / 2 - colStep / 2, cardTop + cardHeight - 6 * DPR);
+      this.cardDivider.lineBetween(width / 2 + colStep / 2, dividerY + 6 * DPR, width / 2 + colStep / 2, cardTop + cardHeight - 6 * DPR);
     }
 
-    // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП
-    const colStep = cardWidth * 0.31;
+    const colStep = cardWidth * 0.32;
     const col1X = width / 2 - colStep;
     const col2X = width / 2;
     const col3X = width / 2 + colStep;
@@ -3814,14 +3871,87 @@ class MenuScene extends Phaser.Scene {
       this.statRankVal.setPosition(col3X, statValY).setStyle({ fontSize: valSize });
     }
 
-    // Кнопка В БОЙ
+    // 3. Селектор карты (Сектор Омега / Био-Реактор / Катакомбы)
+    const mapBoxY = cardTop + cardHeight + 12 * DPR;
+    const mapBoxH = 80 * DPR;
+    const mapBoxW = cardWidth;
+    const mapBoxX = width / 2 - mapBoxW / 2;
+
+    this.mapBoxX = mapBoxX;
+    this.mapBoxY = mapBoxY;
+    this.mapBoxW = mapBoxW;
+    this.mapBoxH = mapBoxH;
+
+    const mapDef = GAME_MAPS[this.selectedMap] || GAME_MAPS.lab;
+    if (this.mapBoxBg) {
+      this.mapBoxBg.clear();
+      this.mapBoxBg.fillStyle(0x131722, 0.95);
+      this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 12 * DPR);
+      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
+      this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 12 * DPR);
+    }
+
+    if (this.mapLabel) {
+      this.mapLabel.setPosition(width / 2, mapBoxY + 16 * DPR);
+      this.mapLabel.setStyle({ fontSize: `${Math.round(10.5 * DPR)}px` });
+    }
+    if (this.mapPrevBtn) {
+      this.mapPrevBtn.setPosition(mapBoxX + 24 * DPR, mapBoxY + 40 * DPR);
+      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(26 * DPR)}px` });
+    }
+    if (this.mapTitle) {
+      this.mapTitle.setPosition(width / 2, mapBoxY + 40 * DPR);
+      this.mapTitle.setStyle({ fontSize: `${Math.round(15 * DPR)}px` });
+    }
+    if (this.mapNextBtn) {
+      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 24 * DPR, mapBoxY + 40 * DPR);
+      this.mapNextBtn.setStyle({ fontSize: `${Math.round(26 * DPR)}px` });
+    }
+    if (this.mapDesc) {
+      this.mapDesc.setPosition(width / 2, mapBoxY + 63 * DPR);
+      this.mapDesc.setStyle({ fontSize: `${Math.round(11 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
+    }
+
+    // 4. Селектор сложности (Лёгкий / Средний / Трудный)
+    const diffBoxY = mapBoxY + mapBoxH + 12 * DPR;
+    const diffLabelY = diffBoxY + 8 * DPR;
+    if (this.diffLabel) {
+      this.diffLabel.setPosition(width / 2, diffLabelY);
+      this.diffLabel.setStyle({ fontSize: `${Math.round(10.5 * DPR)}px` });
+    }
+
+    const btnGap = 8 * DPR;
+    const diffBtnW = Math.floor((cardWidth - 2 * btnGap) / 3);
+    const diffBtnH = 34 * DPR;
+    const diffBtnY = diffBoxY + 36 * DPR;
+
+    const diffKeys = ['easy', 'medium', 'hard'];
+    diffKeys.forEach((k, idx) => {
+      const btn = this.diffButtons && this.diffButtons[k];
+      if (btn) {
+        const bx = width / 2 + (idx - 1) * (diffBtnW + btnGap);
+        btn.setPosition(bx, diffBtnY);
+        btn.setStyle({ fontSize: `${Math.round(12.5 * DPR)}px`, padding: { x: 10 * DPR, y: 6 * DPR } });
+        if (btn._roundItem) {
+          btn._roundItem.w = diffBtnW;
+          btn._roundItem.h = diffBtnH;
+        }
+      }
+    });
+
+    if (this.diffDesc) {
+      this.diffDesc.setPosition(width / 2, diffBoxY + 68 * DPR);
+      this.diffDesc.setStyle({ fontSize: `${Math.round(11 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
+    }
+
+    // 5. Кнопка В БОЙ
     if (this.playButton) {
-      const playY = Math.min(height * 0.74, cardTop + cardHeight + 50 * DPR);
-      const playFont = `${Math.round(Math.min(26 * DPR, Math.max(20 * DPR, size * 0.052)))}px`;
+      const playY = Math.min(height * 0.82, diffBoxY + 110 * DPR);
+      const playFont = `${Math.round(Math.min(22 * DPR, Math.max(18 * DPR, size * 0.046)))}px`;
       this.playButton.setPosition(width / 2, playY);
       this.playButton.setStyle({
         fontSize: playFont,
-        padding: { x: 42 * DPR, y: 13 * DPR },
+        padding: { x: 44 * DPR, y: 12 * DPR },
       });
     }
 
@@ -4115,8 +4245,8 @@ class GameScene extends Phaser.Scene {
   }
 
   init(data) {
-    const savedDiff = localStorage.getItem('spore_difficulty') || 'easy';
-    const savedMap = localStorage.getItem('spore_map') || 'lab';
+    const savedDiff = localStorage.getItem('spore_td_difficulty') || localStorage.getItem('spore_difficulty') || 'medium';
+    const savedMap = localStorage.getItem('spore_td_map') || localStorage.getItem('spore_map') || 'lab';
     this.selectedDifficulty = (data && data.difficulty) || savedDiff;
     this.selectedMap = (data && data.map) || savedMap;
   }
@@ -5023,17 +5153,20 @@ class GameScene extends Phaser.Scene {
     const e = this.infoEnemy;
     if (e && e.active && !e.isDead) {
       const NAMES = {
-        normal: 'Обычный',
-        fast: 'Быстрый',
+        normal: 'Базовый мутант',
+        fast: 'Мутант-бегун',
         armored: 'Бронированный',
-        tank: 'Танк',
-        splitter: 'Делящийся',
-        small: 'Мелкий',
+        stalker: 'Сталкер-охотник',
+        regenerator: 'Регенератор',
+        tank: 'Мутант-танк',
+        splitter: 'Спороносец',
+        small: 'Мелкая спора',
         shielded: 'Щитоносец',
-        boss: 'Босс',
+        boss: 'Альфа-Спора',
       };
       let text = `${NAMES[e.typeKey] || e.typeKey}${e.isCured ? ' (Вылечен)' : ''}\nHP ${Math.max(0, Math.ceil(e.hp))}/${e.maxHp}`;
       if (e.shield > 0) text += `\nЩит ${Math.ceil(e.shield)}`;
+      if (e.regen > 0) text += `\nРеген ${Math.round(e.regen)} HP/с`;
       this.enemyInfoText.setText(text);
       this.enemyInfoBg.setVisible(true);
       this.enemyInfoText.setVisible(true);
@@ -5305,7 +5438,10 @@ class GameScene extends Phaser.Scene {
   // Полный перезапуск игры без перезагрузки страницы.
   // scene.restart() заново вызывает create() и сбрасывает всё состояние.
   restartGame() {
-    this.scene.restart();
+    this.scene.restart({
+      difficulty: this.selectedDifficulty,
+      map: this.selectedMap,
+    });
   }
 
   // ------------------------- Меню башни -------------------------
@@ -5547,7 +5683,7 @@ class GameScene extends Phaser.Scene {
       if (next && next.fireRate !== undefined) stats += ` ➔ ${next.fireRate.toFixed(1)}/с`;
     } else {
       const curDmg = tower.dualBarrels ? `${tower.damage} × 2` : `${tower.damage}`;
-      const nxtDmg = next ? (next.levels && next.level === 5 ? `${next.damage} × 2` : `${next.damage}`) : '';
+      const nxtDmg = next ? (next.dualBarrels ? `${next.damage} × 2` : `${next.damage}`) : '';
       stats += `Урон: ${curDmg}`;
       if (next && nxtDmg !== curDmg) stats += ` ➔ ${nxtDmg}`;
       stats += ` · Темп: ${tower.fireRate.toFixed(1)}/с`;
@@ -6602,6 +6738,12 @@ class GameScene extends Phaser.Scene {
     } else {
       this.applyTowerVisual(image, base.key, type.footprint);
     }
+    const skin = getEquippedTowerSkin(typeKey);
+    if (skin && skin.tint !== null && skin.tint !== undefined) {
+      image.setTint(skin.tint);
+    } else {
+      image.clearTint();
+    }
   }
 
   // Вписываем пушку: направленная — фиксированная опора (точка крепления).
@@ -6790,6 +6932,13 @@ class GameScene extends Phaser.Scene {
     const a = ISO_HW * Math.SQRT2 * ar.r;
     const b = ISO_HH * Math.SQRT2 * ar.r;
 
+    // Вспомогательная функция: точное расстояние вдоль экранного луча phi до границы изо-эллипса
+    const ellipseDist = (phi) => {
+      const cosP = Math.cos(phi);
+      const sinP = Math.sin(phi);
+      return (a * b) / Math.sqrt(b * b * cosP * cosP + a * a * sinP * sinP);
+    };
+
     // 1. Концентрические кольца баллистической калибровки дальности (33% и 66%) с рисками
     const calibFracs = [0.33, 0.66];
     for (const frac of calibFracs) {
@@ -6875,29 +7024,35 @@ class GameScene extends Phaser.Scene {
     const tower = ar.tower || this.selectedTower;
     if (tower) {
       const aimAngle = tower.aimAngle !== undefined ? tower.aimAngle : (tower.mountAngle || 0);
-      const spreadRad = tower.spreadRad !== undefined
+      let spreadRad = tower.spreadRad !== undefined
         ? tower.spreadRad
         : (tower.spreadDeg ? (tower.spreadDeg * Math.PI) / 180 : 0.035);
+      if (tower.sprayCone) spreadRad = tower.sprayCone;
       const halfSpread = Math.max(spreadRad / 2, 0.015);
       const angL = aimAngle - halfSpread;
       const angR = aimAngle + halfSpread;
 
-      const pLeft = { x: cx + Math.cos(angL) * a, y: cy + Math.sin(angL) * b };
-      const pRight = { x: cx + Math.cos(angR) * a, y: cy + Math.sin(angR) * b };
+      const dL = ellipseDist(angL);
+      const dR = ellipseDist(angR);
+      const dC = ellipseDist(aimAngle);
+
+      const pLeft = { x: cx + Math.cos(angL) * dL, y: cy + Math.sin(angL) * dL };
+      const pRight = { x: cx + Math.cos(angR) * dR, y: cy + Math.sin(angR) * dR };
 
       // Тонкий центральный луч наведения
-      g.lineStyle(1 * DPR, 0x38bdf8, 0.45);
-      g.lineBetween(cx, cy, cx + Math.cos(aimAngle) * a, cy + Math.sin(aimAngle) * b);
+      g.lineStyle(1 * DPR, 0x38bdf8, 0.55);
+      g.lineBetween(cx, cy, cx + Math.cos(aimAngle) * dC, cy + Math.sin(aimAngle) * dC);
 
       // Полупрозрачная подсветка конуса разброса
       g.fillStyle(0xff4d5e, 0.08);
       g.beginPath();
       g.moveTo(cx, cy);
       g.lineTo(pLeft.x, pLeft.y);
-      const CONE_STEPS = 6;
+      const CONE_STEPS = 8;
       for (let s = 0; s <= CONE_STEPS; s++) {
         const t = angL + (angR - angL) * (s / CONE_STEPS);
-        g.lineTo(cx + Math.cos(t) * a, cy + Math.sin(t) * b);
+        const distT = ellipseDist(t);
+        g.lineTo(cx + Math.cos(t) * distT, cy + Math.sin(t) * distT);
       }
       g.closePath();
       g.fillPath();
@@ -6910,8 +7065,8 @@ class GameScene extends Phaser.Scene {
       // Поперечные риски расширения разброса по дистанции (на 33%, 66% и 100% дальности)
       const distSteps = [0.33, 0.66, 1.0];
       for (const distFrac of distSteps) {
-        const tL = { x: cx + Math.cos(angL) * a * distFrac, y: cy + Math.sin(angL) * b * distFrac };
-        const tR = { x: cx + Math.cos(angR) * a * distFrac, y: cy + Math.sin(angR) * b * distFrac };
+        const tL = { x: cx + Math.cos(angL) * dL * distFrac, y: cy + Math.sin(angL) * dL * distFrac };
+        const tR = { x: cx + Math.cos(angR) * dR * distFrac, y: cy + Math.sin(angR) * dR * distFrac };
 
         // Поперечная перемычка
         g.lineStyle(1.5 * DPR, 0xffffff, 0.85);
@@ -6986,6 +7141,8 @@ class GameScene extends Phaser.Scene {
       normal: Math.round(20 * scale),
       fast: Math.round(12 * scale),
       armored: Math.round(10 * scale),
+      stalker: Math.round(8 * scale),
+      regenerator: Math.round(6 * scale),
       tank: Math.round(5 * scale),
       splitter: Math.round(6 * scale),
       shielded: Math.round(8 * scale),
@@ -7354,8 +7511,17 @@ class GameScene extends Phaser.Scene {
     this.fillIsoEllipse(pos.x, pos.y, type.footprint / 2, tint, 0.15);
     this.strokeIsoEllipse(pos.x, pos.y, type.footprint / 2, tint, 0.9, 2);
     // Радиус атаки — белым пунктиром (рисуется и вращается в update).
-    this.fillIsoEllipse(pos.x, pos.y, type.range, 0xffffff, 0.04);
-    this.activeRange = { x: pos.x, y: pos.y, r: type.range };
+    this.activeRange = {
+      x: pos.x,
+      y: pos.y,
+      r: type.range,
+      tower: {
+        aimAngle: dirToAngle(DIR_FORWARD),
+        spreadDeg: type.spreadDeg || 2.0,
+        spreadRad: type.spreadDeg ? (type.spreadDeg * Math.PI) / 180 : 0.035,
+        sprayCone: type.sprayCone || null,
+      },
+    };
   }
 
   // Движение указателя: показываем призрак будущей башни.
