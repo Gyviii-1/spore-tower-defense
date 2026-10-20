@@ -42,6 +42,64 @@
 <body>
   <div id="game"></div>
 
+  <!-- Экран загрузки / заставка (видео) -->
+  <div id="splash-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0c12;z-index:999999;display:flex;align-items:center;justify-content:center;transition:opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);overflow:hidden;">
+    <video id="splash-video" src="assets/splash.mp4" playsinline webkit-playsinline autoplay muted preload="auto" style="width:100%;height:100%;object-fit:contain;pointer-events:none;"></video>
+    <div id="splash-skip" style="position:absolute;bottom:24px;right:24px;background:rgba(10,12,18,0.75);border:1px solid rgba(255,255,255,0.2);color:#f0f2f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;font-weight:600;padding:8px 18px;border-radius:24px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(8px);display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:background 0.2s, transform 0.1s;">
+      <span>Пропустить</span>
+      <span style="opacity:0.6;font-size:11px;">✕</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const splash = document.getElementById('splash-screen');
+      const video = document.getElementById('splash-video');
+      const skipBtn = document.getElementById('splash-skip');
+      if (!splash || !video) return;
+
+      let dismissed = false;
+      function dismissSplash() {
+        if (dismissed) return;
+        dismissed = true;
+        splash.style.opacity = '0';
+        splash.style.pointerEvents = 'none';
+        setTimeout(function () {
+          try { video.pause(); } catch (e) {}
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 650);
+      }
+
+      // Завершение видео или ошибка -> скрываем заставку
+      video.addEventListener('ended', dismissSplash);
+      video.addEventListener('error', dismissSplash);
+
+      // Пропуск по клику на кнопку или тапу по заставке
+      if (skipBtn) {
+        skipBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          dismissSplash();
+        });
+      }
+      splash.addEventListener('click', dismissSplash);
+      splash.addEventListener('touchstart', dismissSplash, { passive: true });
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') dismissSplash();
+      });
+
+      // Попытка включить звук при первом взаимодействии, если видео ещё играет
+      function tryEnableAudio() {
+        if (video && !video.paused && video.muted) {
+          video.muted = false;
+        }
+      }
+      window.addEventListener('pointerdown', tryEnableAudio, { once: true });
+
+      // Защитный таймаут на случай проблем с воспроизведением
+      setTimeout(dismissSplash, 11000);
+    })();
+  </script>
+
   <!-- Phaser 3 подключаем через CDN (ничего скачивать не нужно) -->
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
   <!-- Telegram Mini App SDK: даёт доступ к данным пользователя (ник, id) -->
