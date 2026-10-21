@@ -71,7 +71,22 @@
       }
 
       // Завершение видео или ошибка -> скрываем заставку
-      video.addEventListener('ended', dismissSplash);
+      // Зацикливание последних 2 секунд видео
+      function loopLastTwoSeconds() {
+        if (!video.duration) return;
+        const loopStart = Math.max(0, video.duration - 2);
+        if (video.currentTime >= video.duration - 0.08) {
+          video.currentTime = loopStart;
+          video.play().catch(function () {});
+        }
+      }
+
+      video.addEventListener('timeupdate', loopLastTwoSeconds);
+      video.addEventListener('ended', function () {
+        if (!video.duration) return;
+        video.currentTime = Math.max(0, video.duration - 2);
+        video.play().catch(function () {});
+      });
       video.addEventListener('error', dismissSplash);
 
       // Пропуск по клику на кнопку или тапу по заставке
@@ -96,7 +111,7 @@
       window.addEventListener('pointerdown', tryEnableAudio, { once: true });
 
       // Защитный таймаут на случай проблем с воспроизведением
-      setTimeout(dismissSplash, 11000);
+      // Зациклено: скрытие только по клику/пропуску или ошибке
     })();
   </script>
 
