@@ -19,6 +19,42 @@ const API_BASE = location.hostname.endsWith('vercel.app')
 
 const UI_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
+// Флаг сборки / ветки:
+// В ветке beta = true (тестовая ветка с чит-меню).
+// В ветке main = false (релизная продакшн-ветка, чит-меню полностью отключено).
+const IS_BETA_BUILD = true;
+
+// Максимальное количество башен, которое игрок может взять в бой (колода башен)
+const MAX_DECK_SLOTS = 5;
+
+// Получить выбранный боевой набор башен (не более 5)
+function getPlayerDeck() {
+  try {
+    const raw = localStorage.getItem('spore_td_deck');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const valid = parsed.filter((key) => Boolean(TOWER_TYPES[key]));
+        if (valid.length > 0) {
+          return valid.slice(0, MAX_DECK_SLOTS);
+        }
+      }
+    }
+  } catch (e) {}
+  // По умолчанию — первые до 5 доступных типов башен
+  const def = Object.keys(TOWER_TYPES).slice(0, MAX_DECK_SLOTS);
+  savePlayerDeck(def);
+  return def;
+}
+
+// Сохранить выбранный боевой набор башен
+function savePlayerDeck(deck) {
+  try {
+    const trimmed = Array.isArray(deck) ? deck.slice(0, MAX_DECK_SLOTS) : [];
+    localStorage.setItem('spore_td_deck', JSON.stringify(trimmed));
+  } catch (e) {}
+}
+
 // HiDPI-масштаб: рендерим канвас в физическом разрешении экрана, а UI
 // задаём в «CSS-пикселях», умножая абсолютные размеры на DPR.
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -203,51 +239,27 @@ const TOWER_TYPES = {
   },
 };
 
-// Дополнительные данные турелей для Инвентаря (роли, особенности, облики/скины)
+// Дополнительные данные турелей для Инвентаря (роли и особенности)
 const TOWER_EXTRA_INFO = {
   gunner: {
     role: 'Стрелковый пост · Одиночный и полуавтоматический огонь',
     traitDesc: 'Армейские пистолеты и PDW. Разброс (3.8°–6.8°). На 4 ур. — крупнокалиберный Desert Eagle (.50 AE), на 5 ур. — FN P90 (8 выстр/с).',
-    skins: [
-      { id: 'default', name: 'Стандартный', desc: 'Уставной защитный камуфляж Охраны', unlocked: true, tint: null },
-      { id: 'specops', name: 'Спецназ "Альфа"', desc: 'Матовая антибликовая броня штурмовых групп', unlocked: true, tint: 0x666666 },
-      { id: 'hazard', name: 'Хим-Охрана', desc: 'Сигнальная раскраска санитарного периметра', unlocked: true, tint: 0xffb703 },
-    ],
   },
   minigun: {
     role: 'Тяжёлый пулемётчик · Заградительный шквал огня',
     traitDesc: 'Автоматы и пулемёты до 25 выстр/с. Разброс (5.5°–9°). Эффективен на ближней дистанции. На 4 ур. — M134, на 5 ур. — спаренная турель.',
-    skins: [
-      { id: 'default', name: 'Стандартный', desc: 'Заводской вороненый металл', unlocked: true, tint: null },
-      { id: 'cyber', name: 'Кибернетика', desc: 'Хромированный титан с неоновой подсветкой', unlocked: true, tint: 0x00f0ff },
-      { id: 'toxic', name: 'Защитник ЧАЭС', desc: 'Свинцованная броня против радиации и спор', unlocked: true, tint: 0x2a9d8f },
-    ],
   },
   sniper: {
     role: 'Высокоточный пост · Ставится ТОЛЬКО на возвышенностях',
     traitDesc: 'Экстремальная дальность. Требует высотной позиции на карте! Разброс (0.6°–2.2°). На 4 ур. — Barrett .50 BMG, на 5 ур. — рельсотрон.',
-    skins: [
-      { id: 'default', name: 'Стандартный', desc: 'Маскировочный халат наблюдателя периметра', unlocked: true, tint: null },
-      { id: 'stealth', name: 'Тень', desc: 'Поглощающее инфракрасный спектр нановолокно', unlocked: true, tint: 0x554d66 },
-    ],
   },
   disinfector: {
     role: 'Санитарный комплекс · Аэрозольная дезинфекция',
     traitDesc: 'Распыляет химикаты в секторе, нанося урон сквозь броню. Способен излечивать заражённых. На 5 ур. генерирует сплошной поток.',
-    skins: [
-      { id: 'default', name: 'Стандартный', desc: 'Герметичный костюм санобработки', unlocked: true, tint: null },
-      { id: 'cryo', name: 'Крио-Инженер', desc: 'Заправка жидким азотом глубокой заморозки', unlocked: true, tint: 0x48cae4 },
-      { id: 'cleaner', name: 'Огнеупорный', desc: 'Термостойкий багровый скафандр "Омега"', unlocked: true, tint: 0xd90429 },
-    ],
   },
   tesla: {
     role: 'Энергетический генератор · Цепной разряд',
     traitDesc: 'Бьёт электрической дугой высокого напряжения, перескакивающей между целями (до 4 мутантов). Мгновенное поражение.',
-    skins: [
-      { id: 'default', name: 'Стандартный', desc: 'Генератор переменного тока Тесла', unlocked: true, tint: null },
-      { id: 'plasma', name: 'Перегрузка', desc: 'Форсированный плазменный резонатор', unlocked: true, tint: 0x9d4edd },
-      { id: 'gold', name: 'Золотой Разряд', desc: 'Позолоченные электроды сверхпроводимости', unlocked: true, tint: 0xffd166 },
-    ],
   },
 };
 
@@ -561,16 +573,16 @@ const GAME_MAPS = {
 
 // ---------------------- Боевой Пасс (Прогрессия & Награды) ----------------------
 const BATTLE_PASS_TIERS = [
-  { level: 1, xpReq: 0, free: '150 🟡 Золота', prem: 'Скин «Ночной Дозор» (Стрелок)' },
+  { level: 1, xpReq: 0, free: '150 🟡 Золота', prem: '300 🟡 Золота' },
   { level: 2, xpReq: 250, free: '250 🟡 Золота', prem: '+50 🛡️ Броня базы' },
-  { level: 3, xpReq: 600, free: '+10% Опыт волн', prem: 'Скин «Штурмовик» (Пулемётчик)' },
+  { level: 3, xpReq: 600, free: '+10% Опыт волн', prem: '+20% Опыт волн' },
   { level: 4, xpReq: 1100, free: '350 🟡 Золота', prem: 'Ускорение перезарядки -5%' },
-  { level: 5, xpReq: 1800, free: 'Эмблема Ветерана', prem: 'Скин «Киберпанк» (Очиститель)' },
+  { level: 5, xpReq: 1800, free: 'Эмблема Ветерана', prem: '500 🟡 Золота' },
   { level: 6, xpReq: 2700, free: '500 🟡 Золота', prem: '+100 🛡️ Броня базы' },
-  { level: 7, xpReq: 3800, free: '+15% Золото за мутантов', prem: 'Скин «Молния» (Тесла)' },
+  { level: 7, xpReq: 3800, free: '+15% Золото за мутантов', prem: '+25% Золото за мутантов' },
   { level: 8, xpReq: 5100, free: '750 🟡 Золота', prem: 'Боезапас +20%' },
-  { level: 9, xpReq: 6600, free: 'Камуфляж «Призрак»', prem: 'Скин «Призрак» (Снайпер)' },
-  { level: 10, xpReq: 8500, free: 'Титул «Защитник Сектора»', prem: 'Легендарный скин «Омега-Прайм»' },
+  { level: 9, xpReq: 6600, free: 'Модуль «Призрак»', prem: '1000 🟡 Золота' },
+  { level: 10, xpReq: 8500, free: 'Титул «Защитник Сектора»', prem: '1500 🟡 Золота + Медаль' },
 ];
 
 function getPlayerPassXp() {
@@ -1688,16 +1700,8 @@ class Projectile extends Phaser.GameObjects.Arc {
   }
 }
 
-// Получить текущий надетый облик для турели
+// Получить текущий надетый облик для турели (скины отключены)
 function getEquippedTowerSkin(typeKey) {
-  try {
-    const skinId = localStorage.getItem(`spore_tower_skin_${typeKey}`) || 'default';
-    const extra = TOWER_EXTRA_INFO[typeKey];
-    if (extra && extra.skins) {
-      const found = extra.skins.find((s) => s.id === skinId);
-      if (found) return found;
-    }
-  } catch (e) {}
   return { id: 'default', tint: null };
 }
 
@@ -2717,7 +2721,7 @@ class MenuScene extends Phaser.Scene {
     this.inventoryPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.inventoryTitle = this.add
-      .text(0, 0, 'ИНВЕНТАРЬ', {
+      .text(0, 0, 'БОЕВОЙ НАБОР', {
         fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffffff',
@@ -2726,7 +2730,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.inventorySubtitle = this.add
-      .text(0, 0, 'Нажмите на турель для просмотра характеристик и скинов', {
+      .text(0, 0, '', {
         fontFamily: UI_FONT,
         fontSize: '13px',
         color: '#707e94',
@@ -2734,17 +2738,60 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.inventoryPage.add([this.inventoryTitle, this.inventorySubtitle]);
-
     this.inventoryRows = [];
+    this.refreshInventoryUI();
+  }
+
+  toggleTowerInDeck(key) {
+    let deck = getPlayerDeck();
+    if (deck.includes(key)) {
+      if (deck.length <= 1) {
+        this.showToast('В боевом наборе должна остаться хотя бы 1 башня!');
+        return;
+      }
+      deck = deck.filter((k) => k !== key);
+      savePlayerDeck(deck);
+      this.showToast(`Башня «${TOWER_TYPES[key].name}» убрана из боя (${deck.length}/${MAX_DECK_SLOTS})`);
+    } else {
+      if (deck.length >= MAX_DECK_SLOTS) {
+        this.showToast('В бой можно взять максимум 5 башен!');
+        return;
+      }
+      deck.push(key);
+      savePlayerDeck(deck);
+      this.showToast(`Башня «${TOWER_TYPES[key].name}» взята в бой (${deck.length}/${MAX_DECK_SLOTS})`);
+    }
+    this.refreshInventoryUI();
+    if (this.towerDetailModal && this.towerDetailModal.visible && this.selectedTowerKey === key) {
+      this.renderTowerDetail();
+    }
+    if (this.scale) {
+      this.layoutUI(this.scale.width, this.scale.height);
+    }
+  }
+
+  refreshInventoryUI() {
+    if (!this.inventoryPage) return;
+    if (this.inventoryRows) {
+      this.inventoryRows.forEach((r) => r.destroy());
+    }
+    this.inventoryRows = [];
+
+    const deck = getPlayerDeck();
+    if (this.inventorySubtitle) {
+      this.inventorySubtitle.setText(`Боевой набор: ${deck.length}/${MAX_DECK_SLOTS} башен · Нажмите турель для деталей`);
+    }
+
     for (const key in TOWER_TYPES) {
       const type = TOWER_TYPES[key];
+      const inDeck = deck.includes(key);
       const row = this.add.container(0, 0);
 
       const bg = this.add
         .rectangle(0, 0, 320, 76, 0x131722, 0.95)
-        .setStrokeStyle(1.5 * DPR, 0x272f44, 1);
+        .setStrokeStyle(1.5 * DPR, inDeck ? 0x2ecc71 : 0x272f44, 1);
 
-      const iconTile = this.add.rectangle(-118, 0, 56, 56, 0x1b2030, 0.9);
+      const iconTile = this.add.rectangle(-120, 0, 52, 52, 0x1b2030, 0.9);
       roundTarget(this, iconTile, {
         kind: 'rect',
         color: 0x1b2030,
@@ -2754,16 +2801,16 @@ class MenuScene extends Phaser.Scene {
         strokeWidth: 1 * DPR,
       });
 
-      const icon = this.add.container(-118, 0);
+      const icon = this.add.container(-120, 0);
       const baseKey = this.getBaseTextureKey(key) || type.texture;
-      if (baseKey) icon.add(this.add.image(0, 0, baseKey).setDisplaySize(48, 48));
+      if (baseKey) icon.add(this.add.image(0, 0, baseKey).setDisplaySize(44, 44));
       const weaponKey = this.getWeaponTextureKey(key, 1);
-      if (weaponKey) icon.add(this.add.image(0, 0, weaponKey).setDisplaySize(48, 48));
+      if (weaponKey) icon.add(this.add.image(0, 0, weaponKey).setDisplaySize(44, 44));
 
       const name = this.add
-        .text(-75, -13, type.name, {
+        .text(-82, -13, type.name, {
           fontFamily: UI_FONT,
-          fontSize: '17px',
+          fontSize: '16.5px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
@@ -2773,49 +2820,51 @@ class MenuScene extends Phaser.Scene {
         ? `База: ${baseGunName} · Урон: ${type.damage} · Цена: ${type.cost}`
         : `Стоимость: ${type.cost} · Урон: ${type.damage || 1}`;
       const info = this.add
-        .text(-75, 14, infoText, {
+        .text(-82, 14, infoText, {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '12px',
           color: '#8b98aa',
         })
         .setOrigin(0, 0.5);
 
-      const arrowBtn = this.add
-        .text(128, 0, '›', {
+      const deckBtn = this.add
+        .text(118, 0, inDeck ? '✓ В БОЮ' : '+ ВЗЯТЬ', {
           fontFamily: UI_FONT,
-          fontSize: '24px',
-          color: '#707e94',
+          fontSize: '12px',
+          color: inDeck ? '#4ade80' : '#94a3b8',
+          backgroundColor: inDeck ? '#142b20' : '#1a2232',
+          padding: { x: 8 * DPR, y: 5 * DPR },
           fontStyle: 'bold',
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
 
-      const hitZone = this.add.zone(0, 0, 320, 76).setInteractive({ useHandCursor: true });
+      roundTarget(this, deckBtn, {
+        color: inDeck ? 0x142b20 : 0x1a2232,
+        alpha: 0.95,
+        radius: 8 * DPR,
+        strokeColor: inDeck ? 0x22c55e : 0x334155,
+        strokeWidth: 1.2 * DPR,
+      });
 
-      row.add([bg, iconTile, icon, name, info, arrowBtn, hitZone]);
+      deckBtn.on('pointerdown', (pointer, lx, ly, event) => {
+        if (event && event.stopPropagation) event.stopPropagation();
+        this.toggleTowerInDeck(key);
+      });
+
+      const hitZone = this.add.zone(-24, 0, 220, 76).setInteractive({ useHandCursor: true });
+
+      row.add([bg, iconTile, icon, name, info, deckBtn, hitZone]);
       roundTarget(this, bg, {
         kind: 'rect',
         color: 0x131722,
         alpha: 0.95,
         radius: 14 * DPR,
-        strokeColor: 0x252d40,
+        strokeColor: inDeck ? 0x2ecc71 : 0x252d40,
         strokeAlpha: 1,
-        strokeWidth: 1.5 * DPR,
+        strokeWidth: (inDeck ? 1.8 : 1.2) * DPR,
       });
 
-      hitZone.on('pointerover', () => {
-        if (bg._roundItem) {
-          bg._roundItem.strokeColor = 0xff4d5e;
-          bg._roundItem.color = 0x181e2b;
-        }
-        arrowBtn.setColor('#ffffff');
-      });
-      hitZone.on('pointerout', () => {
-        if (bg._roundItem) {
-          bg._roundItem.strokeColor = 0x252d40;
-          bg._roundItem.color = 0x131722;
-        }
-        arrowBtn.setColor('#707e94');
-      });
       hitZone.on('pointerdown', (pointer, localX, localY, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
         this.openTowerDetail(key);
@@ -2845,27 +2894,11 @@ class MenuScene extends Phaser.Scene {
     this.detailElements = this.add.container(0, 0);
 
     this.towerDetailModal.add([this.detailBackdrop, this.detailCardGfx, this.detailElements]);
-    this.towerDetailTab = 'stats';
-  }
-
-  getTowerSkin(typeKey) {
-    try {
-      return localStorage.getItem(`spore_tower_skin_${typeKey}`) || 'default';
-    } catch (e) {
-      return 'default';
-    }
-  }
-
-  setTowerSkin(typeKey, skinId) {
-    try {
-      localStorage.setItem(`spore_tower_skin_${typeKey}`, skinId);
-    } catch (e) {}
   }
 
   openTowerDetail(key) {
     this.selectedTowerKey = key;
     this.selectedDetailLevel = 1;
-    this.towerDetailTab = this.towerDetailTab || 'stats';
     this.towerDetailModal.setVisible(true);
     const telegram = window.Telegram ? window.Telegram.WebApp : null;
     if (telegram && telegram.BackButton) {
@@ -2888,7 +2921,7 @@ class MenuScene extends Phaser.Scene {
     const typeKey = this.selectedTowerKey;
     if (!typeKey || !TOWER_TYPES[typeKey]) return;
     const type = TOWER_TYPES[typeKey];
-    const extra = TOWER_EXTRA_INFO[typeKey] || { role: '', traitDesc: '', skins: [] };
+    const extra = TOWER_EXTRA_INFO[typeKey] || { role: '', traitDesc: '' };
 
     const { width, height } = this.scale;
     const cardW = Math.min(width * 0.94, 440 * DPR);
@@ -2977,66 +3010,44 @@ class MenuScene extends Phaser.Scene {
     });
     this.detailElements.add(closeBtn);
 
-    // Вкладки [ Характеристики ] и [ Скины ]
-    const tabW = (cardW - 32 * DPR - 8 * DPR) / 2;
-    const tabH = 34 * DPR;
-    const tabY = cardY + iconSize + 22 * DPR;
-    const tab1X = cardX + 16 * DPR;
-    const tab2X = tab1X + tabW + 8 * DPR;
+    // Слот-кнопка боевого набора (макс 5 башен в бой)
+    const deck = getPlayerDeck();
+    const inDeck = deck.includes(typeKey);
+    const btnW = cardW - 32 * DPR;
+    const btnH = 34 * DPR;
+    const btnY = cardY + iconSize + 22 * DPR;
+    const btnX = cardX + 16 * DPR;
 
-    const isStats = this.towerDetailTab === 'stats';
-    const isSkins = this.towerDetailTab === 'skins';
+    const deckBtnColor = inDeck ? '#4ade80' : '#ffffff';
+    const deckBgColor = inDeck ? 0x142b20 : 0x1b2333;
+    const deckStrokeColor = inDeck ? 0x22c55e : 0x334155;
+    const deckBtnText = inDeck
+      ? `✓ В БОЕВОМ НАБОРЕ (${deck.length}/${MAX_DECK_SLOTS}) · НАЖМИТЕ ДЛЯ СНЯТИЯ`
+      : `+ ВЗЯТЬ В БОЙ (${deck.length}/${MAX_DECK_SLOTS} СЛОТОВ)`;
 
-    // Таб 1 (Характеристики)
-    g.fillStyle(isStats ? 0xe63946 : 0x181e2b, 0.95);
-    g.fillRoundedRect(tab1X, tabY, tabW, tabH, 8 * DPR);
-    if (!isStats) {
-      g.lineStyle(1 * DPR, 0x273144, 1);
-      g.strokeRoundedRect(tab1X, tabY, tabW, tabH, 8 * DPR);
-    }
+    g.fillStyle(deckBgColor, 0.95);
+    g.fillRoundedRect(btnX, btnY, btnW, btnH, 8 * DPR);
+    g.lineStyle(1.2 * DPR, deckStrokeColor, 1);
+    g.strokeRoundedRect(btnX, btnY, btnW, btnH, 8 * DPR);
 
-    // Таб 2 (Скины)
-    g.fillStyle(isSkins ? 0xe63946 : 0x181e2b, 0.95);
-    g.fillRoundedRect(tab2X, tabY, tabW, tabH, 8 * DPR);
-    if (!isSkins) {
-      g.lineStyle(1 * DPR, 0x273144, 1);
-      g.strokeRoundedRect(tab2X, tabY, tabW, tabH, 8 * DPR);
-    }
-
-    const tab1Text = this.add.text(tab1X + tabW / 2, tabY + tabH / 2, 'Характеристики', {
+    const deckText = this.add.text(btnX + btnW / 2, btnY + btnH / 2, deckBtnText, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(13 * DPR)}px`,
-      color: isStats ? '#ffffff' : '#707e94',
+      fontSize: `${Math.round(12 * DPR)}px`,
+      color: deckBtnColor,
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const tab2Text = this.add.text(tab2X + tabW / 2, tabY + tabH / 2, 'Скины', {
-      fontFamily: UI_FONT,
-      fontSize: `${Math.round(13 * DPR)}px`,
-      color: isSkins ? '#ffffff' : '#707e94',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    // Интерактивные зоны НА ВСЮ ПЛОЩАДЬ КНОПОК
-    const tab1Zone = this.add.zone(tab1X + tabW / 2, tabY + tabH / 2, tabW, tabH).setInteractive({ useHandCursor: true });
-    tab1Zone.on('pointerdown', (p, x, y, ev) => {
+    const deckZone = this.add.zone(btnX + btnW / 2, btnY + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true });
+    deckZone.on('pointerdown', (p, x, y, ev) => {
       if (ev && ev.stopPropagation) ev.stopPropagation();
-      this.towerDetailTab = 'stats';
-      this.renderTowerDetail();
+      this.toggleTowerInDeck(typeKey);
     });
+    this.detailElements.add([deckText, deckZone]);
 
-    const tab2Zone = this.add.zone(tab2X + tabW / 2, tabY + tabH / 2, tabW, tabH).setInteractive({ useHandCursor: true });
-    tab2Zone.on('pointerdown', (p, x, y, ev) => {
-      if (ev && ev.stopPropagation) ev.stopPropagation();
-      this.towerDetailTab = 'skins';
-      this.renderTowerDetail();
-    });
-
-    this.detailElements.add([tab1Text, tab2Text, tab1Zone, tab2Zone]);
-
+    const tabY = btnY;
+    const tabH = btnH;
     const traitW = cardW - 32 * DPR;
-
-    if (isStats) {
       // 4 быстрые характеристики (показывают статы выбранного уровня оружия)
       const statsY = tabY + tabH + 12 * DPR;
       const statTileW = (cardW - 32 * DPR - 3 * 6 * DPR) / 4;
@@ -3200,110 +3211,6 @@ class MenuScene extends Phaser.Scene {
 
         this.detailElements.add([badge, wName, wStat, rowZone]);
       }
-    } else {
-      // Вкладка «Скины»
-      const currentSkinId = this.getTowerSkin(typeKey);
-      const skinsHeaderY = tabY + tabH + 12 * DPR;
-      const skinTitle = this.add.text(cardX + 16 * DPR, skinsHeaderY, 'ДОСТУПНЫЕ ОБЛИКИ', {
-        fontFamily: UI_FONT,
-        fontSize: `${Math.round(11 * DPR)}px`,
-        color: '#707e94',
-        fontStyle: 'bold',
-      });
-      this.detailElements.add(skinTitle);
-
-      const skinsStartY = skinsHeaderY + 16 * DPR;
-      const skinRowH = 54 * DPR;
-      const skinRowGap = 8 * DPR;
-
-      const skinsList = (extra.skins || []).filter(s => s.unlocked !== false);
-      skinsList.forEach((skin, idx) => {
-        const rowY = skinsStartY + idx * (skinRowH + skinRowGap);
-        const isEquipped = currentSkinId === skin.id;
-
-        g.fillStyle(isEquipped ? 0x13241d : 0x151924, 0.95);
-        g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-        g.lineStyle(isEquipped ? 1.5 * DPR : 1 * DPR, isEquipped ? 0x2ecc71 : 0x242d3e, 1);
-        g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, skinRowH, 9 * DPR);
-
-        const iconTileSize = 38 * DPR;
-        const iconTileX = cardX + 24 * DPR;
-        const iconTileY = rowY + (skinRowH - iconTileSize) / 2;
-
-        g.fillStyle(0x1b2030, 0.95);
-        g.fillRoundedRect(iconTileX, iconTileY, iconTileSize, iconTileSize, 7 * DPR);
-        g.lineStyle(1 * DPR, isEquipped ? 0x2ecc71 : 0x2b3548, 1);
-        g.strokeRoundedRect(iconTileX, iconTileY, iconTileSize, iconTileSize, 7 * DPR);
-
-        const bKey = this.getBaseTextureKey(typeKey) || type.texture;
-        if (bKey) {
-          const bImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, bKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
-          this.detailElements.add(bImg);
-        }
-        const wKey = this.getWeaponTextureKey(typeKey, 1);
-        if (wKey) {
-          const gImg = this.add.image(iconTileX + iconTileSize / 2, iconTileY + iconTileSize / 2, wKey).setDisplaySize(iconTileSize - 6 * DPR, iconTileSize - 6 * DPR);
-          this.detailElements.add(gImg);
-        }
-
-        const nameText = this.add.text(cardX + 70 * DPR, rowY + 16 * DPR, skin.name, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(14 * DPR)}px`,
-          color: isEquipped ? '#ffffff' : '#e0e6ed',
-          fontStyle: 'bold',
-        });
-        const descText = this.add.text(cardX + 70 * DPR, rowY + 34 * DPR, skin.desc, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(11 * DPR)}px`,
-          color: isEquipped ? '#75b798' : '#707e94',
-        });
-        this.detailElements.add([nameText, descText]);
-
-        if (isEquipped) {
-          const badge = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, '✓ Используется', {
-            fontFamily: UI_FONT,
-            fontSize: `${Math.round(12 * DPR)}px`,
-            color: '#2ecc71',
-            fontStyle: 'bold',
-          }).setOrigin(1, 0.5);
-          this.detailElements.add(badge);
-        } else {
-          const selectBtn = this.add.text(cardX + 16 * DPR + traitW - 12 * DPR, rowY + skinRowH / 2, 'Выбрать', {
-            fontFamily: UI_FONT,
-            fontSize: `${Math.round(12 * DPR)}px`,
-            color: '#ffffff',
-            backgroundColor: '#1e283d',
-            padding: { x: 8 * DPR, y: 4 * DPR },
-            fontStyle: 'bold',
-          }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
-          selectBtn.on('pointerdown', (p, x, y, ev) => {
-            if (ev && ev.stopPropagation) ev.stopPropagation();
-            this.setTowerSkin(typeKey, skin.id);
-            this.renderTowerDetail();
-          });
-          this.detailElements.add(selectBtn);
-        }
-
-        const rowZone = this.add.zone(cardX + 16 * DPR + traitW / 2, rowY + skinRowH / 2, traitW, skinRowH)
-          .setInteractive({ useHandCursor: true });
-        rowZone.on('pointerdown', (p, x, y, ev) => {
-          if (ev && ev.stopPropagation) ev.stopPropagation();
-          this.setTowerSkin(typeKey, skin.id);
-          this.renderTowerDetail();
-        });
-        this.detailElements.add(rowZone);
-      });
-
-      const footerY = skinsStartY + skinsList.length * (skinRowH + skinRowGap) + 14 * DPR;
-      const footerNotice = this.add.text(cardX + cardW / 2, footerY, 'Новые облики будут добавляться по мере выхода обновлений.', {
-        fontFamily: UI_FONT,
-        fontSize: `${Math.round(11 * DPR)}px`,
-        color: '#5f6f87',
-        align: 'center',
-        wordWrap: { width: traitW },
-      }).setOrigin(0.5);
-      this.detailElements.add(footerNotice);
-    }
   }
 
   createTop() {
@@ -3596,31 +3503,33 @@ class MenuScene extends Phaser.Scene {
         strokeWidth: 1.2 * DPR,
       });
 
-      const icon = this.add.text(-128, 0, q.icon || '⚔️', { fontSize: '26px' }).setOrigin(0.5);
+      const icon = this.add.text(-134, 0, q.icon || '⚔️', { fontSize: '24px' }).setOrigin(0.5);
 
       const title = this.add
-        .text(-102, -22, q.title, {
+        .text(-112, -22, q.title, {
           fontFamily: UI_FONT,
-          fontSize: '15.5px',
+          fontSize: '14.5px',
           color: '#ffffff',
           fontStyle: 'bold',
+          wordWrap: { width: 175 },
         })
         .setOrigin(0, 0.5);
 
       const desc = this.add
-        .text(-102, -3, q.desc, {
+        .text(-112, -3, q.desc, {
           fontFamily: UI_FONT,
-          fontSize: '12px',
+          fontSize: '11px',
           color: '#8e9eb5',
-          wordWrap: { width: 145 * DPR },
+          wordWrap: { width: 175 },
+          lineSpacing: 1.5,
         })
         .setOrigin(0, 0.5);
 
       const progressVal = Math.min(q.target, q.progress || 0);
       const progText = this.add
-        .text(-102, 22, `Прогресс: ${progressVal} / ${q.target}`, {
+        .text(-112, 22, `Прогресс: ${progressVal} / ${q.target}`, {
           fontFamily: UI_FONT,
-          fontSize: '12px',
+          fontSize: '11.5px',
           color: isDone ? '#4ade80' : '#38bdf8',
           fontStyle: 'bold',
         })
@@ -3633,12 +3542,12 @@ class MenuScene extends Phaser.Scene {
       const btnStroke = isDone ? 0x4ade80 : 0x334155;
 
       const actionBtn = this.add
-        .text(118, 0, btnText, {
+        .text(124, 0, btnText, {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '12px',
           color: btnColor,
           backgroundColor: '#1a2232',
-          padding: { x: 10 * DPR, y: 7 * DPR },
+          padding: { x: 7 * DPR, y: 5 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3822,30 +3731,31 @@ class MenuScene extends Phaser.Scene {
       });
 
       const title = this.add
-        .text(-138, -14, pack.name, {
+        .text(-142, -14, pack.name, {
           fontFamily: UI_FONT,
-          fontSize: '15px',
+          fontSize: '14.5px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
       const sub = this.add
-        .text(-138, 14, `${pack.gold} · ${pack.price}`, {
+        .text(-142, 14, `${pack.gold} · ${pack.price}`, {
           fontFamily: UI_FONT,
-          fontSize: '13.5px',
+          fontSize: '12px',
           color: '#94a3b8',
+          wordWrap: { width: 215 },
         })
         .setOrigin(0, 0.5);
 
       // Кнопка доната СТРОГО "Скоро"
       const buyBtn = this.add
-        .text(120, 0, 'Скоро', {
+        .text(124, 0, 'Скоро', {
           fontFamily: UI_FONT,
-          fontSize: '13px',
+          fontSize: '12px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
-          padding: { x: 10 * DPR, y: 6 * DPR },
+          padding: { x: 8 * DPR, y: 5 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3892,14 +3802,14 @@ class MenuScene extends Phaser.Scene {
       {
         name: 'Редкий Ящик',
         tier: 'rare',
-        desc: 'Неоновые и защитные скины «Спецназ» и «Крио»',
+        desc: 'Защитные и тактические модули «Спецназ» и «Крио»',
         colorHex: 0x38bdf8,
         glowHex: 0x0284c7,
       },
       {
         name: 'Легендарный Ящик',
         tier: 'legendary',
-        desc: 'Эксклюзивные золотые облики «Омега-Прайм»',
+        desc: 'Эксклюзивные модули усиления «Омега-Прайм»',
         colorHex: 0xf59e0b,
         glowHex: 0xd97706,
       },
@@ -3919,7 +3829,7 @@ class MenuScene extends Phaser.Scene {
 
       // Отрисованный кодом стилизованный компактный 3D-сундук
       const chestGfx = this.add.graphics();
-      chestGfx.setPosition(-120, 0);
+      chestGfx.setPosition(-132, 0);
 
       // Свечение сзади ящика
       chestGfx.fillStyle(crate.glowHex, 0.25);
@@ -3940,32 +3850,32 @@ class MenuScene extends Phaser.Scene {
       chestGfx.fillCircle(0, -2, 2.5);
 
       const title = this.add
-        .text(-86, -14, crate.name, {
+        .text(-108, -14, crate.name, {
           fontFamily: UI_FONT,
-          fontSize: '15px',
+          fontSize: '14.5px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
       const sub = this.add
-        .text(-86, 0, crate.desc, {
+        .text(-108, 0, crate.desc, {
           fontFamily: UI_FONT,
           fontSize: '11px',
           color: '#8492a6',
-          wordWrap: { width: 148 },
-          lineSpacing: 3 * DPR,
+          wordWrap: { width: 195 },
+          lineSpacing: 1.5,
         })
         .setOrigin(0, 0);
 
       // КНОПКА СТРОГО "Скоро"
       const soonBtn = this.add
-        .text(122, 0, 'Скоро', {
+        .text(124, 0, 'Скоро', {
           fontFamily: UI_FONT,
-          fontSize: '14px',
+          fontSize: '12px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
-          padding: { x: 12 * DPR, y: 7 * DPR },
+          padding: { x: 8 * DPR, y: 5 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3981,7 +3891,7 @@ class MenuScene extends Phaser.Scene {
 
       soonBtn.on('pointerdown', (pointer, lx, ly, event) => {
         if (event && event.stopPropagation) event.stopPropagation();
-        this.showToast(`${crate.name} появится в следующем обновлении со скинами!`);
+        this.showToast(`${crate.name} появится в следующем обновлении!`);
       });
 
       row.add([bg, chestGfx, title, sub, soonBtn]);
@@ -5597,8 +5507,15 @@ class GameScene extends Phaser.Scene {
   // ---------------------- Чит-меню (стафф/локал) ----------------------
   updateStaffUI() {
     const host = window.location.hostname;
+    const isProduction = host === 'telegram-tower-defense.vercel.app';
+    if (!IS_BETA_BUILD || isProduction) {
+      if (this.cheatButton) this.cheatButton.setVisible(false);
+      this.cheatOpen = false;
+      if (this.cheatParts) for (const p of this.cheatParts) p.setVisible(false);
+      return;
+    }
     const isLocal = host === 'localhost' || host === '127.0.0.1';
-    const isBeta = host.includes('git-beta'); // тестовый деплой Vercel
+    const isBeta = host.includes('git-beta') || host.includes('beta'); // тестовый деплой
     const staff =
       this.playerRole === 'tester' || this.playerRole === 'creator' || isLocal || isBeta;
     const show = staff && !this.isGameOver;
@@ -5612,6 +5529,9 @@ class GameScene extends Phaser.Scene {
   }
 
   toggleCheat() {
+    const host = window.location.hostname;
+    const isProduction = host === 'telegram-tower-defense.vercel.app';
+    if (!IS_BETA_BUILD || isProduction) return;
     this.cheatOpen = !this.cheatOpen;
     const show = this.cheatOpen && !this.isGameOver;
     if (this.cheatParts) for (const p of this.cheatParts) p.setVisible(show);
@@ -6436,7 +6356,7 @@ class GameScene extends Phaser.Scene {
   }
 
   // ------------------------- Панель постройки -------------------------
-  // Создаём кнопки выбора типа башни (внизу экрана).
+  // Создаём кнопки выбора типа башни (внизу экрана) — строго из боевого набора (до 5 слотов).
   createBuildMenu() {
     // Без контейнеров: интерактив в контейнере со scrollFactor(0) ломает клики.
     // Каждая кнопка = отдельные объекты, зафиксированные на экране.
@@ -6445,12 +6365,15 @@ class GameScene extends Phaser.Scene {
     this.buildGap = 8 * DPR;
 
     const buttonWidth = this.buildButtonWidth;
+    const deck = getPlayerDeck();
+    this.activeDeckKeys = deck;
 
-    Object.keys(TOWER_TYPES).forEach((key) => {
+    deck.forEach((key) => {
       const type = TOWER_TYPES[key];
+      if (!type) return;
 
       const bg = this.add
-        .rectangle(0, 0, buttonWidth, 90 * DPR, 0x232323, 1)
+        .rectangle(0, 0, buttonWidth, 86 * DPR, 0x232323, 1)
         .setStrokeStyle(2, TOWER_COLOR, 0.9)
         .setDepth(100)
         .setScrollFactor(0)
@@ -6476,19 +6399,35 @@ class GameScene extends Phaser.Scene {
       const baseKey = (base && base.key) || type.texture;
       const iconBase = this.add
         .image(0, 0, baseKey)
-        .setDisplaySize(34 * DPR, 34 * DPR)
+        .setDisplaySize(32 * DPR, 32 * DPR)
         .setDepth(101)
         .setScrollFactor(0);
       const gun = this.resolveGun(key, 1, DIR_FORWARD);
       const iconWeapon = gun
-        ? this.add.image(0, 0, gun.key).setDisplaySize(34 * DPR, 34 * DPR).setDepth(101).setScrollFactor(0)
+        ? this.add.image(0, 0, gun.key).setDisplaySize(32 * DPR, 32 * DPR).setDepth(101).setScrollFactor(0)
         : null;
 
-      const label = this.add
-        .text(0, 0, `${type.name} · ${type.cost}`, {
+      // Название башни
+      const nameLabel = this.add
+        .text(0, 0, type.name, {
           fontFamily: 'Arial, sans-serif',
-          fontSize: `${11.5 * DPR}px`,
+          fontSize: `${10 * DPR}px`,
           color: '#ffffff',
+          fontStyle: 'bold',
+          align: 'center',
+        })
+        .setOrigin(0.5)
+        .setDepth(101)
+        .setScrollFactor(0);
+
+      // Стоимость башни отдельной строкой золотистым цветом
+      const costLabel = this.add
+        .text(0, 0, `${type.cost} 🟡`, {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: `${10.5 * DPR}px`,
+          color: '#f1c40f',
+          fontStyle: 'bold',
+          align: 'center',
         })
         .setOrigin(0.5)
         .setDepth(101)
@@ -6498,7 +6437,9 @@ class GameScene extends Phaser.Scene {
         bg: bg,
         iconBase: iconBase,
         iconWeapon: iconWeapon,
-        label: label,
+        nameLabel: nameLabel,
+        costLabel: costLabel,
+        label: nameLabel, // обратная совместимость
         type: type,
       };
     });
@@ -6541,10 +6482,11 @@ class GameScene extends Phaser.Scene {
     updateRoundBgs(this);
   }
 
-  // Расположить кнопки панели постройки внизу экрана.
+  // Расположить кнопки панели постройки внизу экрана (компактно, без вылезания текста).
   layoutBuildMenu(width, height) {
-    const keys = Object.keys(this.buildButtons);
+    const keys = this.activeDeckKeys || Object.keys(this.buildButtons);
     const count = keys.length;
+    if (count === 0) return;
     const gap = Math.min(8 * DPR, width * 0.015);
     const maxTotalW = width - 16 * DPR;
     const buttonWidth = Math.min(105 * DPR, Math.floor((maxTotalW - (count - 1) * gap) / count));
@@ -6553,19 +6495,34 @@ class GameScene extends Phaser.Scene {
 
     const totalWidth = count * buttonWidth + (count - 1) * gap;
     const startX = width / 2 - totalWidth / 2 + buttonWidth / 2;
-    const y = height - 60 * DPR;
+    const y = height - 56 * DPR;
 
     keys.forEach((key, index) => {
       const x = startX + index * (buttonWidth + gap);
       const b = this.buildButtons[key];
+      if (!b) return;
       b.bg.setPosition(x, y);
-      b.bg.setSize(buttonWidth, 90 * DPR);
+      b.bg.setSize(buttonWidth, 86 * DPR);
       if (b.bg._roundItem) {
         b.bg._roundItem.w = buttonWidth;
+        b.bg._roundItem.h = 86 * DPR;
       }
       b.iconBase.setPosition(x, y - 14 * DPR);
       if (b.iconWeapon) b.iconWeapon.setPosition(x, y - 14 * DPR);
-      b.label.setPosition(x, y + 26 * DPR);
+
+      const nameFontSize = Math.max(8 * DPR, Math.min(10.5 * DPR, Math.floor(buttonWidth * 0.155)));
+      const costFontSize = Math.max(8.5 * DPR, Math.min(11 * DPR, Math.floor(buttonWidth * 0.165)));
+
+      b.nameLabel.setPosition(x, y + 14 * DPR);
+      b.nameLabel.setStyle({
+        fontSize: `${nameFontSize}px`,
+        wordWrap: { width: Math.max(30, buttonWidth - 4 * DPR) },
+      });
+
+      b.costLabel.setPosition(x, y + 27 * DPR);
+      b.costLabel.setStyle({
+        fontSize: `${costFontSize}px`,
+      });
     });
     updateRoundBgs(this);
   }
@@ -6578,7 +6535,8 @@ class GameScene extends Phaser.Scene {
       b.bg.setVisible(visible);
       b.iconBase.setVisible(visible);
       if (b.iconWeapon) b.iconWeapon.setVisible(visible);
-      b.label.setVisible(visible);
+      if (b.nameLabel) b.nameLabel.setVisible(visible);
+      if (b.costLabel) b.costLabel.setVisible(visible);
     }
   }
 
@@ -6850,6 +6808,7 @@ class GameScene extends Phaser.Scene {
     this.pinchDistance = 0;
     this.pinchActive = false;
     this.pinchMid = { x: 0, y: 0 };
+    this.twoFingerGesture = false;
 
     // Состояние панорамирования одним пальцем.
     this.panArmed = false;
@@ -6861,7 +6820,12 @@ class GameScene extends Phaser.Scene {
       const p1 = this.input.pointer1;
       const p2 = this.input.pointer2;
 
-      if (p1.isDown && p2.isDown) {
+      if (p1 && p2 && p1.isDown && p2.isDown) {
+        this.twoFingerGesture = true;
+        this.isPlacing = false;
+        if (this.ghost) this.ghost.setVisible(false);
+        this.clearRangeRing();
+
         const distance = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
         const midX = (p1.x + p2.x) / 2;
         const midY = (p1.y + p2.y) / 2;
@@ -6900,6 +6864,16 @@ class GameScene extends Phaser.Scene {
     const resetPinch = () => {
       this.pinchActive = false;
       this.pinchDistance = 0;
+      this.isPlacing = false;
+      if (this.ghost) this.ghost.setVisible(false);
+      this.clearRangeRing();
+      const p1 = this.input.pointer1;
+      const p2 = this.input.pointer2;
+      if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
+        setTimeout(() => {
+          this.twoFingerGesture = false;
+        }, 100);
+      }
     };
     this.input.on('pointerup', resetPinch);
     this.input.on('pointerupoutside', resetPinch);
@@ -8007,16 +7981,24 @@ class GameScene extends Phaser.Scene {
 
     // Клик по пустому месту — закрываем меню.
     this.closeTowerMenu();
-    if (gx < 0 || gx > WORLD_SIZE || gy < 0 || gy > WORLD_SIZE) return;
+    // Пустое место: разрешаем панорамирование одним пальцем/мышью ТОЛЬКО если башня НЕ выбрана.
+    // При выборе башни карту нельзя двигать одним пальцем.
+    if (!this.selectedTowerType) {
+      this.panArmed = true;
+      this.panStart.x = pointer.x;
+      this.panStart.y = pointer.y;
+      return;
+    }
 
-    // Пустое место: разрешаем панорамирование одним пальцем/мышью.
-    this.panArmed = true;
-    this.panStart.x = pointer.x;
-    this.panStart.y = pointer.y;
+    // Если активен жест двумя пальцами — башня не размещается и призрак скрыт
+    if (this.twoFingerGesture || this.pinchActive) {
+      this.isPlacing = false;
+      if (this.ghost) this.ghost.setVisible(false);
+      this.clearRangeRing();
+      return;
+    }
 
-    // Башня не выбрана — ничего не строим.
-    if (!this.selectedTowerType) return;
-
+    this.panArmed = false;
     this.isPlacing = true;
     this.updateGhost(gx, gy);
   }
@@ -8074,6 +8056,15 @@ class GameScene extends Phaser.Scene {
 
   // Показываем «призрак» башни под указателем: зелёный — можно, красный — нельзя.
   updateGhost(gx, gy) {
+    // ВАЖНО (Требование 4): если двигают двумя пальцами, башня не размещается и призрак скрыт
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (this.twoFingerGesture || this.pinchActive || (p1 && p2 && p1.isDown && p2.isDown)) {
+      if (this.ghost) this.ghost.setVisible(false);
+      this.clearRangeRing();
+      return;
+    }
+
     // Если открыто меню башни — призрак не показываем (кольцо уже от меню).
     if (this.selectedTower) {
       this.ghost.setVisible(false);
@@ -8171,6 +8162,16 @@ class GameScene extends Phaser.Scene {
   handlePointerMove(pointer) {
     if (this.isGameOver) return;
 
+    // ВАЖНО (Требование 4): если двигают двумя пальцами — башня не размещается, призрак скрыт!
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (this.twoFingerGesture || this.pinchActive || (p1 && p2 && p1.isDown && p2.isDown)) {
+      this.isPlacing = false;
+      if (this.ghost) this.ghost.setVisible(false);
+      this.clearRangeRing();
+      return;
+    }
+
     // Режим наведения сектора установки:
     if (this.aimingTower && pointer.isDown) {
       const worldPx = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
@@ -8204,7 +8205,11 @@ class GameScene extends Phaser.Scene {
   // Панорамирование одним пальцем/мышью. true — если камера сдвинулась
   // (тогда не показываем призрак башни и не строим по отпусканию).
   handlePan(pointer) {
-    if (!this.panArmed || this.pinchActive) {
+    // ВАЖНО (Требование 4): при выборе башни карту нельзя двигать одним пальцем!
+    if (this.selectedTowerType) {
+      return false;
+    }
+    if (!this.panArmed || this.pinchActive || this.twoFingerGesture) {
       return false;
     }
     if (!pointer.isDown) return false;
@@ -8244,6 +8249,23 @@ class GameScene extends Phaser.Scene {
 
   // Отпускание: завершаем панорамирование или ставим новую башню.
   handlePointerUp(pointer) {
+    // ВАЖНО (Требование 4): если был жест двумя пальцами — башня НЕ размещается!
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (this.twoFingerGesture || this.pinchActive) {
+      this.isPlacing = false;
+      this.panArmed = false;
+      this.panActive = false;
+      if (this.ghost) this.ghost.setVisible(false);
+      this.clearRangeRing();
+      if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
+        setTimeout(() => {
+          this.twoFingerGesture = false;
+        }, 100);
+      }
+      return;
+    }
+
     // Сбрасываем панорамирование. Если панорамировали — тап не выполняем.
     const wasPanning = this.panActive;
     this.panArmed = false;
