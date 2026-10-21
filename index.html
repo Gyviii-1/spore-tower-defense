@@ -74,7 +74,7 @@
       // Зацикливание последних 2 секунд видео
       function loopLastTwoSeconds() {
         if (!video.duration) return;
-        const loopStart = Math.max(0, video.duration - 2);
+        const loopStart = Math.max(0, video.duration - 1);
         if (video.currentTime >= video.duration - 0.08) {
           video.currentTime = loopStart;
           video.play().catch(function () {});
@@ -84,7 +84,7 @@
       video.addEventListener('timeupdate', loopLastTwoSeconds);
       video.addEventListener('ended', function () {
         if (!video.duration) return;
-        video.currentTime = Math.max(0, video.duration - 2);
+        video.currentTime = Math.max(0, video.duration - 1);
         video.play().catch(function () {});
       });
       video.addEventListener('error', dismissSplash);
