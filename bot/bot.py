@@ -648,7 +648,7 @@ def handle_update(update):
             "\n"
             "Личный рекорд и место в топе автоматически сохраняются\n"
             "\n"
-            "🎮 Нажми «Играть» слева чтобы начать.",
+            "🎮 Нажми «Играть» слева чтобы начать.\nИгра находиться в альфа разработке",
         )
     elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
