@@ -48,7 +48,7 @@ if (typeof Phaser !== 'undefined' && Phaser.GameObjects) {
 }
 
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
-const BG_COLOR = 0x0a0c12;        // цвет фона сцены (тёмный графит лаборатории)
+const BG_COLOR = 0x000000;        // цвет фона сцены (тёмный графит лаборатории)
 const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
 const ROAD_COLOR = 0x666666;      // заливка дороги (серый)
 const GRID_LINE_COLOR = 0x333333; // цвет линий сетки
@@ -2215,7 +2215,7 @@ class MenuScene extends Phaser.Scene {
     sliceSheet(this, 'template_base_sheet', 'template_base');
     initProceduralWeaponTextures(this);
 
-    this.background = this.add.rectangle(0, 0, 1, 1, 0x0a0c12, 1).setOrigin(0, 0).setDepth(-1000);
+    this.background = this.add.rectangle(0, 0, 1, 1, 0x000000, 1).setOrigin(0, 0).setDepth(-1000);
 
     this.title = this.add
       .text(0, 0, 'SPORE TOWER DEFENSE', {
@@ -2249,6 +2249,15 @@ class MenuScene extends Phaser.Scene {
     this.layout();
     this.scale.off('resize', this.layout, this);
     this.scale.on('resize', this.layout, this);
+
+    // Закрываем заставку автоматически, как только игра загрузилась
+    if (typeof window !== 'undefined') {
+      if (window.dismissSplash) {
+        window.dismissSplash();
+      } else {
+        window.__gameLoaded = true;
+      }
+    }
     this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
 
     this.loadPlayerData();
