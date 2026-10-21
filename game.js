@@ -3869,9 +3869,9 @@ class MenuScene extends Phaser.Scene {
       this.shopListContainer.add(row);
     }
 
-    // Раздел 2: Тактические кейсы (СТРОГО "Скоро")
+    // Раздел 2: Тактические ящики (СТРОГО "Скоро")
     const sec2Title = this.add
-      .text(0, 0, '─── ТАКТИЧЕСКИЕ КЕЙСЫ ───', {
+      .text(0, 0, '─── ТАКТИЧЕСКИЕ ЯЩИКИ ───', {
         fontFamily: UI_FONT,
         fontSize: '16px',
         color: '#ff6b7a',
@@ -3883,28 +3883,25 @@ class MenuScene extends Phaser.Scene {
 
     const crates = [
       {
-        name: 'Обычный Кейс',
+        name: 'Обычный Ящик',
         tier: 'common',
         desc: 'Базовые армейские камуфляжи и тактические модули',
         colorHex: 0x94a3b8,
         glowHex: 0x64748b,
-        badge: 'ОБЫЧНЫЙ',
       },
       {
-        name: 'Редкий Кейс',
+        name: 'Редкий Ящик',
         tier: 'rare',
-        desc: 'Редкие неоновые и защитные скины «Спецназ» и «Крио»',
+        desc: 'Неоновые и защитные скины «Спецназ» и «Крио»',
         colorHex: 0x38bdf8,
         glowHex: 0x0284c7,
-        badge: 'РЕДКИЙ',
       },
       {
-        name: 'Легендарный Кейс',
+        name: 'Легендарный Ящик',
         tier: 'legendary',
-        desc: 'Эксклюзивные золотые и плазменные облики «Омега-Прайм»',
+        desc: 'Эксклюзивные золотые облики «Омега-Прайм»',
         colorHex: 0xf59e0b,
         glowHex: 0xd97706,
-        badge: 'ЛЕГЕНДАРНЫЙ',
       },
     ];
 
@@ -3943,31 +3940,23 @@ class MenuScene extends Phaser.Scene {
       chestGfx.fillCircle(0, -2, 2.5);
 
       const title = this.add
-        .text(-86, -18, crate.name, {
+        .text(-86, -14, crate.name, {
           fontFamily: UI_FONT,
-          fontSize: '16px',
+          fontSize: '15px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
 
-      const badge = this.add
-        .text(-86, 0, crate.badge, {
+      const sub = this.add
+        .text(-86, 0, crate.desc, {
           fontFamily: UI_FONT,
           fontSize: '11px',
-          color: `#${crate.colorHex.toString(16).padStart(6, '0')}`,
-          fontStyle: 'bold',
-        })
-        .setOrigin(0, 0.5);
-
-      const sub = this.add
-        .text(-86, 18, crate.desc, {
-          fontFamily: UI_FONT,
-          fontSize: '12px',
           color: '#8492a6',
-          wordWrap: { width: 145 },
+          wordWrap: { width: 148 },
+          lineSpacing: 3 * DPR,
         })
-        .setOrigin(0, 0.5);
+        .setOrigin(0, 0);
 
       // КНОПКА СТРОГО "Скоро"
       const soonBtn = this.add
@@ -3995,7 +3984,7 @@ class MenuScene extends Phaser.Scene {
         this.showToast(`${crate.name} появится в следующем обновлении со скинами!`);
       });
 
-      row.add([bg, chestGfx, title, badge, sub, soonBtn]);
+      row.add([bg, chestGfx, title, sub, soonBtn]);
       this.shopRows.push({ item: row, isHeader: false });
       this.shopListContainer.add(row);
     }
@@ -4695,18 +4684,43 @@ class MenuScene extends Phaser.Scene {
     this.applyShopScroll(this.shopScrollOffset || 0);
 
     // Вкладки внизу (порядок: Инвентарь, Меню, Пасс, Топ, Магазин)
-    const tabY = height * 0.93;
-    const tabPositions = [width * 0.10, width * 0.30, width * 0.50, width * 0.70, width * 0.90];
-    const tabFont = `${Math.round(Math.max(14 * DPR, size * 0.034))}px`;
+    const tabY = height * 0.94;
     const tabs = [this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop];
-    tabs.forEach((tab, i) => {
+
+    // Адаптивный размер шрифта и отступов под ширину экрана
+    const tabFontSize = Math.round(Math.min(13 * DPR, Math.max(11 * DPR, width * 0.031)));
+    const padX = Math.round(Math.min(8 * DPR, Math.max(5 * DPR, width * 0.015)));
+    const padY = Math.round(6 * DPR);
+    const tabStyle = {
+      fontSize: `${tabFontSize}px`,
+      padding: { x: padX, y: padY }
+    };
+
+    tabs.forEach(tab => {
       if (tab) {
-        tab.setPosition(tabPositions[i], tabY);
-        tab.setStyle({ fontSize: tabFont, padding: { x: 8 * DPR, y: 6 * DPR } });
+        tab.setStyle(tabStyle);
+        if (tab.updateText) tab.updateText();
       }
     });
 
-    // Пересобираем скруглённые фоны кнопок под новый размер/шрифт.
+    let totalTabsW = 0;
+    tabs.forEach(tab => {
+      if (tab) totalTabsW += tab.displayWidth;
+    });
+
+    const maxBarW = Math.min(width * 0.95, 540 * DPR);
+    const gap = Math.max(3 * DPR, (maxBarW - totalTabsW) / (tabs.length - 1));
+    const actualTotalW = totalTabsW + gap * (tabs.length - 1);
+    let startX = (width - actualTotalW) / 2;
+
+    tabs.forEach(tab => {
+      if (tab) {
+        const halfW = tab.displayWidth / 2;
+        tab.setPosition(Math.round(startX + halfW), Math.round(tabY));
+        startX += tab.displayWidth + gap;
+      }
+    });
+
     updateRoundBgs(this);
   }
 
