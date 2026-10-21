@@ -1201,7 +1201,7 @@ function initProceduralWeaponTextures(scene) {
 function isVisibleDeep(obj) {
   let o = obj;
   while (o) {
-    if (o.visible === false) return false;
+    if (o.visible === false || (o.alpha !== undefined && o.alpha <= 0.001)) return false;
     o = o.parentContainer;
   }
   return true;
@@ -1221,7 +1221,6 @@ function roundTarget(scene, obj, opts) {
 
   if (kind === 'text') {
     try {
-      // Прячем встроенный прямоугольный фон (делаем его прозрачным).
       if (obj.setStyle) obj.setStyle({ backgroundColor: 'rgba(0,0,0,0)' });
       if (obj.style) obj.style.backgroundColor = 'rgba(0,0,0,0)';
       if (obj.updateText) obj.updateText();
@@ -1229,7 +1228,6 @@ function roundTarget(scene, obj, opts) {
       /* не критично */
     }
   } else {
-    // Полностью отключаем родную заливку и обводку прямоугольника.
     obj.isFilled = false;
     obj.isStroked = false;
   }
@@ -1251,12 +1249,24 @@ function roundTarget(scene, obj, opts) {
   return g;
 }
 
-// Пересобрать все фоны (размер/позиция/видимость берутся у текущего объекта).
 function updateRoundBgs(scene) {
   const list = scene._roundBgs;
   if (!list) return;
   for (const it of list) {
     const o = it.obj;
+    if (!o || !o.scene) continue;
+
+    // Синхронизируем контейнер: фон ВСЕГДА должен быть в том же контейнере прямо под элементом
+    if (o.parentContainer) {
+      if (it.g.parentContainer !== o.parentContainer) {
+        const idx = o.parentContainer.getIndex(o);
+        o.parentContainer.addAt(it.g, Math.max(0, idx));
+      }
+    } else if (it.g.parentContainer) {
+      it.g.parentContainer.remove(it.g);
+      scene.children.add(it.g);
+    }
+
     let w;
     let h;
     let x;
@@ -3663,6 +3673,20 @@ class MenuScene extends Phaser.Scene {
       this.questRows.push(row);
       this.passListContainer.add(row);
     }
+
+    // Сразу позиционируем строки заданий внутри контейнера списка
+    const w = this.scale ? this.scale.width : 360;
+    const cardW = this.passCardW || Math.min(w * 0.94, 550 * DPR);
+    const qScale = Math.min((cardW * 0.94) / 320, 1.15 * DPR);
+    const qStep = 86 * qScale + 10 * DPR;
+    this.questRows.forEach((r, idx) => {
+      r.setPosition(w / 2, idx * qStep + 44 * qScale);
+      r.setScale(qScale);
+    });
+    this.passContentH = this.questRows.length * qStep + 16 * DPR;
+    this.passMinScrollOffset = Math.min(0, (this.passVisibleH || 300) - this.passContentH);
+    this.applyPassScroll(this.passScrollOffset || 0);
+
     updateRoundBgs(this);
   }
 
@@ -3895,27 +3919,27 @@ class MenuScene extends Phaser.Scene {
         strokeWidth: 1.2 * DPR,
       });
 
-      // Отрисованный кодом стилизованный 3D-сундук
+      // Отрисованный кодом стилизованный компактный 3D-сундук
       const chestGfx = this.add.graphics();
       chestGfx.setPosition(-120, 0);
 
       // Свечение сзади ящика
       chestGfx.fillStyle(crate.glowHex, 0.25);
-      chestGfx.fillCircle(0, 0, 22 * DPR);
+      chestGfx.fillCircle(0, 0, 18);
 
       // Корпус сундука
       chestGfx.fillStyle(0x182030, 1);
-      chestGfx.fillRoundedRect(-18 * DPR, -12 * DPR, 36 * DPR, 26 * DPR, 5 * DPR);
-      chestGfx.lineStyle(1.5 * DPR, crate.colorHex, 1);
-      chestGfx.strokeRoundedRect(-18 * DPR, -12 * DPR, 36 * DPR, 26 * DPR, 5 * DPR);
+      chestGfx.fillRoundedRect(-14, -10, 28, 20, 4);
+      chestGfx.lineStyle(1.5, crate.colorHex, 1);
+      chestGfx.strokeRoundedRect(-14, -10, 28, 20, 4);
 
       // Крышка сундука
-      chestGfx.fillStyle(crate.colorHex, 0.85);
-      chestGfx.fillRoundedRect(-19 * DPR, -16 * DPR, 38 * DPR, 8 * DPR, 3 * DPR);
+      chestGfx.fillStyle(crate.colorHex, 0.9);
+      chestGfx.fillRoundedRect(-15, -13, 30, 7, 2.5);
 
       // Замок сундука
       chestGfx.fillStyle(0xffffff, 0.95);
-      chestGfx.fillCircle(0, -3 * DPR, 3.5 * DPR);
+      chestGfx.fillCircle(0, -2, 2.5);
 
       const title = this.add
         .text(-86, -18, crate.name, {
@@ -3940,7 +3964,7 @@ class MenuScene extends Phaser.Scene {
           fontFamily: UI_FONT,
           fontSize: '12px',
           color: '#8492a6',
-          wordWrap: { width: 140 * DPR },
+          wordWrap: { width: 145 },
         })
         .setOrigin(0, 0.5);
 
@@ -4366,8 +4390,8 @@ class MenuScene extends Phaser.Scene {
     }
 
     // 3. Селектор карты (Сектор Омега / Био-Реактор / Катакомбы)
-    const mapBoxY = cardTop + cardHeight + 14 * DPR;
-    const mapBoxH = 172 * DPR;
+    const mapBoxY = cardTop + cardHeight + 12 * DPR;
+    const mapBoxH = 195 * DPR;
     const mapBoxW = cardWidth;
     const mapBoxX = width / 2 - mapBoxW / 2;
 
@@ -4388,34 +4412,39 @@ class MenuScene extends Phaser.Scene {
     if (this.mapLabel) {
       this.mapLabel.setPosition(width / 2, mapBoxY + 14 * DPR);
       this.mapLabel.setText(`КАРТА · ${mapDef.badge || ''}`);
-      this.mapLabel.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
+      this.mapLabel.setStyle({ fontSize: `${Math.round(11 * DPR)}px` });
     }
+    const mapTitleFont = Math.min(15 * DPR, Math.round(mapBoxW * 0.038));
     if (this.mapPrevBtn) {
-      this.mapPrevBtn.setPosition(mapBoxX + 28 * DPR, mapBoxY + 36 * DPR);
-      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(24 * DPR)}px` });
+      this.mapPrevBtn.setPosition(mapBoxX + 24 * DPR, mapBoxY + 36 * DPR);
+      this.mapPrevBtn.setStyle({ fontSize: `${Math.round(22 * DPR)}px` });
     }
     if (this.mapTitle) {
       this.mapTitle.setPosition(width / 2, mapBoxY + 36 * DPR);
-      this.mapTitle.setStyle({ fontSize: `${Math.round(18 * DPR)}px` });
+      this.mapTitle.setStyle({ fontSize: `${mapTitleFont}px` });
     }
     if (this.mapNextBtn) {
-      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 28 * DPR, mapBoxY + 36 * DPR);
-      this.mapNextBtn.setStyle({ fontSize: `${Math.round(24 * DPR)}px` });
+      this.mapNextBtn.setPosition(mapBoxX + mapBoxW - 24 * DPR, mapBoxY + 36 * DPR);
+      this.mapNextBtn.setStyle({ fontSize: `${Math.round(22 * DPR)}px` });
     }
 
     // Отрисовка мини-карты кодом в изометрии
-    this.renderMapPreview(mapDef, width / 2, mapBoxY + 86 * DPR, mapBoxW * 0.72, 68 * DPR);
+    this.renderMapPreview(mapDef, width / 2, mapBoxY + 86 * DPR, mapBoxW * 0.65, 52 * DPR);
 
     const elevCount = (mapDef.elevations && mapDef.elevations.length) || 0;
     if (this.mapStatsText) {
-      this.mapStatsText.setPosition(width / 2, mapBoxY + 134 * DPR);
+      this.mapStatsText.setPosition(width / 2, mapBoxY + 138 * DPR);
       this.mapStatsText.setText(`🏔️ Возвышенности: ${elevCount} позиции · 🎯 Зона снайпера · 35 волн`);
-      this.mapStatsText.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
+      this.mapStatsText.setStyle({ fontSize: `${Math.min(11.5 * DPR, Math.round(mapBoxW * 0.030))}px` });
     }
 
     if (this.mapDesc) {
-      this.mapDesc.setPosition(width / 2, mapBoxY + 152 * DPR);
-      this.mapDesc.setStyle({ fontSize: `${Math.round(12 * DPR)}px`, wordWrap: { width: mapBoxW - 20 * DPR } });
+      this.mapDesc.setPosition(width / 2, mapBoxY + 162 * DPR);
+      this.mapDesc.setStyle({ 
+        fontSize: `${Math.min(11 * DPR, Math.round(mapBoxW * 0.028))}px`, 
+        wordWrap: { width: mapBoxW - 24 * DPR },
+        align: 'center'
+      });
     }
 
     // 4. Селектор сложности (Лёгкий / Средний / Трудный)
@@ -4423,13 +4452,13 @@ class MenuScene extends Phaser.Scene {
     const diffLabelY = diffBoxY + 8 * DPR;
     if (this.diffLabel) {
       this.diffLabel.setPosition(width / 2, diffLabelY);
-      this.diffLabel.setStyle({ fontSize: `${Math.round(13 * DPR)}px` });
+      this.diffLabel.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
     }
 
     const btnGap = 8 * DPR;
     const diffBtnW = Math.floor((cardWidth - 2 * btnGap) / 3);
-    const diffBtnH = 40 * DPR;
-    const diffBtnY = diffBoxY + 38 * DPR;
+    const diffBtnH = 38 * DPR;
+    const diffBtnY = diffBoxY + 34 * DPR;
 
     const diffKeys = ['easy', 'medium', 'hard'];
     diffKeys.forEach((k, idx) => {
@@ -4437,7 +4466,7 @@ class MenuScene extends Phaser.Scene {
       if (btn) {
         const bx = width / 2 + (idx - 1) * (diffBtnW + btnGap);
         btn.setPosition(bx, diffBtnY);
-        btn.setStyle({ fontSize: `${Math.round(15 * DPR)}px`, padding: { x: 10 * DPR, y: 8 * DPR } });
+        btn.setStyle({ fontSize: `${Math.round(14 * DPR)}px`, padding: { x: 8 * DPR, y: 7 * DPR } });
         if (btn._roundItem) {
           btn._roundItem.w = diffBtnW;
           btn._roundItem.h = diffBtnH;
@@ -4446,33 +4475,37 @@ class MenuScene extends Phaser.Scene {
     });
 
     if (this.diffDesc) {
-      this.diffDesc.setPosition(width / 2, diffBoxY + 74 * DPR);
-      this.diffDesc.setStyle({ fontSize: `${Math.round(12.5 * DPR)}px`, wordWrap: { width: cardWidth - 10 * DPR } });
+      this.diffDesc.setPosition(width / 2, diffBoxY + 64 * DPR);
+      this.diffDesc.setStyle({ fontSize: `${Math.round(11.5 * DPR)}px`, wordWrap: { width: cardWidth - 14 * DPR } });
     }
 
     // 5. Кнопка В БОЙ
     if (this.playButton) {
-      const playY = Math.min(height * 0.83, diffBoxY + 128 * DPR);
-      const playFont = `${Math.round(Math.min(26 * DPR, Math.max(22 * DPR, size * 0.054)))}px`;
+      const playY = Math.min(height * 0.83, diffBoxY + 115 * DPR);
+      const playFont = `${Math.round(Math.min(24 * DPR, Math.max(20 * DPR, size * 0.050)))}px`;
       this.playButton.setPosition(width / 2, playY);
       this.playButton.setStyle({
         fontSize: playFont,
-        padding: { x: 48 * DPR, y: 15 * DPR },
+        padding: { x: 42 * DPR, y: 13 * DPR },
       });
     }
 
     // Инвентарь
     if (this.inventoryTitle) {
-      this.inventoryTitle.setPosition(width / 2, height * 0.11);
-      this.inventoryTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
+      this.inventoryTitle.setPosition(width / 2, height * 0.075);
+      this.inventoryTitle.setStyle({ fontSize: `${Math.round(Math.max(22 * DPR, size * 0.050))}px` });
     }
     if (this.inventorySubtitle) {
-      this.inventorySubtitle.setPosition(width / 2, height * 0.16);
-      this.inventorySubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
+      this.inventorySubtitle.setPosition(width / 2, height * 0.115);
+      this.inventorySubtitle.setStyle({ 
+        fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px`,
+        wordWrap: { width: width * 0.9 },
+        align: 'center'
+      });
     }
-    const rowScale = Math.min((width * 0.9) / 320, 1.3 * DPR);
-    const rowStep = 76 * rowScale + 12 * DPR;
-    const invStart = height * 0.22;
+    const rowScale = Math.min((width * 0.92) / 320, 1.15 * DPR);
+    const rowStep = 78 * rowScale + 8 * DPR;
+    const invStart = height * 0.16 + (39 * rowScale);
     this.inventoryRows.forEach((row, index) => {
       row.setPosition(width / 2, invStart + index * rowStep);
       row.setScale(rowScale);
@@ -4482,21 +4515,18 @@ class MenuScene extends Phaser.Scene {
       this.renderTowerDetail();
     }
 
-    // Топ игроков (широкая карточка с поддержкой скролла для 10+ игроков)
+    // Топ игроков
     if (this.topTitle) {
-      this.topTitle.setPosition(width / 2, height * 0.11);
-      this.topTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
+      this.topTitle.setPosition(width / 2, height * 0.075);
+      this.topTitle.setStyle({ fontSize: `${Math.round(Math.max(22 * DPR, size * 0.050))}px` });
     }
-    if (this.statsText) {
-      this.statsText.setPosition(width / 2, height * 0.165);
-      this.statsText.setStyle({
-        fontSize: `${Math.max(13.5 * DPR, Math.round(size * 0.028))}px`,
-        wordWrap: { width: Math.min(width * 0.9, 460 * DPR) },
-      });
+    if (this.topSubtitle) {
+      this.topSubtitle.setPosition(width / 2, height * 0.115);
+      this.topSubtitle.setStyle({ fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px` });
     }
 
     const topCardW = Math.min(width * 0.94, 550 * DPR);
-    const topCardTop = height * 0.22;
+    const topCardTop = height * 0.16;
     const topCardBottom = height * 0.88;
     const topCardH = topCardBottom - topCardTop;
     const topCardX = width / 2 - topCardW / 2;
@@ -4505,8 +4535,8 @@ class MenuScene extends Phaser.Scene {
     this.topCardH = topCardH;
     this.topCardX = topCardX;
     this.topCardTop = topCardTop;
-    this.topCardInnerTop = topCardTop + 10 * DPR;
-    this.topVisibleH = topCardH - 20 * DPR;
+    this.topCardInnerTop = topCardTop + 8 * DPR;
+    this.topVisibleH = topCardH - 16 * DPR;
     this.topListBaseY = this.topCardInnerTop;
 
     if (this.topCardGfx) {
@@ -4516,52 +4546,42 @@ class MenuScene extends Phaser.Scene {
       this.topCardGfx.lineStyle(1.5 * DPR, 0x242d40, 1);
       this.topCardGfx.strokeRoundedRect(topCardX, topCardTop, topCardW, topCardH, 14 * DPR);
     }
-
     if (this.topMaskGfx) {
       this.topMaskGfx.clear();
       this.topMaskGfx.fillStyle(0xffffff);
       this.topMaskGfx.fillRect(topCardX + 2, topCardTop + 6 * DPR, topCardW - 4, topCardH - 12 * DPR);
     }
-
     if (this.topScrollZone) {
       this.topScrollZone.setPosition(topCardX, topCardTop).setSize(topCardW, topCardH);
     }
 
-    if (this.topEmptyText) {
-      this.topEmptyText.setPosition(width / 2, topCardTop + topCardH / 2);
-    }
-
     this.refreshTop();
 
-    // Боевой Пасс
+    // Боевые задания (Пасс)
     if (this.passTitle) {
-      this.passTitle.setPosition(width / 2, height * 0.11);
-      this.passTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
+      this.passTitle.setPosition(width / 2, height * 0.075);
+      this.passTitle.setStyle({ fontSize: `${Math.round(Math.max(22 * DPR, size * 0.050))}px` });
     }
     if (this.passSubtitle) {
-      this.passSubtitle.setPosition(width / 2, height * 0.16);
-      this.passSubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
+      this.passSubtitle.setPosition(width / 2, height * 0.115);
+      this.passSubtitle.setStyle({ 
+        fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px`,
+        wordWrap: { width: width * 0.9 },
+        align: 'center'
+      });
     }
 
     const passCardW = Math.min(width * 0.94, 550 * DPR);
-    const bannerTop = height * 0.185;
-    const bannerH = 54 * DPR;
+    const bannerTop = height * 0.155;
+    const bannerH = 48 * DPR;
 
     if (this.passLockBanner) {
       this.passLockBanner.setPosition(width / 2, bannerTop + bannerH * 0.5);
-      if (this.passLockBg && this.passLockBg._roundItem) {
-        this.passLockBg._roundItem.w = passCardW;
-        this.passLockBg._roundItem.h = bannerH;
-      }
-      if (this.passLockTitle) {
-        this.passLockTitle.setStyle({ fontSize: `${Math.round(14 * DPR)}px` });
-      }
-      if (this.passLockSub) {
-        this.passLockSub.setStyle({ fontSize: `${Math.round(12 * DPR)}px` });
-      }
+      const bannerScale = Math.min((width * 0.92) / 320, 1.15 * DPR);
+      this.passLockBanner.setScale(bannerScale);
     }
 
-    const passCardTop = bannerTop + bannerH + 12 * DPR;
+    const passCardTop = bannerTop + bannerH + 10 * DPR;
     const passCardBottom = height * 0.88;
     const passCardH = passCardBottom - passCardTop;
     const passCardX = width / 2 - passCardW / 2;
@@ -4590,7 +4610,7 @@ class MenuScene extends Phaser.Scene {
       this.passScrollZone.setPosition(passCardX, passCardTop).setSize(passCardW, passCardH);
     }
 
-    const questRowScale = Math.min((passCardW * 0.94) / 320, 1.25 * DPR);
+    const questRowScale = Math.min((passCardW * 0.94) / 320, 1.15 * DPR);
     const questStep = 86 * questRowScale + 10 * DPR;
     if (this.questRows && this.questRows.length > 0) {
       this.questRows.forEach((row, idx) => {
@@ -4606,16 +4626,20 @@ class MenuScene extends Phaser.Scene {
 
     // Магазин
     if (this.shopTitle) {
-      this.shopTitle.setPosition(width / 2, height * 0.11);
-      this.shopTitle.setStyle({ fontSize: `${Math.round(Math.max(24 * DPR, size * 0.054))}px` });
+      this.shopTitle.setPosition(width / 2, height * 0.075);
+      this.shopTitle.setStyle({ fontSize: `${Math.round(Math.max(22 * DPR, size * 0.050))}px` });
     }
     if (this.shopSubtitle) {
-      this.shopSubtitle.setPosition(width / 2, height * 0.16);
-      this.shopSubtitle.setStyle({ fontSize: `${Math.max(14 * DPR, Math.round(size * 0.028))}px` });
+      this.shopSubtitle.setPosition(width / 2, height * 0.115);
+      this.shopSubtitle.setStyle({ 
+        fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px`,
+        wordWrap: { width: width * 0.9 },
+        align: 'center'
+      });
     }
 
     const shopCardW = Math.min(width * 0.94, 550 * DPR);
-    const shopCardTop = height * 0.22;
+    const shopCardTop = height * 0.16;
     const shopCardBottom = height * 0.88;
     const shopCardH = shopCardBottom - shopCardTop;
     const shopCardX = width / 2 - shopCardW / 2;
@@ -4644,16 +4668,16 @@ class MenuScene extends Phaser.Scene {
       this.shopScrollZone.setPosition(shopCardX, shopCardTop).setSize(shopCardW, shopCardH);
     }
 
-    const shopRowScale = Math.min((shopCardW * 0.96) / 320, 1.25 * DPR);
+    const shopRowScale = Math.min((shopCardW * 0.94) / 320, 1.15 * DPR);
     let curY = 16 * DPR;
     this.shopRows.forEach((r) => {
       if (r.isHeader) {
-        r.item.setPosition(width / 2, curY + 8 * DPR);
+        r.item.setPosition(width / 2, curY + 12 * DPR);
         curY += 28 * DPR;
       } else {
-        r.item.setPosition(width / 2, curY + 32 * shopRowScale);
+        r.item.setPosition(width / 2, curY + 40 * shopRowScale);
         r.item.setScale(shopRowScale);
-        curY += 66 * shopRowScale + 8 * DPR;
+        curY += 80 * shopRowScale + 10 * DPR;
       }
     });
     this.shopContentH = curY + 12 * DPR;
