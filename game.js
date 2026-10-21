@@ -22,7 +22,7 @@ const UI_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetic
 // Флаг сборки / ветки:
 // В ветке beta = true (тестовая ветка с чит-меню).
 // В ветке main = false (релизная продакшн-ветка, чит-меню полностью отключено).
-const IS_BETA_BUILD = true;
+const IS_BETA_BUILD = false;
 
 // Максимальное количество башен, которое игрок может взять в бой (колода башен)
 const MAX_DECK_SLOTS = 5;
