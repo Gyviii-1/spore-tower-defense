@@ -3329,13 +3329,6 @@ class MenuScene extends Phaser.Scene {
         padding: { x: 14 * DPR, y: 7 * DPR },
       })
       .setOrigin(0.5);
-    roundTarget(this, this.statsText, {
-      color: 0x141824,
-      alpha: 0.95,
-      radius: 10 * DPR,
-      strokeColor: 0x242c3e,
-      strokeWidth: 1 * DPR,
-    });
 
     // Карточка топа
     this.topCardGfx = this.add.graphics();
@@ -3374,6 +3367,14 @@ class MenuScene extends Phaser.Scene {
       this.topTitle,
       this.statsText,
     ]);
+
+    roundTarget(this, this.statsText, {
+      color: 0x141824,
+      alpha: 0.95,
+      radius: 10 * DPR,
+      strokeColor: 0x242c3e,
+      strokeWidth: 1 * DPR,
+    });
 
     this.initTopScroll();
   }
@@ -3793,8 +3794,8 @@ class MenuScene extends Phaser.Scene {
     const sec1Title = this.add
       .text(0, 0, '─── ПОДДЕРЖКА ПРОЕКТА ───', {
         fontFamily: UI_FONT,
-        fontSize: '14px',
-        color: '#e63946',
+        fontSize: '16px',
+        color: '#ff6b7a',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -3872,8 +3873,8 @@ class MenuScene extends Phaser.Scene {
     const sec2Title = this.add
       .text(0, 0, '─── ТАКТИЧЕСКИЕ КЕЙСЫ ───', {
         fontFamily: UI_FONT,
-        fontSize: '14px',
-        color: '#e63946',
+        fontSize: '16px',
+        color: '#ff6b7a',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -4517,12 +4518,15 @@ class MenuScene extends Phaser.Scene {
 
     // Топ игроков
     if (this.topTitle) {
-      this.topTitle.setPosition(width / 2, height * 0.075);
+      this.topTitle.setPosition(width / 2, height * 0.065);
       this.topTitle.setStyle({ fontSize: `${Math.round(Math.max(22 * DPR, size * 0.050))}px` });
     }
-    if (this.topSubtitle) {
-      this.topSubtitle.setPosition(width / 2, height * 0.115);
-      this.topSubtitle.setStyle({ fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px` });
+    if (this.statsText) {
+      this.statsText.setPosition(width / 2, height * 0.115);
+      this.statsText.setStyle({
+        fontSize: `${Math.round(Math.min(13 * DPR, size * 0.028))}px`,
+        wordWrap: { width: Math.min(width * 0.92, 520 * DPR) },
+      });
     }
 
     const topCardW = Math.min(width * 0.94, 550 * DPR);
@@ -4632,9 +4636,10 @@ class MenuScene extends Phaser.Scene {
     if (this.shopSubtitle) {
       this.shopSubtitle.setPosition(width / 2, height * 0.115);
       this.shopSubtitle.setStyle({ 
-        fontSize: `${Math.round(Math.min(12.5 * DPR, size * 0.027))}px`,
+        fontSize: `${Math.round(Math.max(14 * DPR, size * 0.030))}px`,
+        color: "#94a3b8",
         wordWrap: { width: width * 0.9 },
-        align: 'center'
+        align: "center"
       });
     }
 
@@ -4672,12 +4677,17 @@ class MenuScene extends Phaser.Scene {
     let curY = 16 * DPR;
     this.shopRows.forEach((r) => {
       if (r.isHeader) {
-        r.item.setPosition(width / 2, curY + 12 * DPR);
-        curY += 28 * DPR;
+        r.item.setPosition(width / 2, curY + 16 * DPR);
+        r.item.setStyle({
+          fontSize: `${Math.round(Math.max(16 * DPR, size * 0.038))}px`,
+          color: "#ff6b7a",
+          fontStyle: "bold",
+        });
+        curY += 38 * DPR;
       } else {
         r.item.setPosition(width / 2, curY + 40 * shopRowScale);
         r.item.setScale(shopRowScale);
-        curY += 80 * shopRowScale + 10 * DPR;
+        curY += 80 * shopRowScale + 12 * DPR;
       }
     });
     this.shopContentH = curY + 12 * DPR;
