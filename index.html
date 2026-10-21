@@ -56,6 +56,9 @@
       if (!splash || !video) return;
 
       let dismissed = false;
+      let gameLoaded = false;
+      let initialPlaythroughDone = false;
+
       function dismissSplash() {
         if (dismissed) return;
         dismissed = true;
@@ -67,30 +70,55 @@
         }, 650);
       }
 
-      // Завершение видео или ошибка -> скрываем заставку
-      // Зацикливание последних 2 секунд видео
-      function loopLastTwoSeconds() {
-        if (!video.duration) return;
-        const loopStart = Math.max(0, video.duration - 1);
-        if (video.currentTime >= video.duration - 0.08) {
-          video.currentTime = loopStart;
-          video.play().catch(function () {});
+      function onGameReady() {
+        gameLoaded = true;
+        // Если видео уже доиграло до конца/зациклено — сразу закрываем
+        if (initialPlaythroughDone) {
+          dismissSplash();
         }
       }
 
-      video.addEventListener('timeupdate', loopLastTwoSeconds);
-      video.addEventListener('ended', function () {
+      // Видео играет полностью, а последняя 1 секунда зацикливается до загрузки игры
+      function handleVideoProgress() {
         if (!video.duration) return;
-        video.currentTime = Math.max(0, video.duration - 1);
-        video.play().catch(function () {});
+        const loopStart = Math.max(0, video.duration - 1);
+
+        // Достигли конца первого полного воспроизведения
+        if (video.currentTime >= loopStart) {
+          initialPlaythroughDone = true;
+          if (gameLoaded) {
+            dismissSplash();
+            return;
+          }
+        }
+
+        // Если дошли до самого конца ролика — лупим последнюю секунду
+        if (video.currentTime >= video.duration - 0.08) {
+          if (gameLoaded) {
+            dismissSplash();
+          } else {
+            video.currentTime = loopStart;
+            video.play().catch(function () {});
+          }
+        }
+      }
+
+      video.addEventListener('timeupdate', handleVideoProgress);
+      video.addEventListener('ended', function () {
+        initialPlaythroughDone = true;
+        if (gameLoaded) {
+          dismissSplash();
+        } else if (video.duration) {
+          video.currentTime = Math.max(0, video.duration - 1);
+          video.play().catch(function () {});
+        }
       });
       video.addEventListener('error', dismissSplash);
 
-
-      // Закрытие автоматически при загрузке игры
-      window.dismissSplash = dismissSplash;
+      // Связка с движком игры: вызывается, когда MenuScene готова
+      window.dismissSplash = onGameReady;
       if (window.__gameLoaded) {
-        dismissSplash();
+        onGameReady();
       }
 
       // Попытка включить звук при первом взаимодействии, если видео ещё играет
