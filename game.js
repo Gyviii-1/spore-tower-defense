@@ -2796,9 +2796,9 @@ class MenuScene extends Phaser.Scene {
         kind: 'rect',
         color: 0x1b2030,
         alpha: 0.9,
-        radius: 10 * DPR,
+        radius: 10,
         strokeColor: 0x2e384e,
-        strokeWidth: 1 * DPR,
+        strokeWidth: 1,
       });
 
       const icon = this.add.container(-120, 0);
@@ -2833,7 +2833,7 @@ class MenuScene extends Phaser.Scene {
           fontSize: '12px',
           color: inDeck ? '#4ade80' : '#94a3b8',
           backgroundColor: inDeck ? '#142b20' : '#1a2232',
-          padding: { x: 8 * DPR, y: 5 * DPR },
+          padding: { x: 8, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -2842,9 +2842,9 @@ class MenuScene extends Phaser.Scene {
       roundTarget(this, deckBtn, {
         color: inDeck ? 0x142b20 : 0x1a2232,
         alpha: 0.95,
-        radius: 8 * DPR,
+        radius: 7,
         strokeColor: inDeck ? 0x22c55e : 0x334155,
-        strokeWidth: 1.2 * DPR,
+        strokeWidth: 1,
       });
 
       deckBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -3498,9 +3498,9 @@ class MenuScene extends Phaser.Scene {
         kind: 'rect',
         color: isDone ? 0x142322 : 0x111622,
         alpha: 0.95,
-        radius: 12 * DPR,
+        radius: 10,
         strokeColor: isDone ? 0x22c55e : 0x242e42,
-        strokeWidth: 1.2 * DPR,
+        strokeWidth: 1,
       });
 
       const icon = this.add.text(-134, 0, q.icon || '⚔️', { fontSize: '24px' }).setOrigin(0.5);
@@ -3511,7 +3511,7 @@ class MenuScene extends Phaser.Scene {
           fontSize: '14.5px',
           color: '#ffffff',
           fontStyle: 'bold',
-          wordWrap: { width: 175 },
+          wordWrap: { width: 165 },
         })
         .setOrigin(0, 0.5);
 
@@ -3520,7 +3520,7 @@ class MenuScene extends Phaser.Scene {
           fontFamily: UI_FONT,
           fontSize: '11px',
           color: '#8e9eb5',
-          wordWrap: { width: 175 },
+          wordWrap: { width: 165 },
           lineSpacing: 1.5,
         })
         .setOrigin(0, 0.5);
@@ -3542,12 +3542,12 @@ class MenuScene extends Phaser.Scene {
       const btnStroke = isDone ? 0x4ade80 : 0x334155;
 
       const actionBtn = this.add
-        .text(124, 0, btnText, {
+        .text(120, 0, btnText, {
           fontFamily: UI_FONT,
           fontSize: '12px',
           color: btnColor,
           backgroundColor: '#1a2232',
-          padding: { x: 7 * DPR, y: 5 * DPR },
+          padding: { x: 8, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3556,9 +3556,9 @@ class MenuScene extends Phaser.Scene {
       roundTarget(this, actionBtn, {
         color: btnBgColor,
         alpha: 0.95,
-        radius: 8 * DPR,
+        radius: 7,
         strokeColor: btnStroke,
-        strokeWidth: 1.2 * DPR,
+        strokeWidth: 1,
       });
 
       actionBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -3744,18 +3744,18 @@ class MenuScene extends Phaser.Scene {
           fontFamily: UI_FONT,
           fontSize: '12px',
           color: '#94a3b8',
-          wordWrap: { width: 215 },
+          wordWrap: { width: 195 },
         })
         .setOrigin(0, 0.5);
 
       // Кнопка доната СТРОГО "Скоро"
       const buyBtn = this.add
-        .text(124, 0, 'Скоро', {
+        .text(120, 0, 'Скоро', {
           fontFamily: UI_FONT,
           fontSize: '12px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
-          padding: { x: 8 * DPR, y: 5 * DPR },
+          padding: { x: 10, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3764,9 +3764,9 @@ class MenuScene extends Phaser.Scene {
       roundTarget(this, buyBtn, {
         color: 0x1a2130,
         alpha: 0.95,
-        radius: 7 * DPR,
+        radius: 7,
         strokeColor: 0x334155,
-        strokeWidth: 1 * DPR,
+        strokeWidth: 1,
       });
 
       buyBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -3795,7 +3795,7 @@ class MenuScene extends Phaser.Scene {
       {
         name: 'Обычный Ящик',
         tier: 'common',
-        desc: 'Базовые армейские камуфляжи и тактические модули',
+        desc: 'Базовые компоненты турелей и тактические модули',
         colorHex: 0x94a3b8,
         glowHex: 0x64748b,
       },
@@ -3822,9 +3822,9 @@ class MenuScene extends Phaser.Scene {
         kind: 'rect',
         color: 0x121620,
         alpha: 0.95,
-        radius: 12 * DPR,
+        radius: 10,
         strokeColor: crate.glowHex,
-        strokeWidth: 1.2 * DPR,
+        strokeWidth: 1,
       });
 
       // Отрисованный кодом стилизованный компактный 3D-сундук
@@ -3850,7 +3850,7 @@ class MenuScene extends Phaser.Scene {
       chestGfx.fillCircle(0, -2, 2.5);
 
       const title = this.add
-        .text(-108, -14, crate.name, {
+        .text(-108, -16, crate.name, {
           fontFamily: UI_FONT,
           fontSize: '14.5px',
           color: '#ffffff',
@@ -3863,19 +3863,19 @@ class MenuScene extends Phaser.Scene {
           fontFamily: UI_FONT,
           fontSize: '11px',
           color: '#8492a6',
-          wordWrap: { width: 195 },
+          wordWrap: { width: 175 },
           lineSpacing: 1.5,
         })
         .setOrigin(0, 0);
 
       // КНОПКА СТРОГО "Скоро"
       const soonBtn = this.add
-        .text(124, 0, 'Скоро', {
+        .text(120, 0, 'Скоро', {
           fontFamily: UI_FONT,
           fontSize: '12px',
           color: '#94a3b8',
           backgroundColor: '#1e2433',
-          padding: { x: 8 * DPR, y: 5 * DPR },
+          padding: { x: 10, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
@@ -3884,9 +3884,9 @@ class MenuScene extends Phaser.Scene {
       roundTarget(this, soonBtn, {
         color: 0x1a2130,
         alpha: 0.95,
-        radius: 8 * DPR,
+        radius: 7,
         strokeColor: 0x334155,
-        strokeWidth: 1 * DPR,
+        strokeWidth: 1,
       });
 
       soonBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -5518,7 +5518,7 @@ class GameScene extends Phaser.Scene {
     const isBeta = host.includes('git-beta') || host.includes('beta'); // тестовый деплой
     const staff =
       this.playerRole === 'tester' || this.playerRole === 'creator' || isLocal || isBeta;
-    const show = staff && !this.isGameOver;
+    const show = (IS_BETA_BUILD || staff) && !this.isGameOver;
     if (this.cheatButton) this.cheatButton.setVisible(show);
     if (!show) {
       this.cheatOpen = false;
@@ -6510,19 +6510,27 @@ class GameScene extends Phaser.Scene {
       b.iconBase.setPosition(x, y - 14 * DPR);
       if (b.iconWeapon) b.iconWeapon.setPosition(x, y - 14 * DPR);
 
-      const nameFontSize = Math.max(8 * DPR, Math.min(10.5 * DPR, Math.floor(buttonWidth * 0.155)));
-      const costFontSize = Math.max(8.5 * DPR, Math.min(11 * DPR, Math.floor(buttonWidth * 0.165)));
-
+      const maxTextW = Math.max(30, buttonWidth - 6 * DPR);
+      let nameFs = Math.max(7 * DPR, Math.min(10.5 * DPR, Math.floor(buttonWidth * 0.155)));
       b.nameLabel.setPosition(x, y + 14 * DPR);
       b.nameLabel.setStyle({
-        fontSize: `${nameFontSize}px`,
-        wordWrap: { width: Math.max(30, buttonWidth - 4 * DPR) },
+        fontSize: `${nameFs}px`,
+        wordWrap: { width: maxTextW, useAdvancedWrap: true },
       });
+      while (nameFs > 6 * DPR && b.nameLabel.width > maxTextW) {
+        nameFs -= 0.5 * DPR;
+        b.nameLabel.setFontSize(`${nameFs}px`);
+      }
 
+      let costFs = Math.max(7.5 * DPR, Math.min(11 * DPR, Math.floor(buttonWidth * 0.165)));
       b.costLabel.setPosition(x, y + 27 * DPR);
       b.costLabel.setStyle({
-        fontSize: `${costFontSize}px`,
+        fontSize: `${costFs}px`,
       });
+      while (costFs > 6.5 * DPR && b.costLabel.width > maxTextW) {
+        costFs -= 0.5 * DPR;
+        b.costLabel.setFontSize(`${costFs}px`);
+      }
     });
     updateRoundBgs(this);
   }
@@ -6816,6 +6824,20 @@ class GameScene extends Phaser.Scene {
     this.panStart = { x: 0, y: 0 };
     this.panLast = { x: 0, y: 0 };
 
+    const onPointerDownCheck = () => {
+      const p1 = this.input.pointer1;
+      const p2 = this.input.pointer2;
+      if (p1 && p2 && p1.isDown && p2.isDown) {
+        this.twoFingerGesture = true;
+        this.isPlacing = false;
+        if (this.ghost) this.ghost.setVisible(false);
+        this.clearRangeRing();
+        this.pinchActive = false;
+        this.pinchDistance = 0;
+      }
+    };
+    this.input.on('pointerdown', onPointerDownCheck);
+
     this.input.on('pointermove', () => {
       const p1 = this.input.pointer1;
       const p2 = this.input.pointer2;
@@ -6872,7 +6894,7 @@ class GameScene extends Phaser.Scene {
       if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
         setTimeout(() => {
           this.twoFingerGesture = false;
-        }, 100);
+        }, 200);
       }
     };
     this.input.on('pointerup', resetPinch);
@@ -7991,7 +8013,10 @@ class GameScene extends Phaser.Scene {
     }
 
     // Если активен жест двумя пальцами — башня не размещается и призрак скрыт
-    if (this.twoFingerGesture || this.pinchActive) {
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (this.twoFingerGesture || this.pinchActive || (p1 && p2 && p1.isDown && p2.isDown)) {
+      this.twoFingerGesture = true;
       this.isPlacing = false;
       if (this.ghost) this.ghost.setVisible(false);
       this.clearRangeRing();
@@ -8261,7 +8286,7 @@ class GameScene extends Phaser.Scene {
       if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
         setTimeout(() => {
           this.twoFingerGesture = false;
-        }, 100);
+        }, 200);
       }
       return;
     }
