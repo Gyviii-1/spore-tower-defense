@@ -57,7 +57,7 @@
 
       let dismissed = false;
       let gameLoaded = false;
-      let initialPlaythroughDone = false;
+      let playedOnceToEnd = false;
 
       function dismissSplash() {
         if (dismissed) return;
@@ -72,47 +72,34 @@
 
       function onGameReady() {
         gameLoaded = true;
-        // Если видео уже доиграло до конца/зациклено — сразу закрываем
-        if (initialPlaythroughDone) {
+        // Закрываем только если видео уже дошло до самого конца ролика
+        if (playedOnceToEnd) {
           dismissSplash();
         }
       }
 
-      // Видео играет полностью, а последняя 1 секунда зацикливается до загрузки игры
+      function onVideoReachEnd() {
+        playedOnceToEnd = true;
+        if (gameLoaded) {
+          dismissSplash();
+        } else if (video.duration) {
+          // Игра ещё грузится — перематываем на последнюю секунду и крутим её в цикле
+          const loopStart = Math.max(0, video.duration - 1.0);
+          video.currentTime = loopStart;
+          video.play().catch(function () {});
+        }
+      }
+
       function handleVideoProgress() {
         if (!video.duration) return;
-        const loopStart = Math.max(0, video.duration - 1);
-
-        // Достигли конца первого полного воспроизведения
-        if (video.currentTime >= loopStart) {
-          initialPlaythroughDone = true;
-          if (gameLoaded) {
-            dismissSplash();
-            return;
-          }
-        }
-
-        // Если дошли до самого конца ролика — лупим последнюю секунду
-        if (video.currentTime >= video.duration - 0.08) {
-          if (gameLoaded) {
-            dismissSplash();
-          } else {
-            video.currentTime = loopStart;
-            video.play().catch(function () {});
-          }
+        // Срабатывает в самый момент достижения конца видео
+        if (video.currentTime >= video.duration - 0.06) {
+          onVideoReachEnd();
         }
       }
 
       video.addEventListener('timeupdate', handleVideoProgress);
-      video.addEventListener('ended', function () {
-        initialPlaythroughDone = true;
-        if (gameLoaded) {
-          dismissSplash();
-        } else if (video.duration) {
-          video.currentTime = Math.max(0, video.duration - 1);
-          video.play().catch(function () {});
-        }
-      });
+      video.addEventListener('ended', onVideoReachEnd);
       video.addEventListener('error', dismissSplash);
 
       // Связка с движком игры: вызывается, когда MenuScene готова
