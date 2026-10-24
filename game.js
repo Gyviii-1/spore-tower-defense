@@ -6966,11 +6966,14 @@ class GameScene extends Phaser.Scene {
     // Сброс пинча при отпускании пальца: иначе следующий жест 2 пальцами
     // берёт устаревшие distance/mid из прошлого раза и резко дёргает камеру.
     const resetPinch = () => {
+      if (!this.pinchActive && !this.twoFingerGesture) return;
       this.pinchActive = false;
       this.pinchDistance = 0;
       this.isPlacing = false;
       if (this.ghost) this.ghost.setVisible(false);
-      this.clearRangeRing();
+      if (!this.selectedTower && !this.isTowerViewMode) {
+        this.clearRangeRing();
+      }
       const p1 = this.input.pointer1;
       const p2 = this.input.pointer2;
       if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
@@ -8118,8 +8121,8 @@ class GameScene extends Phaser.Scene {
     }
 
     // Если открыто меню башни — призрак не показываем (кольцо уже от меню).
-    if (this.selectedTower) {
-      this.ghost.setVisible(false);
+    if (this.selectedTower || this.isTowerViewMode) {
+      if (this.ghost) this.ghost.setVisible(false);
       return;
     }
 
@@ -8127,8 +8130,10 @@ class GameScene extends Phaser.Scene {
     const inside = gx >= 0 && gx <= WORLD_SIZE && gy >= 0 && gy <= WORLD_SIZE;
 
     if (!type || !inside || this.isGameOver) {
-      this.ghost.setVisible(false);
-      this.clearRangeRing();
+      if (this.ghost) this.ghost.setVisible(false);
+      if (!this.selectedTower && !this.isTowerViewMode) {
+        this.clearRangeRing();
+      }
       return;
     }
 
@@ -8282,7 +8287,7 @@ class GameScene extends Phaser.Scene {
         this.isPlacing = false;
         if (this.ghost) this.ghost.setVisible(false);
       }
-      if (!this.isTowerViewMode) {
+      if (!this.isTowerViewMode && !this.selectedTower) {
         this.clearRangeRing();
       }
       this.panLast.x = pointer.x;
@@ -8308,7 +8313,9 @@ class GameScene extends Phaser.Scene {
       this.panArmed = false;
       this.panActive = false;
       if (this.ghost) this.ghost.setVisible(false);
-      this.clearRangeRing();
+      if (!this.selectedTower && !this.isTowerViewMode) {
+        this.clearRangeRing();
+      }
       if ((!p1 || !p1.isDown) && (!p2 || !p2.isDown)) {
         setTimeout(() => {
           this.twoFingerGesture = false;
