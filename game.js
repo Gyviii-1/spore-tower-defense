@@ -104,7 +104,7 @@ const TOWER_TYPES = {
     range: 3.0,
     fireRate: 2.2,
     damage: 24,
-    spreadDeg: 5.5, // увеличенный разброс (повышенный баланс)
+    accuracy: 0.90, // Точность попадания 90% (баланс TDS Scout)
     bulletSpeed: 14,
     footprint: 0.7, // размер корпуса в клетках
     weaponScale: 0.5, // во сколько раз пушка меньше корпуса
@@ -118,11 +118,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,                 // сжатие орбиты по вертикали
     gunMount: { x: 0, y: 0.1 },     // доп. сдвиг пушки (в долях клетки) — ниже
     levels: [
-      { name: 'ПМ', damage: 24, fireRate: 2.2, range: 3.0, spreadDeg: 5.5, bulletSpeed: 14, upgradeCost: 0 },
-      { name: 'Глок', damage: 32, fireRate: 2.8, range: 3.2, spreadDeg: 4.8, bulletSpeed: 15, upgradeCost: 55 },
-      { name: 'Тек-9', damage: 26, fireRate: 5.0, range: 3.2, spreadDeg: 6.8, bulletSpeed: 14, upgradeCost: 110 },
-      { name: 'Дигл', damage: 155, fireRate: 1.3, range: 3.8, spreadDeg: 3.8, bulletSpeed: 18, upgradeCost: 230 },
-      { name: 'P90', damage: 42, fireRate: 8.0, range: 3.6, spreadDeg: 5.0, bulletSpeed: 17, upgradeCost: 420 },
+      { name: 'ПМ', damage: 24, fireRate: 2.2, range: 3.0, accuracy: 0.90, bulletSpeed: 14, upgradeCost: 0 },
+      { name: 'Глок', damage: 32, fireRate: 2.8, range: 3.2, accuracy: 0.92, bulletSpeed: 15, upgradeCost: 55 },
+      { name: 'Тек-9', damage: 26, fireRate: 5.0, range: 3.2, accuracy: 0.90, bulletSpeed: 14, upgradeCost: 110 },
+      { name: 'Дигл', damage: 155, fireRate: 1.3, range: 3.8, accuracy: 0.95, bulletSpeed: 18, upgradeCost: 230 },
+      { name: 'P90', damage: 42, fireRate: 8.0, range: 3.6, accuracy: 0.92, bulletSpeed: 17, upgradeCost: 420 },
     ],
   },
   minigun: {
@@ -131,7 +131,7 @@ const TOWER_TYPES = {
     range: 3.4,
     fireRate: 6.5,
     damage: 18,
-    spreadDeg: 7.0, // ощутимый разброс автоматического огня
+    accuracy: 0.80, // Точность шквального огня 80% (TDS Minigunner)
     bulletSpeed: 15,
     footprint: 1.0,  // крупнее стрелка
     weaponScale: 0.75, // пулемёт крупнее пистолета
@@ -145,11 +145,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'АК-47', damage: 18, fireRate: 6.5, range: 3.4, spreadDeg: 7.0, bulletSpeed: 15, upgradeCost: 0 },
-      { name: 'РПК', damage: 25, fireRate: 8.0, range: 3.7, spreadDeg: 6.2, bulletSpeed: 16, upgradeCost: 130 },
-      { name: 'ПКМ', damage: 34, fireRate: 9.5, range: 4.0, spreadDeg: 5.5, bulletSpeed: 17, upgradeCost: 260 },
-      { name: 'Миниган M134', damage: 22, fireRate: 22.0, range: 4.2, spreadDeg: 8.0, bulletSpeed: 18, upgradeCost: 480 },
-      { name: 'Спаренный миниган', damage: 22, fireRate: 25.0, dualBarrels: true, range: 4.4, spreadDeg: 9.0, bulletSpeed: 18, upgradeCost: 780 },
+      { name: 'АК-47', damage: 18, fireRate: 6.5, range: 3.4, accuracy: 0.80, bulletSpeed: 15, upgradeCost: 0 },
+      { name: 'РПК', damage: 25, fireRate: 8.0, range: 3.7, accuracy: 0.82, bulletSpeed: 16, upgradeCost: 130 },
+      { name: 'ПКМ', damage: 34, fireRate: 9.5, range: 4.0, accuracy: 0.85, bulletSpeed: 17, upgradeCost: 260 },
+      { name: 'Миниган M134', damage: 22, fireRate: 22.0, range: 4.2, accuracy: 0.88, bulletSpeed: 18, upgradeCost: 480 },
+      { name: 'Спаренный миниган', damage: 18, fireRate: 20.0, dualBarrels: true, range: 4.4, accuracy: 0.90, bulletSpeed: 18, upgradeCost: 780 },
     ],
   },
   sniper: {
@@ -158,7 +158,7 @@ const TOWER_TYPES = {
     range: 5.2,
     fireRate: 0.75,
     damage: 85,
-    spreadDeg: 2.2, // снайперский разброс увеличен
+    accuracy: 1.00, // Высокоточный огонь 100% (TDS Sniper)
     onlyElevation: true, // ставится ТОЛЬКО на возвышенности
     bulletSpeed: 25,
     footprint: 0.75,
@@ -173,11 +173,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'СКС', damage: 85, fireRate: 0.75, range: 5.2, spreadDeg: 2.2, bulletSpeed: 24, upgradeCost: 0 },
-      { name: 'СВД', damage: 145, fireRate: 0.80, range: 5.5, spreadDeg: 1.8, bulletSpeed: 27, upgradeCost: 140 },
-      { name: 'ВСС Винторез', damage: 215, fireRate: 1.05, range: 5.3, spreadDeg: 1.5, bulletSpeed: 26, upgradeCost: 290 },
-      { name: 'Barrett M82', damage: 450, fireRate: 0.55, range: 6.2, spreadDeg: 1.1, bulletSpeed: 30, upgradeCost: 520 },
-      { name: 'Рельсотрон "Гарпун"', damage: 950, fireRate: 0.50, range: 7.0, spreadDeg: 0.6, bulletSpeed: 38, upgradeCost: 900 },
+      { name: 'СКС', damage: 85, fireRate: 0.75, range: 5.2, accuracy: 1.00, bulletSpeed: 24, upgradeCost: 0 },
+      { name: 'СВД', damage: 145, fireRate: 0.80, range: 5.5, accuracy: 1.00, bulletSpeed: 27, upgradeCost: 140 },
+      { name: 'ВСС Винторез', damage: 215, fireRate: 1.05, range: 5.3, accuracy: 1.00, bulletSpeed: 26, upgradeCost: 290 },
+      { name: 'Barrett M82', damage: 480, fireRate: 0.65, range: 6.2, accuracy: 1.00, bulletSpeed: 30, upgradeCost: 520 },
+      { name: 'Рельсотрон "Гарпун"', damage: 1000, fireRate: 0.55, range: 7.0, accuracy: 1.00, bulletSpeed: 38, upgradeCost: 900 },
     ],
   },
   disinfector: {
@@ -186,7 +186,7 @@ const TOWER_TYPES = {
     range: 3.0,
     fireRate: 1.5,
     damage: 16,
-    spreadDeg: 0,
+    accuracy: 1.00, // Аэрозольное поле 100%
     cureChance: 0.10,
     splashRadius: 1.3,
     sprayCone: (42 * Math.PI) / 180,
@@ -202,11 +202,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Аэрозоль', damage: 16, splashRadius: 1.3, cureChance: 0.10, fireRate: 1.5, range: 3.0, upgradeCost: 0 },
-      { name: 'Опрыскиватель', damage: 25, splashRadius: 1.4, cureChance: 0.14, fireRate: 2.4, range: 3.2, upgradeCost: 90 },
-      { name: 'Газомёт', damage: 38, splashRadius: 1.6, cureChance: 0.18, fireRate: 3.8, range: 3.5, upgradeCost: 180 },
-      { name: 'Химраспылитель', damage: 58, splashRadius: 1.7, cureChance: 0.24, fireRate: 6.2, range: 3.8, upgradeCost: 350 },
-      { name: 'Био-очиститель', damage: 125, splashRadius: 2.0, cureChance: 0.32, continuous: true, fireRate: 0, range: 4.2, upgradeCost: 620 },
+      { name: 'Аэрозоль', damage: 16, splashRadius: 1.3, cureChance: 0.10, accuracy: 1.00, fireRate: 1.5, range: 3.0, upgradeCost: 0 },
+      { name: 'Опрыскиватель', damage: 25, splashRadius: 1.4, cureChance: 0.14, accuracy: 1.00, fireRate: 2.4, range: 3.2, upgradeCost: 90 },
+      { name: 'Газомёт', damage: 38, splashRadius: 1.6, cureChance: 0.18, accuracy: 1.00, fireRate: 3.8, range: 3.5, upgradeCost: 180 },
+      { name: 'Химраспылитель', damage: 58, splashRadius: 1.7, cureChance: 0.24, accuracy: 1.00, fireRate: 6.2, range: 3.8, upgradeCost: 350 },
+      { name: 'Био-очиститель', damage: 500, splashRadius: 2.0, cureChance: 0.32, accuracy: 1.00, continuous: true, fireRate: 0, range: 4.2, upgradeCost: 620 },
     ],
   },
   tesla: {
@@ -215,7 +215,7 @@ const TOWER_TYPES = {
     range: 3.0,
     fireRate: 1.15,
     damage: 34,
-    spreadDeg: 0,
+    accuracy: 1.00, // Электрическая дуга 100%
     chainCount: 2,
     chainRange: 2.5,
     footprint: 0.8,
@@ -230,11 +230,11 @@ const TOWER_TYPES = {
     gunOrbitY: 0.5,
     gunMount: { x: 0, y: 0.1 },
     levels: [
-      { name: 'Разрядник', damage: 34, chainCount: 2, fireRate: 1.15, range: 3.0, upgradeCost: 0 },
-      { name: 'Трансформатор', damage: 50, chainCount: 2, fireRate: 1.25, range: 3.2, upgradeCost: 120 },
-      { name: 'Катушка Тесла', damage: 72, chainCount: 3, fireRate: 1.35, range: 3.5, upgradeCost: 250 },
-      { name: 'Плазмотрон', damage: 104, chainCount: 3, fireRate: 1.50, range: 3.8, upgradeCost: 450 },
-      { name: 'Громовержец', damage: 155, chainCount: 4, fireRate: 1.70, range: 4.2, upgradeCost: 720 },
+      { name: 'Разрядник', damage: 34, chainCount: 2, accuracy: 1.00, fireRate: 1.15, range: 3.0, upgradeCost: 0 },
+      { name: 'Трансформатор', damage: 50, chainCount: 2, accuracy: 1.00, fireRate: 1.25, range: 3.2, upgradeCost: 120 },
+      { name: 'Катушка Тесла', damage: 72, chainCount: 3, accuracy: 1.00, fireRate: 1.35, range: 3.5, upgradeCost: 250 },
+      { name: 'Плазмотрон', damage: 105, chainCount: 3, accuracy: 1.00, fireRate: 1.50, range: 3.8, upgradeCost: 450 },
+      { name: 'Громовержец', damage: 160, chainCount: 4, accuracy: 1.00, fireRate: 1.75, range: 4.2, upgradeCost: 720 },
     ],
   },
 };
@@ -243,23 +243,23 @@ const TOWER_TYPES = {
 const TOWER_EXTRA_INFO = {
   gunner: {
     role: 'Стрелковый пост · Одиночный и полуавтоматический огонь',
-    traitDesc: 'Армейские пистолеты и PDW. Разброс (3.8°–6.8°). На 4 ур. — крупнокалиберный Desert Eagle (.50 AE), на 5 ур. — FN P90 (8 выстр/с).',
+    traitDesc: 'Армейские пистолеты и PDW. Высокая точность (90%–95%). На 4 ур. — крупнокалиберный Desert Eagle (.50 AE), на 5 ур. — FN P90 (8 выстр/с).',
   },
   minigun: {
     role: 'Тяжёлый пулемётчик · Заградительный шквал огня',
-    traitDesc: 'Автоматы и пулемёты до 25 выстр/с. Разброс (5.5°–9°). Эффективен на ближней дистанции. На 4 ур. — M134, на 5 ур. — спаренная турель.',
+    traitDesc: 'Автоматы и пулемёты до 25 выстр/с. Плотный огонь (точность 80%–90%). На 4 ур. — M134, на 5 ур. — спаренная турель.',
   },
   sniper: {
     role: 'Высокоточный пост · Ставится ТОЛЬКО на возвышенностях',
-    traitDesc: 'Экстремальная дальность. Требует высотной позиции на карте! Разброс (0.6°–2.2°). На 4 ур. — Barrett .50 BMG, на 5 ур. — рельсотрон.',
+    traitDesc: 'Экстремальная дальность и 100% точность. Требует высотной позиции на карте! На 4 ур. — Barrett .50 BMG, на 5 ур. — рельсотрон.',
   },
   disinfector: {
     role: 'Санитарный комплекс · Аэрозольная дезинфекция',
-    traitDesc: 'Распыляет химикаты в секторе, нанося урон сквозь броню. Способен излечивать заражённых. На 5 ур. генерирует сплошной поток.',
+    traitDesc: 'Распыляет химикаты в секторе со 100% точностью, нанося урон сквозь броню. Способен излечивать заражённых. На 5 ур. генерирует сплошной поток.',
   },
   tesla: {
     role: 'Энергетический генератор · Цепной разряд',
-    traitDesc: 'Бьёт электрической дугой высокого напряжения, перескакивающей между целями (до 4 мутантов). Мгновенное поражение.',
+    traitDesc: 'Бьёт электрической дугой со 100% точностью, перескакивающей между целями (до 4 мутантов). Мгновенное поражение.',
   },
 };
 
@@ -1629,10 +1629,10 @@ function distToSegment(px, py, x1, y1, x2, y2) {
 }
 
 // ------------------------------ Снаряд ------------------------------
-// Баллистический снаряд: летит по прямой линии с реалистичным физическим разбросом.
-// Чем дальше цель, тем шире конус рассеивания и тем труднее попасть.
+// Баллистический снаряд: летит по прямой траектории с расчётом процента точности (Accuracy).
+// При точном выстреле гарантированно поражает цель; при промахе отклоняется и выводит MISS.
 class Projectile extends Phaser.GameObjects.Arc {
-  constructor(scene, x, y, angle, speed, maxDistance, damage = PROJECTILE_DAMAGE, tower = null) {
+  constructor(scene, x, y, angle, speed, maxDistance, damage = PROJECTILE_DAMAGE, tower = null, isMiss = false, targetEnemy = null) {
     const isRailgun = tower && tower.typeKey === 'sniper' && tower.level === 5;
     const isSniper = tower && tower.typeKey === 'sniper';
     const bulletRadius = isRailgun
@@ -1649,13 +1649,17 @@ class Projectile extends Phaser.GameObjects.Arc {
     this.distanceTraveled = 0;
     this.damage = damage;
     this.tower = tower;
+    this.isMiss = isMiss;
+    this.targetEnemy = targetEnemy;
     this.hitRadius = Math.max(10 * DPR, 11);
+    this.missTriggerDist = targetEnemy ? Math.hypot(targetEnemy.x - x, targetEnemy.y - y) : maxDistance * 0.5;
+    this.hasShownMiss = false;
 
     scene.add.existing(this);
     this.setDepth(50); // снаряды поверх мира (ниже UI 90+)
   }
 
-  // Физический прямолинейный полёт пули и непрерывная проверка попадания в хитбоксы врагов
+  // Полёт пули: надёжное попадание при точном выстреле и визуальный увод с текстом MISS при промахе
   flyToTarget(delta) {
     const dt = delta / 1000;
     const step = this.speed * dt;
@@ -1663,9 +1667,44 @@ class Projectile extends Phaser.GameObjects.Arc {
     const prevX = this.x;
     const prevY = this.y;
 
+    // При точном выстреле (!this.isMiss) снаряд уверенно наводится на ведущую цель,
+    // исключая промахи из-за времени полёта по быстрым врагам (классическая TDS точность)
+    if (!this.isMiss && this.targetEnemy && this.targetEnemy.active && !this.targetEnemy.isDead && !this.targetEnemy.isCured) {
+      const enemyRadius = (this.targetEnemy.sizeFactor ? this.targetEnemy.sizeFactor * ISO_HW * 0.55 : 18);
+      const hitThreshold = enemyRadius + this.hitRadius;
+      const distToTarget = Math.hypot(this.targetEnemy.x - this.x, this.targetEnemy.y - this.y);
+
+      if (distToTarget <= hitThreshold || distToTarget <= step) {
+        this.x = this.targetEnemy.x;
+        this.y = this.targetEnemy.y;
+        this.targetEnemy.takeDamage(this.damage);
+        if (this.scene.createHitSpark) {
+          this.scene.createHitSpark(this.x, this.y);
+        }
+        this.destroy();
+        return;
+      }
+
+      const toAngle = Math.atan2(this.targetEnemy.y - this.y, this.targetEnemy.x - this.x);
+      this.vx = Math.cos(toAngle) * this.speed;
+      this.vy = Math.sin(toAngle) * this.speed;
+    }
+
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.distanceTraveled += step;
+
+    // При промахе: когда пуля преодолевает дистанцию до цели, отображаем всплывающий текст 'MISS'
+    if (this.isMiss && !this.hasShownMiss && this.distanceTraveled >= this.missTriggerDist) {
+      this.hasShownMiss = true;
+      const target = this.targetEnemy;
+      if (target && target.active && !target.isDead && !target.isCured) {
+        if (this.scene.showFloatingText && (!target._lastMissText || Date.now() - target._lastMissText > 220)) {
+          target._lastMissText = Date.now();
+          this.scene.showFloatingText(target.x, target.y - 12 * DPR, 'MISS', '#94a3b8');
+        }
+      }
+    }
 
     // Проверяем непрерывное физическое попадание вдоль отрезка полёта пули
     let hitEnemy = null;
@@ -1685,6 +1724,15 @@ class Projectile extends Phaser.GameObjects.Arc {
     }
 
     if (hitEnemy) {
+      if (this.isMiss) {
+        // Промах: пуля задела врага на излёте, но урон не наносится
+        if (this.scene.showFloatingText && (!hitEnemy._lastMissText || Date.now() - hitEnemy._lastMissText > 220)) {
+          hitEnemy._lastMissText = Date.now();
+          this.scene.showFloatingText(hitEnemy.x, hitEnemy.y - 12 * DPR, 'MISS', '#94a3b8');
+        }
+        this.destroy();
+        return;
+      }
       hitEnemy.takeDamage(this.damage);
       if (this.scene.createHitSpark) {
         this.scene.createHitSpark(this.x, this.y);
@@ -1695,6 +1743,13 @@ class Projectile extends Phaser.GameObjects.Arc {
 
     // Достигли предельной дистанции полёта или улетели за экран
     if (this.distanceTraveled >= this.maxDistance) {
+      if (this.isMiss && !this.hasShownMiss && this.targetEnemy && this.targetEnemy.active && !this.targetEnemy.isDead && !this.targetEnemy.isCured) {
+        this.hasShownMiss = true;
+        if (this.scene.showFloatingText && (!this.targetEnemy._lastMissText || Date.now() - this.targetEnemy._lastMissText > 220)) {
+          this.targetEnemy._lastMissText = Date.now();
+          this.scene.showFloatingText(this.targetEnemy.x, this.targetEnemy.y - 12 * DPR, 'MISS', '#94a3b8');
+        }
+      }
       this.destroy();
     }
   }
@@ -1721,8 +1776,7 @@ class Tower {
     this.range = lvl1 ? lvl1.range : type.range;         // радиус атаки, клеток
     this.fireRate = lvl1 ? lvl1.fireRate : type.fireRate;   // выстрелов в секунду
     this.damage = lvl1 ? lvl1.damage : type.damage;       // урон за выстрел
-    this.spreadDeg = lvl1 && lvl1.spreadDeg !== undefined ? lvl1.spreadDeg : (type.spreadDeg !== undefined ? type.spreadDeg : 2.0);
-    this.spreadRad = (this.spreadDeg * Math.PI) / 180;
+    this.accuracy = lvl1 && lvl1.accuracy !== undefined ? lvl1.accuracy : (type.accuracy !== undefined ? type.accuracy : 1.0);
     this.bulletSpeed = lvl1 && lvl1.bulletSpeed !== undefined ? lvl1.bulletSpeed : (type.bulletSpeed || 14);
     this.cureChance = lvl1 && lvl1.cureChance !== undefined ? lvl1.cureChance : (type.cureChance || 0);
     this.sprayCone = lvl1 && lvl1.sprayCone !== undefined ? lvl1.sprayCone : (type.sprayCone || null);
@@ -1833,8 +1887,7 @@ class Tower {
       this.range = lvl.range;
       this.fireRate = lvl.fireRate !== undefined ? lvl.fireRate : this.config.fireRate;
       this.damage = lvl.damage;
-      this.spreadDeg = lvl.spreadDeg !== undefined ? lvl.spreadDeg : (this.config.spreadDeg !== undefined ? this.config.spreadDeg : 2.0);
-      this.spreadRad = (this.spreadDeg * Math.PI) / 180;
+      this.accuracy = lvl.accuracy !== undefined ? lvl.accuracy : (this.config.accuracy !== undefined ? this.config.accuracy : 1.0);
       this.bulletSpeed = lvl.bulletSpeed !== undefined ? lvl.bulletSpeed : (this.config.bulletSpeed || 14);
       this.cureChance = lvl.cureChance !== undefined ? lvl.cureChance : (this.config.cureChance || 0);
       this.sprayCone = lvl.sprayCone !== undefined ? lvl.sprayCone : (this.config.sprayCone || null);
@@ -1970,18 +2023,21 @@ class Tower {
     }
 
     const baseAngle = Math.atan2(target.y - pos.y, target.x - pos.x);
-    const spreadRad = this.spreadRad || ((this.spreadDeg || 2.0) * Math.PI / 180);
+    const accuracy = this.accuracy !== undefined ? this.accuracy : 1.0;
+    const isHit = Math.random() <= accuracy;
 
-    const u1 = Math.random() || 0.0001;
-    const u2 = Math.random();
-    const randStd = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-    const spreadOffset = Phaser.Math.Clamp(randStd * (spreadRad / 2.6), -spreadRad * 0.7, spreadRad * 0.7);
-    const shotAngle = baseAngle + spreadOffset;
+    // При точном выстреле снаряд летит прямо в цель; при промахе отклоняется в сторону
+    let shotAngle = baseAngle;
+    if (!isHit) {
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const deflection = (0.16 + Math.random() * 0.10) * side;
+      shotAngle = baseAngle + deflection;
+    }
 
     const bulletSpeed = (this.bulletSpeed || 14) * ISO_HW;
     const rangePx = this.range * ISO_HW * Math.SQRT2 * 1.15;
 
-    const projectile = new Projectile(this.scene, pos.x, pos.y, shotAngle, bulletSpeed, rangePx, this.damage, this);
+    const projectile = new Projectile(this.scene, pos.x, pos.y, shotAngle, bulletSpeed, rangePx, this.damage, this, !isHit, target);
     this.scene.projectiles.push(projectile);
   }
 
@@ -2033,24 +2089,22 @@ class Tower {
     const rightX = pos.x - Math.cos(perpAngle) * barrelSpacing;
     const rightY = pos.y - Math.sin(perpAngle) * barrelSpacing * (ISO_HH / ISO_HW);
 
-    const spreadRad = this.spreadRad || ((this.spreadDeg || 2.0) * Math.PI / 180);
+    const accuracy = this.accuracy !== undefined ? this.accuracy : 1.0;
     const bulletSpeed = (this.bulletSpeed || 14) * ISO_HW;
     const rangePx = this.range * ISO_HW * Math.SQRT2 * 1.15;
 
     // Ствол 1 (левый)
+    const isHit1 = Math.random() <= accuracy;
     const baseAngle1 = Math.atan2(target.y - leftY, target.x - leftX);
-    const u1 = Math.random() || 0.0001;
-    const u2 = Math.random();
-    const dev1 = Phaser.Math.Clamp(Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * (spreadRad / 2.6), -spreadRad * 0.7, spreadRad * 0.7);
-    const p1 = new Projectile(this.scene, leftX, leftY, baseAngle1 + dev1, bulletSpeed, rangePx, this.damage, this);
+    const shotAngle1 = isHit1 ? baseAngle1 : baseAngle1 + (Math.random() < 0.5 ? 1 : -1) * (0.16 + Math.random() * 0.10);
+    const p1 = new Projectile(this.scene, leftX, leftY, shotAngle1, bulletSpeed, rangePx, this.damage, this, !isHit1, target);
     this.scene.projectiles.push(p1);
 
     // Ствол 2 (правый)
+    const isHit2 = Math.random() <= accuracy;
     const baseAngle2 = Math.atan2(target.y - rightY, target.x - rightX);
-    const u3 = Math.random() || 0.0001;
-    const u4 = Math.random();
-    const dev2 = Phaser.Math.Clamp(Math.sqrt(-2 * Math.log(u3)) * Math.cos(2 * Math.PI * u4) * (spreadRad / 2.6), -spreadRad * 0.7, spreadRad * 0.7);
-    const p2 = new Projectile(this.scene, rightX, rightY, baseAngle2 + dev2, bulletSpeed, rangePx, this.damage, this);
+    const shotAngle2 = isHit2 ? baseAngle2 : baseAngle2 + (Math.random() < 0.5 ? 1 : -1) * (0.16 + Math.random() * 0.10);
+    const p2 = new Projectile(this.scene, rightX, rightY, shotAngle2, bulletSpeed, rangePx, this.damage, this, !isHit2, target);
     this.scene.projectiles.push(p2);
   }
 
@@ -2523,11 +2577,11 @@ class MenuScene extends Phaser.Scene {
   updateLobbyControls() {
     const mapDef = GAME_MAPS[this.selectedMap] || GAME_MAPS.lab;
     if (this.mapTitle) this.mapTitle.setText(mapDef.name);
-    if (this.mapDesc) this.mapDesc.setText(mapDef.desc);
+    if (this.mapDesc) this.mapDesc.setText('').setVisible(false);
 
     const elevCount = (mapDef.elevations && mapDef.elevations.length) || 0;
     if (this.mapStatsText) {
-      this.mapStatsText.setText(`🏔️ Возвышенности: ${elevCount} позиции · 🎯 Зона снайпера · 35 волн`);
+      this.mapStatsText.setText(`Возвышенности: ${elevCount} · 35 волн`);
     }
 
     if (this.mapBoxBg && this.mapBoxW && this.mapBoxH) {
@@ -2542,7 +2596,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     const diffDef = GAME_DIFFICULTIES[this.selectedDifficulty] || GAME_DIFFICULTIES.medium;
-    if (this.diffDesc) this.diffDesc.setText(diffDef.desc);
+    if (this.diffDesc) this.diffDesc.setText('').setVisible(false);
 
     if (this.diffButtons) {
       for (const k in this.diffButtons) {
@@ -2765,8 +2819,8 @@ class MenuScene extends Phaser.Scene {
     if (this.towerDetailModal && this.towerDetailModal.visible && this.selectedTowerKey === key) {
       this.renderTowerDetail();
     }
-    if (this.scale) {
-      this.layoutUI(this.scale.width, this.scale.height);
+    if (typeof this.layout === 'function') {
+      this.layout();
     }
   }
 
@@ -2779,7 +2833,7 @@ class MenuScene extends Phaser.Scene {
 
     const deck = getPlayerDeck();
     if (this.inventorySubtitle) {
-      this.inventorySubtitle.setText(`Боевой набор: ${deck.length}/${MAX_DECK_SLOTS} башен · Нажмите турель для деталей`);
+      this.inventorySubtitle.setText(`Боевой набор: ${deck.length}/${MAX_DECK_SLOTS}`);
     }
 
     for (const key in TOWER_TYPES) {
@@ -2873,6 +2927,19 @@ class MenuScene extends Phaser.Scene {
       this.inventoryPage.add(row);
       this.inventoryRows.push(row);
     }
+
+    if (this.scale && this.scale.width && this.inventoryRows && this.inventoryRows.length) {
+      const width = this.scale.width;
+      const height = this.scale.height;
+      const maxRowScale = width >= 600 ? 1.45 * DPR : 1.15 * DPR;
+    const rowScale = Math.min((width * 0.90) / 320, maxRowScale);
+      const rowStep = 78 * rowScale + 8 * DPR;
+      const invStart = height * 0.16 + (39 * rowScale);
+      this.inventoryRows.forEach((r, idx) => {
+        r.setPosition(width / 2, invStart + idx * rowStep);
+        r.setScale(rowScale);
+      });
+    }
   }
 
   createTowerDetailModal() {
@@ -2924,8 +2991,34 @@ class MenuScene extends Phaser.Scene {
     const extra = TOWER_EXTRA_INFO[typeKey] || { role: '', traitDesc: '' };
 
     const { width, height } = this.scale;
-    const cardW = Math.min(width * 0.94, 440 * DPR);
-    const cardH = Math.min(height * 0.84, 580 * DPR);
+    const isDesktop = width >= 600;
+
+    // Адаптивный масштаб для ПК / десктопа, чтобы карточка и текст не были крошечными
+    const maxAvailableW = Math.min(width * 0.94, isDesktop ? 580 * DPR : 440 * DPR);
+    const maxAvailableH = Math.min(height * 0.90, isDesktop ? 760 * DPR : 620 * DPR);
+    const scale = Math.max(1, Math.min(1.35, Math.min(maxAvailableW / (390 * DPR), maxAvailableH / (530 * DPR))));
+
+    const pad = Math.round(16 * scale * DPR);
+    const cardW = Math.round(Math.min(maxAvailableW, Math.max(350 * DPR, 420 * scale * DPR)));
+    const traitW = cardW - pad * 2;
+
+    const iconSize = Math.round(58 * scale * DPR);
+    const btnW = cardW - pad * 2;
+    const btnH = Math.round(38 * scale * DPR);
+    const statTileH = Math.round(50 * scale * DPR);
+    const traitH = Math.round(44 * scale * DPR);
+    const levelRowH = Math.round(38 * scale * DPR);
+    const levelRowGap = Math.round(5 * scale * DPR);
+
+    const relBtnY = pad + iconSize + Math.round(14 * scale * DPR);
+    const relStatsY = relBtnY + btnH + Math.round(10 * scale * DPR);
+    const relTraitY = relStatsY + statTileH + Math.round(8 * scale * DPR);
+    const relLevelsHeaderY = relTraitY + traitH + Math.round(12 * scale * DPR);
+    const relLevelsStartY = relLevelsHeaderY + Math.round(18 * scale * DPR);
+    const levelsCount = type.levels ? type.levels.length : 0;
+    const totalContentH = relLevelsStartY + levelsCount * (levelRowH + levelRowGap) - levelRowGap + pad;
+
+    const cardH = Math.round(totalContentH);
     const cardX = Math.round(width / 2 - cardW / 2);
     const cardY = Math.round(height / 2 - cardH / 2);
 
@@ -2937,27 +3030,26 @@ class MenuScene extends Phaser.Scene {
 
     // Внешняя карточка
     g.fillStyle(0x131722, 0.98);
-    g.fillRoundedRect(cardX, cardY, cardW, cardH, 16 * DPR);
-    g.lineStyle(1.5 * DPR, 0x252d40, 1);
-    g.strokeRoundedRect(cardX, cardY, cardW, cardH, 16 * DPR);
+    g.fillRoundedRect(cardX, cardY, cardW, cardH, 16 * scale * DPR);
+    g.lineStyle(1.5 * scale * DPR, 0x252d40, 1);
+    g.strokeRoundedRect(cardX, cardY, cardW, cardH, 16 * scale * DPR);
 
     const curLevel = Phaser.Math.Clamp(this.selectedDetailLevel || 1, 1, 5);
     const curLevelData = (type.levels && type.levels[curLevel - 1]) || null;
     const curWeaponName = curLevelData ? curLevelData.name : '';
 
     // Шапка: Иконка (показывает пушку текущего выбранного уровня)
-    const iconSize = 56 * DPR;
-    const iconX = cardX + 16 * DPR;
-    const iconY = cardY + 16 * DPR;
+    const iconX = cardX + pad;
+    const iconY = cardY + pad;
 
     g.fillStyle(0x1b2030, 0.95);
-    g.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
-    g.lineStyle(1.5 * DPR, 0x3498db, 1);
-    g.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10 * DPR);
+    g.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10 * scale * DPR);
+    g.lineStyle(1.5 * scale * DPR, 0x3498db, 1);
+    g.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10 * scale * DPR);
 
     const baseKey = this.getBaseTextureKey(typeKey) || type.texture;
     if (baseKey) {
-      const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 10 * DPR, iconSize - 10 * DPR);
+      const baseImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, baseKey).setDisplaySize(iconSize - 10 * scale * DPR, iconSize - 10 * scale * DPR);
       const equippedSkin = getEquippedTowerSkin(typeKey);
       if (equippedSkin && equippedSkin.tint !== null && equippedSkin.tint !== undefined) {
         baseImg.setTint(equippedSkin.tint);
@@ -2966,36 +3058,37 @@ class MenuScene extends Phaser.Scene {
     }
     const weaponKey = this.getWeaponTextureKey(typeKey, curLevel);
     if (weaponKey) {
-      const gunImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, weaponKey).setDisplaySize(iconSize - 10 * DPR, iconSize - 10 * DPR);
+      const gunImg = this.add.image(iconX + iconSize / 2, iconY + iconSize / 2, weaponKey).setDisplaySize(iconSize - 10 * scale * DPR, iconSize - 10 * scale * DPR);
       this.detailElements.add(gunImg);
     }
 
     // Название башни и текущее просматриваемое оружие
-    const titleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 3 * DPR, type.name, {
+    const titleText = this.add.text(iconX + iconSize + 14 * scale * DPR, iconY + 3 * scale * DPR, type.name, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(18 * DPR)}px`,
+      fontSize: `${Math.round(20 * scale * DPR)}px`,
       color: '#ffffff',
       fontStyle: 'bold',
     });
 
-    const weaponTag = this.add.text(iconX + iconSize + 12 * DPR, iconY + 25 * DPR, `Оружие: ${curWeaponName} (${curLevel} ур.)`, {
+    const weaponTag = this.add.text(iconX + iconSize + 14 * scale * DPR, iconY + 28 * scale * DPR, `Оружие: ${curWeaponName} (${curLevel} ур.)`, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(12 * DPR)}px`,
+      fontSize: `${Math.round(13 * scale * DPR)}px`,
       color: '#4ea8de',
       fontStyle: 'bold',
     });
 
-    const subtitleText = this.add.text(iconX + iconSize + 12 * DPR, iconY + 44 * DPR, extra.role, {
+    const subtitleText = this.add.text(iconX + iconSize + 14 * scale * DPR, iconY + 49 * scale * DPR, extra.role, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(11 * DPR)}px`,
+      fontSize: `${Math.round(11.5 * scale * DPR)}px`,
       color: '#8b98aa',
+      wordWrap: { width: cardW - iconSize - 40 * scale * DPR },
     });
     this.detailElements.add([titleText, weaponTag, subtitleText]);
 
     // Кнопка закрытия ✕
-    const closeBtn = this.add.text(cardX + cardW - 22 * DPR, cardY + 22 * DPR, '✕', {
+    const closeBtn = this.add.text(cardX + cardW - 22 * scale * DPR, cardY + 22 * scale * DPR, '✕', {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(20 * DPR)}px`,
+      fontSize: `${Math.round(22 * scale * DPR)}px`,
       color: '#8b98aa',
       padding: { x: 8 * DPR, y: 8 * DPR },
     })
@@ -3013,26 +3106,24 @@ class MenuScene extends Phaser.Scene {
     // Слот-кнопка боевого набора (макс 5 башен в бой)
     const deck = getPlayerDeck();
     const inDeck = deck.includes(typeKey);
-    const btnW = cardW - 32 * DPR;
-    const btnH = 34 * DPR;
-    const btnY = cardY + iconSize + 22 * DPR;
-    const btnX = cardX + 16 * DPR;
+    const btnY = cardY + relBtnY;
+    const btnX = cardX + pad;
 
     const deckBtnColor = inDeck ? '#4ade80' : '#ffffff';
     const deckBgColor = inDeck ? 0x142b20 : 0x1b2333;
     const deckStrokeColor = inDeck ? 0x22c55e : 0x334155;
     const deckBtnText = inDeck
-      ? `✓ В БОЕВОМ НАБОРЕ (${deck.length}/${MAX_DECK_SLOTS}) · НАЖМИТЕ ДЛЯ СНЯТИЯ`
-      : `+ ВЗЯТЬ В БОЙ (${deck.length}/${MAX_DECK_SLOTS} СЛОТОВ)`;
+      ? `✓ В БОЕВОМ НАБОРЕ (${deck.length}/${MAX_DECK_SLOTS})`
+      : `+ ВЗЯТЬ В БОЙ (${deck.length}/${MAX_DECK_SLOTS})`;
 
     g.fillStyle(deckBgColor, 0.95);
-    g.fillRoundedRect(btnX, btnY, btnW, btnH, 8 * DPR);
-    g.lineStyle(1.2 * DPR, deckStrokeColor, 1);
-    g.strokeRoundedRect(btnX, btnY, btnW, btnH, 8 * DPR);
+    g.fillRoundedRect(btnX, btnY, btnW, btnH, 8 * scale * DPR);
+    g.lineStyle(1.2 * scale * DPR, deckStrokeColor, 1);
+    g.strokeRoundedRect(btnX, btnY, btnW, btnH, 8 * scale * DPR);
 
     const deckText = this.add.text(btnX + btnW / 2, btnY + btnH / 2, deckBtnText, {
       fontFamily: UI_FONT,
-      fontSize: `${Math.round(12 * DPR)}px`,
+      fontSize: `${Math.round(13 * scale * DPR)}px`,
       color: deckBtnColor,
       fontStyle: 'bold',
     }).setOrigin(0.5);
@@ -3045,175 +3136,170 @@ class MenuScene extends Phaser.Scene {
     });
     this.detailElements.add([deckText, deckZone]);
 
-    const tabY = btnY;
-    const tabH = btnH;
-    const traitW = cardW - 32 * DPR;
-      // 4 быстрые характеристики (показывают статы выбранного уровня оружия)
-      const statsY = tabY + tabH + 12 * DPR;
-      const statTileW = (cardW - 32 * DPR - 3 * 6 * DPR) / 4;
-      const statTileH = 46 * DPR;
+    // 4 быстрые характеристики (показывают статы выбранного уровня оружия)
+    const statsY = cardY + relStatsY;
+    const statGap = Math.round(6 * scale * DPR);
+    const statTileW = (cardW - pad * 2 - 3 * statGap) / 4;
 
-      const displayDmg = curLevelData
-        ? (curLevelData.dualBarrels ? `${curLevelData.damage}x2` : `${curLevelData.damage}`)
-        : `${type.damage}`;
-      const displayFr = curLevelData
-        ? (curLevelData.continuous ? 'Струя' : `${curLevelData.fireRate}/с`)
-        : (type.fireRate ? `${type.fireRate}/с` : 'Струя');
-      const displayRange = curLevelData ? `${curLevelData.range}` : `${type.range}`;
-      const isTesla = typeKey === 'tesla';
-      const isDisinfector = typeKey === 'disinfector';
-      const fourthLabel = isTesla ? 'ЦЕПЕЙ' : (isDisinfector ? 'СПЛЕШ' : 'РАЗБРОС');
-      const fourthVal = isTesla
-        ? `${curLevelData ? curLevelData.chainCount : (type.chainCount || 2)}`
-        : (isDisinfector
-            ? `${(curLevelData ? curLevelData.splashRadius : (type.splashRadius || 1.2)).toFixed(1)}`
-            : (curLevelData ? `${(curLevelData.spreadDeg !== undefined ? curLevelData.spreadDeg : type.spreadDeg).toFixed(1)}°` : `${(type.spreadDeg || 2.0).toFixed(1)}°`));
+    const displayDmg = curLevelData
+      ? (curLevelData.dualBarrels ? `${curLevelData.damage}x2` : `${curLevelData.damage}`)
+      : `${type.damage}`;
+    const displayFr = curLevelData
+      ? (curLevelData.continuous ? 'Струя' : `${curLevelData.fireRate}/с`)
+      : (type.fireRate ? `${type.fireRate}/с` : 'Струя');
+    const displayRange = curLevelData ? `${curLevelData.range}` : `${type.range}`;
+    const isTesla = typeKey === 'tesla';
+    const isDisinfector = typeKey === 'disinfector';
+    const fourthLabel = isTesla ? 'ЦЕПЕЙ' : (isDisinfector ? 'СПЛЕШ' : 'ТОЧНОСТЬ');
+    const fourthVal = isTesla
+      ? `${curLevelData ? curLevelData.chainCount : (type.chainCount || 2)}`
+      : (isDisinfector
+          ? `${(curLevelData ? curLevelData.splashRadius : (type.splashRadius || 1.2)).toFixed(1)}`
+          : `${Math.round(((curLevelData && curLevelData.accuracy !== undefined) ? curLevelData.accuracy : (type.accuracy !== undefined ? type.accuracy : 1.0)) * 100)}%`);
 
-      const statsList = [
-        { label: 'УРОН', val: displayDmg, color: '#ff4d5e' },
-        { label: 'ВЫСТР/С', val: displayFr, color: '#3498db' },
-        { label: 'РАДИУС', val: displayRange, color: '#f1c40f' },
-        { label: fourthLabel, val: fourthVal, color: '#2ecc71' },
-      ];
-      statsList.forEach((st, idx) => {
-        const tileX = cardX + 16 * DPR + idx * (statTileW + 6 * DPR);
-        g.fillStyle(0x161b26, 0.95);
-        g.fillRoundedRect(tileX, statsY, statTileW, statTileH, 7 * DPR);
-        g.lineStyle(1 * DPR, 0x242d3e, 1);
-        g.strokeRoundedRect(tileX, statsY, statTileW, statTileH, 7 * DPR);
+    const statsList = [
+      { label: 'УРОН', val: displayDmg, color: '#ff4d5e' },
+      { label: 'ВЫСТР/С', val: displayFr, color: '#3498db' },
+      { label: 'РАДИУС', val: displayRange, color: '#f1c40f' },
+      { label: fourthLabel, val: fourthVal, color: '#2ecc71' },
+    ];
+    statsList.forEach((st, idx) => {
+      const tileX = cardX + pad + idx * (statTileW + statGap);
+      g.fillStyle(0x161b26, 0.95);
+      g.fillRoundedRect(tileX, statsY, statTileW, statTileH, 7 * scale * DPR);
+      g.lineStyle(1 * scale * DPR, 0x242d3e, 1);
+      g.strokeRoundedRect(tileX, statsY, statTileW, statTileH, 7 * scale * DPR);
 
-        const lbl = this.add.text(tileX + statTileW / 2, statsY + 12 * DPR, st.label, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(10 * DPR)}px`,
-          color: '#707e94',
-          fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        const val = this.add.text(tileX + statTileW / 2, statsY + 31 * DPR, st.val, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(15 * DPR)}px`,
-          color: st.color,
-          fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        this.detailElements.add([lbl, val]);
-      });
-
-      // Особенность башни
-      const traitY = statsY + statTileH + 8 * DPR;
-      const traitH = 40 * DPR;
-      g.fillStyle(0x151b27, 0.95);
-      g.fillRoundedRect(cardX + 16 * DPR, traitY, traitW, traitH, 7 * DPR);
-      g.lineStyle(1 * DPR, 0x273247, 1);
-      g.strokeRoundedRect(cardX + 16 * DPR, traitY, traitW, traitH, 7 * DPR);
-
-      const traitText = this.add.text(cardX + 24 * DPR, traitY + traitH / 2, extra.traitDesc, {
+      const lbl = this.add.text(tileX + statTileW / 2, statsY + 13 * scale * DPR, st.label, {
         fontFamily: UI_FONT,
-        fontSize: `${Math.round(11 * DPR)}px`,
-        color: '#9ab1cc',
-        wordWrap: { width: traitW - 16 * DPR },
-        lineSpacing: 2 * DPR,
-      }).setOrigin(0, 0.5);
-      this.detailElements.add(traitText);
-
-      // Ветка прокачки оружия (1-5 уровни) с интерактивным выбором визуала!
-      const levelsHeaderY = traitY + traitH + 10 * DPR;
-      const headerTitle = this.add.text(cardX + 16 * DPR, levelsHeaderY, 'УРОВНИ ОРУЖИЯ (1-5) · НАЖМИТЕ ДЛЯ ОСМОТРА', {
-        fontFamily: UI_FONT,
-        fontSize: `${Math.round(11 * DPR)}px`,
-        color: '#4ea8de',
+        fontSize: `${Math.round(11 * scale * DPR)}px`,
+        color: '#707e94',
         fontStyle: 'bold',
-      });
-      this.detailElements.add(headerTitle);
+      }).setOrigin(0.5);
 
-      const levelsStartY = levelsHeaderY + 16 * DPR;
-      const levelRowH = 35 * DPR;
-      const levelRowGap = 4 * DPR;
-      const levelsCount = type.levels ? type.levels.length : 0;
-      for (let lv = 0; lv < levelsCount; lv++) {
-        const levelData = type.levels[lv];
-        const rowY = levelsStartY + lv * (levelRowH + levelRowGap);
-        const isSelected = curLevel === (lv + 1);
+      const val = this.add.text(tileX + statTileW / 2, statsY + 34 * scale * DPR, st.val, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(17 * scale * DPR)}px`,
+        color: st.color,
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
 
-        if (isSelected) {
-          g.fillStyle(0x1d273a, 0.98);
-          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 7 * DPR);
-          g.lineStyle(1.5 * DPR, 0x4ea8de, 1);
-          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 7 * DPR);
-        } else {
-          g.fillStyle(0x161c28, 0.95);
-          g.fillRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
-          g.lineStyle(1 * DPR, 0x242d40, 1);
-          g.strokeRoundedRect(cardX + 16 * DPR, rowY, traitW, levelRowH, 6 * DPR);
-        }
+      this.detailElements.add([lbl, val]);
+    });
 
-        // Иконка оружия текущего уровня
-        const miniIconSize = 26 * DPR;
-        const miniIconX = cardX + 22 * DPR;
-        const miniIconY = rowY + (levelRowH - miniIconSize) / 2;
+    // Особенность башни
+    const traitY = cardY + relTraitY;
+    g.fillStyle(0x151b27, 0.95);
+    g.fillRoundedRect(cardX + pad, traitY, traitW, traitH, 7 * scale * DPR);
+    g.lineStyle(1 * scale * DPR, 0x273247, 1);
+    g.strokeRoundedRect(cardX + pad, traitY, traitW, traitH, 7 * scale * DPR);
 
-        g.fillStyle(0x121622, 0.95);
-        g.fillRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * DPR);
-        g.lineStyle(1 * DPR, isSelected ? 0x4ea8de : 0x283348, 1);
-        g.strokeRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * DPR);
+    const traitText = this.add.text(cardX + pad + 10 * scale * DPR, traitY + traitH / 2, extra.traitDesc, {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(12 * scale * DPR)}px`,
+      color: '#9ab1cc',
+      wordWrap: { width: traitW - 20 * scale * DPR },
+      lineSpacing: 2 * scale * DPR,
+    }).setOrigin(0, 0.5);
+    this.detailElements.add(traitText);
 
-        const lvlWpnKey = this.getWeaponTextureKey(typeKey, lv + 1);
-        if (lvlWpnKey) {
-          const miniImg = this.add.image(miniIconX + miniIconSize / 2, miniIconY + miniIconSize / 2, lvlWpnKey)
-            .setDisplaySize(miniIconSize - 4 * DPR, miniIconSize - 4 * DPR);
-          this.detailElements.add(miniImg);
-        }
+    // Ветка прокачки оружия (1-5 уровни)
+    const levelsHeaderY = cardY + relLevelsHeaderY;
+    const headerTitle = this.add.text(cardX + pad, levelsHeaderY, 'УРОВНИ ОРУЖИЯ (1-5)', {
+      fontFamily: UI_FONT,
+      fontSize: `${Math.round(12.5 * scale * DPR)}px`,
+      color: '#4ea8de',
+      fontStyle: 'bold',
+    });
+    this.detailElements.add(headerTitle);
 
-        const badge = this.add.text(cardX + 54 * DPR, rowY + levelRowH / 2, `[${lv + 1}]`, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(12 * DPR)}px`,
-          color: isSelected ? '#4ea8de' : '#e63946',
-          fontStyle: 'bold',
-        }).setOrigin(0, 0.5);
+    const levelsStartY = cardY + relLevelsStartY;
+    for (let lv = 0; lv < levelsCount; lv++) {
+      const levelData = type.levels[lv];
+      const rowY = levelsStartY + lv * (levelRowH + levelRowGap);
+      const isSelected = curLevel === (lv + 1);
 
-        const wName = this.add.text(cardX + 76 * DPR, rowY + levelRowH / 2, levelData.name, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(13 * DPR)}px`,
-          color: isSelected ? '#ffffff' : '#d2dced',
-          fontStyle: 'bold',
-        }).setOrigin(0, 0.5);
+      if (isSelected) {
+        g.fillStyle(0x1d273a, 0.98);
+        g.fillRoundedRect(cardX + pad, rowY, traitW, levelRowH, 7 * scale * DPR);
+        g.lineStyle(1.5 * scale * DPR, 0x4ea8de, 1);
+        g.strokeRoundedRect(cardX + pad, rowY, traitW, levelRowH, 7 * scale * DPR);
+      } else {
+        g.fillStyle(0x161c28, 0.95);
+        g.fillRoundedRect(cardX + pad, rowY, traitW, levelRowH, 6 * scale * DPR);
+        g.lineStyle(1 * scale * DPR, 0x242d40, 1);
+        g.strokeRoundedRect(cardX + pad, rowY, traitW, levelRowH, 6 * scale * DPR);
+      }
 
-        let statLine = '';
-        if (typeKey === 'disinfector') {
-          if (levelData.continuous) {
-            statLine = `Урон: ${levelData.damage}/с · Струя · +${levelData.upgradeCost} 💰`;
-          } else {
-            statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
-          }
-        } else if (typeKey === 'tesla') {
-          statLine = `Урон: ${levelData.damage} · ${levelData.chainCount || 2} ц. · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
-        } else if (typeKey === 'minigun') {
-          const dmgStr = levelData.dualBarrels ? `${levelData.damage}x2` : `${levelData.damage}`;
-          statLine = `Урон: ${dmgStr} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+      // Иконка оружия текущего уровня
+      const miniIconSize = Math.round(28 * scale * DPR);
+      const miniIconX = cardX + pad + Math.round(6 * scale * DPR);
+      const miniIconY = rowY + (levelRowH - miniIconSize) / 2;
+
+      g.fillStyle(0x121622, 0.95);
+      g.fillRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * scale * DPR);
+      g.lineStyle(1 * scale * DPR, isSelected ? 0x4ea8de : 0x283348, 1);
+      g.strokeRoundedRect(miniIconX, miniIconY, miniIconSize, miniIconSize, 5 * scale * DPR);
+
+      const lvlWpnKey = this.getWeaponTextureKey(typeKey, lv + 1);
+      if (lvlWpnKey) {
+        const miniImg = this.add.image(miniIconX + miniIconSize / 2, miniIconY + miniIconSize / 2, lvlWpnKey)
+          .setDisplaySize(miniIconSize - 4 * scale * DPR, miniIconSize - 4 * scale * DPR);
+        this.detailElements.add(miniImg);
+      }
+
+      const badgeX = miniIconX + miniIconSize + Math.round(8 * scale * DPR);
+      const badge = this.add.text(badgeX, rowY + levelRowH / 2, `[${lv + 1}]`, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(13 * scale * DPR)}px`,
+        color: isSelected ? '#4ea8de' : '#e63946',
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+
+      const wNameX = badgeX + Math.round(24 * scale * DPR);
+      const wName = this.add.text(wNameX, rowY + levelRowH / 2, levelData.name, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(14 * scale * DPR)}px`,
+        color: isSelected ? '#ffffff' : '#d2dced',
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+
+      let statLine = '';
+      if (typeKey === 'disinfector') {
+        if (levelData.continuous) {
+          statLine = `Урон: ${levelData.damage}/с · Струя · +${levelData.upgradeCost} 💰`;
         } else {
           statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
         }
-
-        const wStat = this.add.text(cardX + 16 * DPR + traitW - 10 * DPR, rowY + levelRowH / 2, statLine, {
-          fontFamily: UI_FONT,
-          fontSize: `${Math.round(11.5 * DPR)}px`,
-          color: isSelected ? '#ffffff' : '#8b98aa',
-        }).setOrigin(1, 0.5);
-
-        // Интерактивная зона на всю строку уровня для переключения визуала оружия
-        const rowZone = this.add.zone(cardX + 16 * DPR + traitW / 2, rowY + levelRowH / 2, traitW, levelRowH)
-          .setInteractive({ useHandCursor: true });
-        rowZone.on('pointerdown', (p, x, y, ev) => {
-          if (ev && ev.stopPropagation) ev.stopPropagation();
-          this.selectedDetailLevel = lv + 1;
-          this.renderTowerDetail();
-        });
-
-        this.detailElements.add([badge, wName, wStat, rowZone]);
+      } else if (typeKey === 'tesla') {
+        statLine = `Урон: ${levelData.damage} · ${levelData.chainCount || 2} ц. · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+      } else if (typeKey === 'minigun') {
+        const dmgStr = levelData.dualBarrels ? `${levelData.damage}x2` : `${levelData.damage}`;
+        statLine = `Урон: ${dmgStr} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
+      } else {
+        statLine = `Урон: ${levelData.damage} · ${levelData.fireRate}/с · ${lv === 0 ? 'Базовый' : `+${levelData.upgradeCost} 💰`}`;
       }
+
+      const wStat = this.add.text(cardX + pad + traitW - Math.round(10 * scale * DPR), rowY + levelRowH / 2, statLine, {
+        fontFamily: UI_FONT,
+        fontSize: `${Math.round(12.5 * scale * DPR)}px`,
+        color: isSelected ? '#ffffff' : '#8b98aa',
+      }).setOrigin(1, 0.5);
+
+      // Интерактивная зона на всю строку уровня для переключения визуала оружия
+      const rowZone = this.add.zone(cardX + pad + traitW / 2, rowY + levelRowH / 2, traitW, levelRowH)
+        .setInteractive({ useHandCursor: true });
+      rowZone.on('pointerdown', (p, x, y, ev) => {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        this.selectedDetailLevel = lv + 1;
+        this.renderTowerDetail();
+      });
+
+      this.detailElements.add([badge, wName, wStat, rowZone]);
+    }
   }
 
-  createTop() {
+    createTop() {
     this.topPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.topTitle = this.add
@@ -3417,7 +3503,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.passSubtitle = this.add
-      .text(0, 0, 'Ежедневные протоколы · Награда золотом за выполнение', {
+      .text(0, 0, '', {
         fontFamily: UI_FONT,
         fontSize: '15px',
         color: '#38bdf8',
@@ -3438,7 +3524,7 @@ class MenuScene extends Phaser.Scene {
     });
     this.passLockIcon = this.add.text(-120, 0, '🔒', { fontSize: '20px' }).setOrigin(0.5);
     this.passLockTitle = this.add
-      .text(-96, -8, 'БОЕВОЙ ПАСС · ЗАКРЫТ (СКОРО)', {
+      .text(-96, 0, 'БОЕВОЙ ПАСС · ЗАКРЫТ (СКОРО)', {
         fontFamily: UI_FONT,
         fontSize: '13px',
         color: '#ff4d5e',
@@ -3446,7 +3532,7 @@ class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     this.passLockSub = this.add
-      .text(-96, 10, 'Сезонная прогрессия наград на калибровке', {
+      .text(-96, 10, '', {
         fontFamily: UI_FONT,
         fontSize: '11.5px',
         color: '#94a3b8',
@@ -3679,7 +3765,7 @@ class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.shopSubtitle = this.add
-      .text(0, 0, 'Поддержка разработки и тактические контейнеры', {
+      .text(0, 0, '', {
         fontFamily: UI_FONT,
         fontSize: '15px',
         color: '#707e94',
@@ -3701,7 +3787,7 @@ class MenuScene extends Phaser.Scene {
 
     // Раздел 1: Поддержка & Донат (СТРОГО "Скоро")
     const sec1Title = this.add
-      .text(0, 0, '─── ПОДДЕРЖКА ПРОЕКТА ───', {
+      .text(0, 0, '─── НАБОРЫ ЗОЛОТА ───', {
         fontFamily: UI_FONT,
         fontSize: '16px',
         color: '#ff6b7a',
@@ -4291,7 +4377,7 @@ class MenuScene extends Phaser.Scene {
 
     // 3. Селектор карты (Сектор Омега / Био-Реактор / Катакомбы)
     const mapBoxY = cardTop + cardHeight + 12 * DPR;
-    const mapBoxH = 195 * DPR;
+    const mapBoxH = 160 * DPR;
     const mapBoxW = cardWidth;
     const mapBoxX = width / 2 - mapBoxW / 2;
 
@@ -4334,17 +4420,12 @@ class MenuScene extends Phaser.Scene {
     const elevCount = (mapDef.elevations && mapDef.elevations.length) || 0;
     if (this.mapStatsText) {
       this.mapStatsText.setPosition(width / 2, mapBoxY + 138 * DPR);
-      this.mapStatsText.setText(`🏔️ Возвышенности: ${elevCount} позиции · 🎯 Зона снайпера · 35 волн`);
+      this.mapStatsText.setText(`Возвышенности: ${elevCount} · 35 волн`);
       this.mapStatsText.setStyle({ fontSize: `${Math.min(11.5 * DPR, Math.round(mapBoxW * 0.030))}px` });
     }
 
     if (this.mapDesc) {
-      this.mapDesc.setPosition(width / 2, mapBoxY + 162 * DPR);
-      this.mapDesc.setStyle({ 
-        fontSize: `${Math.min(11 * DPR, Math.round(mapBoxW * 0.028))}px`, 
-        wordWrap: { width: mapBoxW - 24 * DPR },
-        align: 'center'
-      });
+      this.mapDesc.setText('').setVisible(false);
     }
 
     // 4. Селектор сложности (Лёгкий / Средний / Трудный)
@@ -4375,13 +4456,12 @@ class MenuScene extends Phaser.Scene {
     });
 
     if (this.diffDesc) {
-      this.diffDesc.setPosition(width / 2, diffBoxY + 64 * DPR);
-      this.diffDesc.setStyle({ fontSize: `${Math.round(11.5 * DPR)}px`, wordWrap: { width: cardWidth - 14 * DPR } });
+      this.diffDesc.setText('').setVisible(false);
     }
 
     // 5. Кнопка В БОЙ
     if (this.playButton) {
-      const playY = Math.min(height * 0.83, diffBoxY + 115 * DPR);
+      const playY = Math.min(height * 0.83, diffBoxY + 86 * DPR);
       const playFont = `${Math.round(Math.min(24 * DPR, Math.max(20 * DPR, size * 0.050)))}px`;
       this.playButton.setPosition(width / 2, playY);
       this.playButton.setStyle({
@@ -4598,9 +4678,9 @@ class MenuScene extends Phaser.Scene {
     const tabs = [this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop];
 
     // Адаптивный размер шрифта и отступов под ширину экрана
-    const tabFontSize = Math.round(Math.min(13 * DPR, Math.max(11 * DPR, width * 0.031)));
-    const padX = Math.round(Math.min(8 * DPR, Math.max(5 * DPR, width * 0.015)));
-    const padY = Math.round(6 * DPR);
+    const tabFontSize = Math.round(Math.min(15 * DPR, Math.max(11 * DPR, width >= 600 ? 14.5 * DPR : width * 0.031)));
+    const padX = Math.round(Math.min(14 * DPR, Math.max(5 * DPR, width >= 600 ? 12 * DPR : width * 0.015)));
+    const padY = Math.round(width >= 600 ? 8 * DPR : 6 * DPR);
     const tabStyle = {
       fontSize: `${tabFontSize}px`,
       padding: { x: padX, y: padY }
@@ -5966,7 +6046,6 @@ class GameScene extends Phaser.Scene {
     this.previousMountAngle = tower.mountAngle;
     this.refreshTowerMenu();
     this.positionTowerMenu();
-    this.showMessage('Нажми на поле, чтобы направить сектор');
   }
 
   // Подтвердить и зафиксировать сектор навсегда
@@ -6010,11 +6089,10 @@ class GameScene extends Phaser.Scene {
     this.showRangeRingForTower(tower);
     if (this.towerViewPill) {
       this.towerViewPill
-        .setText(`👁 ${tower.getWeaponName()} (ур. ${tower.level}) · Нажми для меню`)
+        .setText(`👁 ${tower.getWeaponName()} (ур. ${tower.level})`)
         .setVisible(true);
       this.positionTowerViewPill();
     }
-    this.showMessage('Режим просмотра: нажми на башню для меню');
     updateRoundBgs(this);
   }
 
@@ -6071,7 +6149,7 @@ class GameScene extends Phaser.Scene {
 
     if (isAiming) {
       this.towerMenuStats.setText(
-        '🎯 НАПРАВЛЕНИЕ СЕКТОРА\nПотяните или нажмите на поле,\nчтобы направить сектор обстрела'
+        '🎯 НАПРАВЛЕНИЕ СЕКТОРА'
       );
       this.towerMenuConfirmRotate.setVisible(true);
       this.towerMenuCancelRotate.setVisible(true);
@@ -6156,10 +6234,13 @@ class GameScene extends Phaser.Scene {
       if (next && next.fireRate !== undefined) stats += ` ➔ ${next.fireRate.toFixed(1)}/с`;
       stats += `\nРадиус: ${tower.range.toFixed(1)}`;
       if (next && next.range !== undefined) stats += ` ➔ ${next.range.toFixed(1)}`;
-      const curSpread = (tower.spreadDeg !== undefined ? tower.spreadDeg : 2.0).toFixed(1);
-      stats += ` · Разброс: ${curSpread}°`;
-      if (next && next.spreadDeg !== undefined && next.spreadDeg.toFixed(1) !== curSpread) {
-        stats += ` ➔ ${next.spreadDeg.toFixed(1)}°`;
+      const curAcc = Math.round((tower.accuracy !== undefined ? tower.accuracy : 1.0) * 100);
+      stats += ` · Точность: ${curAcc}%`;
+      if (next && next.accuracy !== undefined) {
+        const nextAcc = Math.round(next.accuracy * 100);
+        if (nextAcc !== curAcc) {
+          stats += ` ➔ ${nextAcc}%`;
+        }
       }
       if (next && next.dualBarrels && !tower.dualBarrels) {
         stats += `\n⭐ След. уровень: 2 независимых ствола!`;
@@ -7618,67 +7699,44 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // 3. Активная динамическая разметка баллистического конуса разброса (новая разметка)
+    // 3. Линия наведения турели и сектор распыления (для аэрозольных башен)
     const tower = ar.tower || this.selectedTower;
     if (tower) {
       const aimAngle = tower.aimAngle !== undefined ? tower.aimAngle : (tower.mountAngle || 0);
-      let spreadRad = tower.spreadRad !== undefined
-        ? tower.spreadRad
-        : (tower.spreadDeg ? (tower.spreadDeg * Math.PI) / 180 : 0.035);
-      if (tower.sprayCone) spreadRad = tower.sprayCone;
-      const halfSpread = Math.max(spreadRad / 2, 0.015);
-      const angL = aimAngle - halfSpread;
-      const angR = aimAngle + halfSpread;
-
-      const dL = ellipseDist(angL);
-      const dR = ellipseDist(angR);
       const dC = ellipseDist(aimAngle);
-
-      const pLeft = { x: cx + Math.cos(angL) * dL, y: cy + Math.sin(angL) * dL };
-      const pRight = { x: cx + Math.cos(angR) * dR, y: cy + Math.sin(angR) * dR };
 
       // Тонкий центральный луч наведения
       g.lineStyle(1 * DPR, 0x38bdf8, 0.55);
       g.lineBetween(cx, cy, cx + Math.cos(aimAngle) * dC, cy + Math.sin(aimAngle) * dC);
 
-      // Полупрозрачная подсветка конуса разброса
-      g.fillStyle(0xff4d5e, 0.08);
-      g.beginPath();
-      g.moveTo(cx, cy);
-      g.lineTo(pLeft.x, pLeft.y);
-      const CONE_STEPS = 8;
-      for (let s = 0; s <= CONE_STEPS; s++) {
-        const t = angL + (angR - angL) * (s / CONE_STEPS);
-        const distT = ellipseDist(t);
-        g.lineTo(cx + Math.cos(t) * distT, cy + Math.sin(t) * distT);
-      }
-      g.closePath();
-      g.fillPath();
+      // Для дезинфектора отображаем конус аэрозольного распыления
+      if (tower.sprayCone) {
+        const halfSpread = tower.sprayCone / 2;
+        const angL = aimAngle - halfSpread;
+        const angR = aimAngle + halfSpread;
 
-      // Ограничивающие линии конуса разброса
-      g.lineStyle(1.5 * DPR, 0xff6b7a, 0.85);
-      g.lineBetween(cx, cy, pLeft.x, pLeft.y);
-      g.lineBetween(cx, cy, pRight.x, pRight.y);
+        const dL = ellipseDist(angL);
+        const dR = ellipseDist(angR);
 
-      // Поперечные риски расширения разброса по дистанции (на 33%, 66% и 100% дальности)
-      const distSteps = [0.33, 0.66, 1.0];
-      for (const distFrac of distSteps) {
-        const tL = { x: cx + Math.cos(angL) * dL * distFrac, y: cy + Math.sin(angL) * dL * distFrac };
-        const tR = { x: cx + Math.cos(angR) * dR * distFrac, y: cy + Math.sin(angR) * dR * distFrac };
+        const pLeft = { x: cx + Math.cos(angL) * dL, y: cy + Math.sin(angL) * dL };
+        const pRight = { x: cx + Math.cos(angR) * dR, y: cy + Math.sin(angR) * dR };
 
-        // Поперечная перемычка
-        g.lineStyle(1.5 * DPR, 0xffffff, 0.85);
-        g.lineBetween(tL.x, tL.y, tR.x, tR.y);
+        g.fillStyle(0x2ecc71, 0.08);
+        g.beginPath();
+        g.moveTo(cx, cy);
+        g.lineTo(pLeft.x, pLeft.y);
+        const CONE_STEPS = 8;
+        for (let s = 0; s <= CONE_STEPS; s++) {
+          const t = angL + (angR - angL) * (s / CONE_STEPS);
+          const distT = ellipseDist(t);
+          g.lineTo(cx + Math.cos(t) * distT, cy + Math.sin(t) * distT);
+        }
+        g.closePath();
+        g.fillPath();
 
-        // Риски на концах перемычки (перпендикулярные)
-        const dx = tR.x - tL.x;
-        const dy = tR.y - tL.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const nx = (-dy / len) * (3 * DPR);
-        const ny = (dx / len) * (3 * DPR);
-
-        g.lineBetween(tL.x - nx, tL.y - ny, tL.x + nx, tL.y + ny);
-        g.lineBetween(tR.x - nx, tR.y - ny, tR.x + nx, tR.y + ny);
+        g.lineStyle(1.5 * DPR, 0x2ecc71, 0.65);
+        g.lineBetween(cx, cy, pLeft.x, pLeft.y);
+        g.lineBetween(cx, cy, pRight.x, pRight.y);
       }
     }
   }
@@ -7731,9 +7789,9 @@ class GameScene extends Phaser.Scene {
     return queue;
   }
 
-  // Волны после 20-й: плавный рост количества и смешивание типов.
+  // Волны после завершения таблицы: плавный рост количества и смешивание типов.
   buildEndlessWave(wave) {
-    const step = wave - 20;
+    const step = wave - WAVE_TABLE.length;
     const scale = 1 + step * 0.15;
     const counts = {
       normal: Math.round(20 * scale),
@@ -7745,7 +7803,7 @@ class GameScene extends Phaser.Scene {
       splitter: Math.round(6 * scale),
       shielded: Math.round(8 * scale),
     };
-    if (wave % 10 === 0) counts.boss = Math.max(1, Math.floor((wave - 20) / 10) + 1);
+    if (wave % 10 === 0) counts.boss = Math.max(1, Math.floor(step / 10) + 1);
     return counts;
   }
 
@@ -7840,7 +7898,8 @@ class GameScene extends Phaser.Scene {
   // Завершаем волну: начисляем бонус и возвращаем кнопку старта (или объявляем победу).
   endWave() {
     this.isWaveActive = false;
-    this.gold += WAVE_CLEAR_BONUS;
+    const clearBonus = Math.round(WAVE_CLEAR_BONUS + this.currentWave * 4);
+    this.gold += clearBonus;
     this.updateUI();
 
     // Прогресс квестов на отражение волн
@@ -7858,7 +7917,7 @@ class GameScene extends Phaser.Scene {
     }
 
     this.startButton.setVisible(true);
-    this.showMessage(`Волна ${this.currentWave} зачищена! +${WAVE_CLEAR_BONUS} 🟡 | +${xpPerWave} XP Пасса`);
+    this.showMessage(`Волна ${this.currentWave} зачищена! +${clearBonus} 🟡 | +${xpPerWave} XP Пасса`);
 
     // Чит: авто-старт следующей волны.
     if (this.autoWave && !this.isGameOver) {
@@ -7906,6 +7965,21 @@ class GameScene extends Phaser.Scene {
   // Можно ли поставить башню типа type в точку:
   // в пределах поля, не на дороге, не пересекаясь с другими башнями,
   // а для снайпера — СТРОГО на возвышенности.
+  // Пересекает ли башня (gx, gy, radius) возвышенность/крышу текущей карты
+  isOverElevation(gx, gy, radius = 0.3) {
+    const elevations = (this.mapDef && this.mapDef.elevations) || [];
+    for (const el of elevations) {
+      const closestX = Math.max(el.x, Math.min(gx, el.x + el.w));
+      const closestY = Math.max(el.y, Math.min(gy, el.y + el.h));
+      const dx = gx - closestX;
+      const dy = gy - closestY;
+      if (dx * dx + dy * dy < radius * radius) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   isFreeSpot(gx, gy, type, ignoreTower = null) {
     const radius = type.footprint / 2;
 
@@ -7915,6 +7989,11 @@ class GameScene extends Phaser.Scene {
 
     // Снайпер: может стоять ТОЛЬКО на возвышенностях
     if (type.onlyElevation && !this.isOnElevation(gx, gy, radius)) {
+      return false;
+    }
+
+    // Башни помимо снайпера нельзя размещать на крышах / возвышенностях
+    if (!type.onlyElevation && this.isOverElevation(gx, gy, radius)) {
       return false;
     }
 
@@ -8056,6 +8135,11 @@ class GameScene extends Phaser.Scene {
       return false;
     }
 
+    if (!type.onlyElevation && this.isOverElevation(gx, gy, type.footprint / 2)) {
+      this.showMessage('На крышах можно ставить ТОЛЬКО снайперов!');
+      return false;
+    }
+
     if (!this.canPlace(gx, gy, type)) {
       this.showMessage('Здесь нельзя строить');
       return false;
@@ -8176,8 +8260,7 @@ class GameScene extends Phaser.Scene {
       r: type.range,
       tower: {
         aimAngle: dirToAngle(DIR_FORWARD),
-        spreadDeg: type.spreadDeg || 2.0,
-        spreadRad: type.spreadDeg ? (type.spreadDeg * Math.PI) / 180 : 0.035,
+        accuracy: type.accuracy !== undefined ? type.accuracy : 1.0,
         sprayCone: type.sprayCone || null,
       },
     };
@@ -8394,6 +8477,7 @@ const config = {
 
 // Запускаем игру.
 const game = new Phaser.Game(config);
+window.__sporeGame = game;
 
 // Держим канвас в физическом разрешении экрана и пересобираем при ресайзе.
 function applyCanvasSize() {
