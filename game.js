@@ -6077,6 +6077,16 @@ class GameScene extends Phaser.Scene {
     this.showRangeRingForTower(tower);
   }
 
+  // Кнопка и режим просмотра («Просмотр») доступны только в бете для тестеров
+  canUseTowerViewMode() {
+    if (!IS_BETA_BUILD) return false;
+    const host = typeof window !== 'undefined' && window.location ? window.location.hostname : '';
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    const isBeta = host.includes('git-beta') || host.includes('beta');
+    const staff = this.playerRole === 'tester' || this.playerRole === 'creator' || isLocal || isBeta;
+    return Boolean(IS_BETA_BUILD || staff);
+  }
+
   // Вход в режим просмотра башни (скрываем окно меню, оставляем круговой радиус)
   enterTowerViewMode() {
     const tower = this.selectedTower;
@@ -6163,7 +6173,7 @@ class GameScene extends Phaser.Scene {
 
     this.towerMenuConfirmRotate.setVisible(false);
     this.towerMenuCancelRotate.setVisible(false);
-    this.towerMenuView.setVisible(true);
+    this.towerMenuView.setVisible(this.canUseTowerViewMode());
     this.towerMenuUpgrade.setVisible(true);
     this.towerMenuSell.setVisible(true);
 
@@ -6387,16 +6397,26 @@ class GameScene extends Phaser.Scene {
 
     const btnY = cardY + cardH - 18 * DPR;
 
+    const showView = this.canUseTowerViewMode();
     if (isAiming) {
       this.towerMenuConfirmRotate.setPosition(left + pad + cardW * 0.30, btnY);
       this.towerMenuCancelRotate.setPosition(left + pad + cardW * 0.72, btnY);
     } else if (hasArcNotRotated) {
-      this.towerMenuView.setPosition(left + pad + cardW * 0.20, btnY);
-      this.towerMenuRotate.setPosition(left + pad + cardW * 0.52, btnY);
-      this.towerMenuSell.setPosition(left + pad + cardW * 0.82, btnY);
+      if (showView) {
+        this.towerMenuView.setPosition(left + pad + cardW * 0.20, btnY);
+        this.towerMenuRotate.setPosition(left + pad + cardW * 0.52, btnY);
+        this.towerMenuSell.setPosition(left + pad + cardW * 0.82, btnY);
+      } else {
+        this.towerMenuRotate.setPosition(left + pad + cardW * 0.30, btnY);
+        this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
+      }
     } else {
-      this.towerMenuView.setPosition(left + pad + cardW * 0.28, btnY);
-      this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
+      if (showView) {
+        this.towerMenuView.setPosition(left + pad + cardW * 0.28, btnY);
+        this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
+      } else {
+        this.towerMenuSell.setPosition(left + pad + cardW * 0.50, btnY);
+      }
     }
 
     updateRoundBgs(this);
@@ -7996,10 +8016,12 @@ class GameScene extends Phaser.Scene {
       if (this.ghost) this.ghost.setVisible(false);
       this.isPlacing = false;
       if (this.selectedTower === existing) {
-        if (this.isTowerViewMode) {
-          this.exitTowerViewMode(true);
-        } else {
-          this.enterTowerViewMode();
+        if (this.canUseTowerViewMode()) {
+          if (this.isTowerViewMode) {
+            this.exitTowerViewMode(true);
+          } else {
+            this.enterTowerViewMode();
+          }
         }
         return;
       }
