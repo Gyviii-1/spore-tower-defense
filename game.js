@@ -7612,12 +7612,6 @@ class GameScene extends Phaser.Scene {
     const a = ISO_HW * Math.SQRT2 * ar.r;
     const b = ISO_HH * Math.SQRT2 * ar.r;
 
-    // Вспомогательная функция: точное расстояние вдоль экранного луча phi до границы изо-эллипса
-    const ellipseDist = (phi) => {
-      const cosP = Math.cos(phi);
-      const sinP = Math.sin(phi);
-      return (a * b) / Math.sqrt(b * b * cosP * cosP + a * a * sinP * sinP);
-    };
 
 
     // 2. Внешняя вращающаяся грань дальности (100%)
@@ -7676,43 +7670,6 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // 3. Линия наведения турели и сектор распыления (для аэрозольных башен)
-    const tower = ar.tower || this.selectedTower;
-    if (tower) {
-      const aimAngle = tower.aimAngle !== undefined ? tower.aimAngle : (tower.mountAngle || 0);
-      const dC = ellipseDist(aimAngle);
-
-
-      // Для дезинфектора отображаем конус аэрозольного распыления
-      if (tower.sprayCone) {
-        const halfSpread = tower.sprayCone / 2;
-        const angL = aimAngle - halfSpread;
-        const angR = aimAngle + halfSpread;
-
-        const dL = ellipseDist(angL);
-        const dR = ellipseDist(angR);
-
-        const pLeft = { x: cx + Math.cos(angL) * dL, y: cy + Math.sin(angL) * dL };
-        const pRight = { x: cx + Math.cos(angR) * dR, y: cy + Math.sin(angR) * dR };
-
-        g.fillStyle(0x2ecc71, 0.08);
-        g.beginPath();
-        g.moveTo(cx, cy);
-        g.lineTo(pLeft.x, pLeft.y);
-        const CONE_STEPS = 8;
-        for (let s = 0; s <= CONE_STEPS; s++) {
-          const t = angL + (angR - angL) * (s / CONE_STEPS);
-          const distT = ellipseDist(t);
-          g.lineTo(cx + Math.cos(t) * distT, cy + Math.sin(t) * distT);
-        }
-        g.closePath();
-        g.fillPath();
-
-        g.lineStyle(1.5 * DPR, 0x2ecc71, 0.65);
-        g.lineBetween(cx, cy, pLeft.x, pLeft.y);
-        g.lineBetween(cx, cy, pRight.x, pRight.y);
-      }
-    }
   }
 
   // Убрать кольца.
