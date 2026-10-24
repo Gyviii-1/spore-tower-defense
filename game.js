@@ -1342,6 +1342,7 @@ const ROUTE = buildRoute(ROUTE_WAYPOINTS);
 
 // Расстояние от точки до полилинии маршрута (world units) — источник истины.
 function distanceToRoute(px, py, route) {
+  if (!route || !route.segments) return Infinity;
   let best = Infinity;
   for (const seg of route.segments) {
     const abx = seg.b.x - seg.a.x;
@@ -4984,7 +4985,7 @@ class GameScene extends Phaser.Scene {
 
         const index = parseInt(event.key, 10);
         if (!index) return;
-        const keys = Object.keys(TOWER_TYPES);
+        const keys = this.activeDeckKeys || (typeof getPlayerDeck === 'function' ? getPlayerDeck() : Object.keys(TOWER_TYPES));
         const typeKey = keys[index - 1];
         if (typeKey) this.selectTowerType(typeKey);
       });
@@ -7618,30 +7619,6 @@ class GameScene extends Phaser.Scene {
       return (a * b) / Math.sqrt(b * b * cosP * cosP + a * a * sinP * sinP);
     };
 
-    // 1. Концентрические кольца баллистической калибровки дальности (33% и 66%) с рисками
-    const calibFracs = [0.33, 0.66];
-    for (const frac of calibFracs) {
-      const ca = a * frac;
-      const cb = b * frac;
-      g.lineStyle(1 * DPR, 0x38bdf8, 0.35);
-      g.strokeEllipse(cx, cy, ca * 2, cb * 2);
-
-      // Калибровочные риски по 8 сторонам кольца
-      const ticks = 8;
-      const tLen = 2.5 * DPR;
-      g.lineStyle(1 * DPR, 0x38bdf8, 0.55);
-      for (let i = 0; i < ticks; i++) {
-        const ang = (i * Math.PI * 2) / ticks;
-        const tx = cx + Math.cos(ang) * ca;
-        const ty = cy + Math.sin(ang) * cb;
-        g.lineBetween(
-          tx - Math.cos(ang) * tLen,
-          ty - Math.sin(ang) * tLen,
-          tx + Math.cos(ang) * tLen,
-          ty + Math.sin(ang) * tLen
-        );
-      }
-    }
 
     // 2. Внешняя вращающаяся грань дальности (100%)
     g.lineStyle(3, 0xffffff, 0.9);
@@ -7705,9 +7682,6 @@ class GameScene extends Phaser.Scene {
       const aimAngle = tower.aimAngle !== undefined ? tower.aimAngle : (tower.mountAngle || 0);
       const dC = ellipseDist(aimAngle);
 
-      // Тонкий центральный луч наведения
-      g.lineStyle(1 * DPR, 0x38bdf8, 0.55);
-      g.lineBetween(cx, cy, cx + Math.cos(aimAngle) * dC, cy + Math.sin(aimAngle) * dC);
 
       // Для дезинфектора отображаем конус аэрозольного распыления
       if (tower.sprayCone) {
@@ -7937,10 +7911,16 @@ class GameScene extends Phaser.Scene {
   // а не с точкой клетки внизу.
   towerAt(px, py) {
     for (const tower of this.towers) {
-      // Кликабельна ТОЛЬКО картинка башни (клетка под ней — нет).
-      if (tower.baseSprite) {
-        const b = tower.baseSprite.getBounds();
-        if (Phaser.Geom.Rectangle.Contains(b, px, py)) return tower;
+      if (tower.baseSprite && Phaser.Geom.Rectangle.Contains(tower.baseSprite.getBounds(), px, py)) {
+        return tower;
+      }
+      if (tower.sprite && Phaser.Geom.Rectangle.Contains(tower.sprite.getBounds(), px, py)) {
+        return tower;
+      }
+      const p = tower.getPosition();
+      const hitRadius = (tower.config.footprint / 2 + 0.35) * this.cellSize;
+      if (Math.hypot(px - p.x, (py - p.y) * 2) < hitRadius) {
+        return tower;
       }
     }
     return null;
@@ -8049,6 +8029,12 @@ class GameScene extends Phaser.Scene {
     // Нажали на башню — открываем её меню или переключаем режим просмотра.
     const existing = this.towerAt(worldPx.x, worldPx.y);
     if (existing) {
+      if (this.selectedTowerType) {
+        this.selectedTowerType = null;
+        this.refreshBuildMenu();
+      }
+      if (this.ghost) this.ghost.setVisible(false);
+      this.isPlacing = false;
       if (this.selectedTower === existing) {
         if (this.isTowerViewMode) {
           this.exitTowerViewMode(true);
