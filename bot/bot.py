@@ -84,7 +84,7 @@ def menu_keyboard(role):
 
 TOP_LIMIT = 10
 PAGE_SIZE = 10
-ROLE_LABELS = {"creator": "создатель", "tester": "тестер", "player": ""}
+ROLE_LABELS = {"creator": "создатель", "tester": "тестер", "vip": "VIP", "player": ""}
 
 # Состояние диалогов с создателем (по chat_id).
 search_pending = {}
@@ -304,6 +304,8 @@ def commands_text(role):
             "*Только для создателя:*",
             "/tester @user или ID — выдать тестер",
             "/untester @user или ID — забрать тестер",
+            "/vip @user или ID — выдать VIP",
+            "/unvip @user или ID — забрать VIP",
             "/ban @user или ID — забанить",
             "/unban @user или ID — разбанить",
             "/banlist — список забаненных",
@@ -686,6 +688,9 @@ def handle_update(update):
             print("Ошибка чтения Firebase:", error)
             send_message(chat_id, "⚠️ Не удалось загрузить рекорд. Попробуй позже.")
     elif text in ("/unity", "/unitytest"):
+        if role not in ("creator", "tester"):
+            send_message(chat_id, "⛔ Версия Unity сейчас доступна только создателю и тестерам.")
+            return
         send_message(
             chat_id,
             "🎮 *Spore TD (Unity WebGL)*\n\nНажми кнопку ниже для запуска тестовой Unity-версии:",
@@ -697,6 +702,25 @@ def handle_update(update):
         )
     elif text == "/whoami":
         send_message(chat_id, f"Твой ID: `{user_id}`\nРоль: *{role}*")
+    elif text.startswith("/vip") or text.startswith("/unvip"):
+        if not is_creator:
+            send_message(chat_id, "⛔ Команда только для создателя.")
+            return
+        parts = text.split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            send_message(chat_id, "Укажи пользователя: `/vip @username` или `/vip 123456789`")
+            return
+        target = parts[1].strip()
+        new_role = "vip" if text.startswith("/vip") else "player"
+        doc_id, error = resolve_target(target)
+        if error:
+            send_message(chat_id, f"⚠️ {error}")
+            return
+        if set_role(doc_id, new_role):
+            label = ROLE_LABELS.get(new_role) or "player"
+            send_message(chat_id, f"✅ `{target}` — роль: *{label}*")
+        else:
+            send_message(chat_id, "⚠️ Не удалось сохранить роль.")
     elif text.startswith("/tester") or text.startswith("/untester"):
         if not is_creator:
             send_message(chat_id, "⛔ Команда только для создателя.")
