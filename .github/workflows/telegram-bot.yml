@@ -8,6 +8,12 @@ name: Telegram bot
 on:
   schedule:
     - cron: "0 */4 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "bot/**"
+      - ".github/workflows/telegram-bot.yml"
   workflow_dispatch: {}
 
 concurrency:
