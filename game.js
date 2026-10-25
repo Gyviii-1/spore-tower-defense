@@ -4771,6 +4771,7 @@ class MenuScene extends Phaser.Scene {
   roleLabel(role) {
     if (role === 'creator') return 'создатель';
     if (role === 'tester') return 'тестер';
+    if (role === 'vip') return 'VIP';
     return '';
   }
 }
@@ -5582,6 +5583,7 @@ class GameScene extends Phaser.Scene {
   roleLabel(role) {
     if (role === 'creator') return 'создатель';
     if (role === 'tester') return 'тестер';
+    if (role === 'vip') return 'VIP';
     return '';
   }
 
