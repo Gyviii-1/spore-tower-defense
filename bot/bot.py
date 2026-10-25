@@ -56,6 +56,8 @@ ME_BUTTON = "📊 Мой рекорд"
 SETTINGS_BUTTON = "⚙ Настройки"
 HELP_BUTTON = "❓ Помощь"
 TEST_BUTTON = "🧪 Тест"
+UNITY_BUTTON = "🎮 Unity (Тест)"
+UNITY_URL = "https://telegram-tower-defense.vercel.app/unity/"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app"
 MENU_KEYBOARD = {
     "keyboard": [
@@ -74,7 +76,10 @@ def menu_keyboard(role):
         [{"text": SETTINGS_BUTTON}, {"text": HELP_BUTTON}],
     ]
     if role in ("creator", "tester"):
-        rows.append([{"text": TEST_BUTTON, "web_app": {"url": BETA_URL}}])
+        rows.append([
+            {"text": TEST_BUTTON, "web_app": {"url": BETA_URL}},
+            {"text": UNITY_BUTTON, "web_app": {"url": UNITY_URL}},
+        ])
     return {"keyboard": rows, "resize_keyboard": True}
 
 TOP_LIMIT = 10
@@ -680,6 +685,16 @@ def handle_update(update):
         except Exception as error:
             print("Ошибка чтения Firebase:", error)
             send_message(chat_id, "⚠️ Не удалось загрузить рекорд. Попробуй позже.")
+    elif text in ("/unity", "/unitytest"):
+        send_message(
+            chat_id,
+            "🎮 *Spore TD (Unity WebGL)*\n\nНажми кнопку ниже для запуска тестовой Unity-версии:",
+            keyboard={
+                "inline_keyboard": [
+                    [{"text": "🚀 Запустить Unity WebGL", "web_app": {"url": UNITY_URL}}]
+                ]
+            },
+        )
     elif text == "/whoami":
         send_message(chat_id, f"Твой ID: `{user_id}`\nРоль: *{role}*")
     elif text.startswith("/tester") or text.startswith("/untester"):
