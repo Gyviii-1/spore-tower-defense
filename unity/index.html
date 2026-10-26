@@ -35,6 +35,8 @@
         display: block;
         background: #000000;
       }
+
+      /* Splash Screen Container */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -44,35 +46,91 @@
         background: #000000;
         z-index: 999999;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
-        pointer-events: all;
         user-select: none;
+        -webkit-user-select: none;
       }
+
       #splash-video {
         width: 100%;
         height: 100%;
         object-fit: cover;
         pointer-events: none;
       }
+
+      /* Sleek Bottom Loading Bar */
+      #splash-loader-bar {
+        position: absolute;
+        bottom: 36px;
+        left: 12%;
+        width: 76%;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        overflow: hidden;
+        opacity: 0;
+        display: none;
+        transition: opacity 0.4s ease;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+
+      #splash-loader-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
+        border-radius: 4px;
+        transition: width 0.2s ease-out;
+        box-shadow: 0 0 10px rgba(79, 172, 254, 0.7);
+      }
+
+      /* Skip Button */
+      #splash-skip-btn {
+        position: absolute;
+        top: 24px;
+        right: 20px;
+        background: rgba(10, 15, 25, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 20px;
+        padding: 8px 18px;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        opacity: 0;
+        display: none;
+        transition: opacity 0.3s ease, transform 0.15s ease;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        z-index: 1000000;
+      }
+      #splash-skip-btn:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.2);
+      }
     </style>
   </head>
   <body>
-    <!-- Fullscreen Video Splash Overlay (Нескипаемый экран загрузки) -->
+    <!-- Fullscreen Video Splash Overlay -->
     <div id="splash-screen">
       <video id="splash-video" src="TemplateData/splash.mp4" playsinline webkit-playsinline autoplay muted preload="auto"></video>
+      <div id="splash-skip-btn">Пропустить ▶</div>
+      <div id="splash-loader-bar">
+        <div id="splash-loader-fill"></div>
+      </div>
     </div>
 
     <div id="unity-container" class="unity-mobile">
       <canvas id="unity-canvas" tabindex="-1"></canvas>
-      <div id="unity-loading-bar" style="display:none !important;">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-      </div>
+      <div id="unity-loading-bar" style="display:none !important;"></div>
       <div id="unity-warning"> </div>
       <div id="unity-footer" style="display:none !important;">
         <div id="unity-logo-title-footer"></div>
@@ -80,8 +138,9 @@
         <div id="unity-build-title">SporeTD</div>
       </div>
     </div>
+
     <script>
-      // Telegram WebApp initialization
+      // Telegram WebApp init
       if (window.Telegram && window.Telegram.WebApp) {
         try {
           window.Telegram.WebApp.ready();
@@ -95,8 +154,20 @@
 
       var splash = document.getElementById('splash-screen');
       var splashVideo = document.getElementById('splash-video');
-      var videoFinishedInitialPlay = false;
-      var unityMenuOpened = false;
+      var skipBtn = document.getElementById('splash-skip-btn');
+      var loaderBar = document.getElementById('splash-loader-bar');
+      var loaderFill = document.getElementById('splash-loader-fill');
+
+      var isGameReady = false;
+      var isVideoEnded = false;
+      var currentProgress = 0;
+
+      function updateLoaderProgress(p) {
+        currentProgress = Math.max(currentProgress, p);
+        if (loaderFill) {
+          loaderFill.style.width = Math.round(currentProgress * 100) + '%';
+        }
+      }
 
       function dismissSplash() {
         if (!splash || splash.dataset.dismissed) return;
@@ -109,25 +180,50 @@
           if (splash.parentNode) {
             splash.parentNode.removeChild(splash);
           }
-        }, 600);
+        }, 500);
       }
 
-      function checkAndDismiss() {
-        if (videoFinishedInitialPlay && unityMenuOpened) {
+      function enableSkipping() {
+        if (!splash || splash.dataset.dismissed) return;
+        // Показываем кнопку скипа
+        if (skipBtn) {
+          skipBtn.style.display = 'block';
+          requestAnimationFrame(function() { skipBtn.style.opacity = '1'; });
+          skipBtn.onclick = function(e) {
+            e.stopPropagation();
+            dismissSplash();
+          };
+        }
+        // Разрешаем клик в любое место экрана для скипа
+        splash.style.cursor = 'pointer';
+        splash.onclick = function() {
           dismissSplash();
+        };
+      }
+
+      function showLoaderBar() {
+        // Полоска показывается ТОЛЬКО если игра ещё не готова к моменту окончания видео
+        if (!isGameReady && loaderBar) {
+          loaderBar.style.display = 'block';
+          requestAnimationFrame(function() {
+            loaderBar.style.opacity = '1';
+          });
+          updateLoaderProgress(currentProgress);
         }
       }
 
       if (splashVideo) {
-        // Видео играет минимум один полный цикл от начала до конца
+        // Застывание на последнем кадре по окончанию видео
         splashVideo.addEventListener('ended', function() {
-          videoFinishedInitialPlay = true;
-          if (unityMenuOpened) {
+          isVideoEnded = true;
+          try { splashVideo.pause(); } catch (e) {}
+
+          if (isGameReady) {
+            // Игра уже готова: полоску не показываем, сразу плавно переходим в меню
             dismissSplash();
           } else {
-            // Если Unity ещё инициализируется — продолжаем воспроизведение
-            splashVideo.currentTime = 0;
-            splashVideo.play();
+            // Игра ещё загружается: застываем картинкой и снизу показываем полоску загрузки
+            showLoaderBar();
           }
         });
 
@@ -138,11 +234,21 @@
         });
       }
 
-      // Вызывается из Unity (GameUI.cs) ровно в момент, когда главное меню открыто
+      // Вызывается из Unity (GameUI.cs) ровно в момент, когда меню открыто
       window.onUnityGameReady = function() {
         console.log("[SporeTD] Unity Game Menu is Ready!");
-        unityMenuOpened = true;
-        checkAndDismiss();
+        isGameReady = true;
+
+        if (!isVideoEnded) {
+          // Загрузилось ДО окончания видео:
+          // 1. Видео можно скипнуть
+          // 2. Полоски нет
+          enableSkipping();
+        } else {
+          // Загрузилось ПОСЛЕ окончания видео (когда полоска уже была на экране)
+          updateLoaderProgress(1.0);
+          setTimeout(dismissSplash, 250);
+        }
       };
 
       var canvas = document.querySelector("#unity-canvas");
@@ -190,7 +296,7 @@
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
-          // background loading
+          updateLoaderProgress(progress);
         }).then((unityInstance) => {
           window.__unityInstance = unityInstance;
           var fsBtn = document.querySelector("#unity-fullscreen-button");
@@ -201,9 +307,8 @@
           }
           // Fallback: если callback из C# задержался, через 2 секунды после инициализации
           setTimeout(function() {
-            if (!unityMenuOpened) {
-              unityMenuOpened = true;
-              checkAndDismiss();
+            if (!isGameReady) {
+              window.onUnityGameReady();
             }
           }, 2000);
         }).catch((message) => {
