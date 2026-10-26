@@ -48,6 +48,8 @@
         justify-content: center;
         transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
+        pointer-events: all;
+        user-select: none;
       }
       #splash-video {
         width: 100%;
@@ -58,9 +60,9 @@
     </style>
   </head>
   <body>
-    <!-- Fullscreen Video Splash Overlay -->
+    <!-- Fullscreen Video Splash Overlay (Нескипаемый экран загрузки) -->
     <div id="splash-screen">
-      <video id="splash-video" src="TemplateData/splash.mp4" playsinline webkit-playsinline autoplay muted loop preload="auto"></video>
+      <video id="splash-video" src="TemplateData/splash.mp4" playsinline webkit-playsinline autoplay muted preload="auto"></video>
     </div>
 
     <div id="unity-container" class="unity-mobile">
@@ -93,6 +95,9 @@
 
       var splash = document.getElementById('splash-screen');
       var splashVideo = document.getElementById('splash-video');
+      var videoFinishedInitialPlay = false;
+      var unityMenuOpened = false;
+
       function dismissSplash() {
         if (!splash || splash.dataset.dismissed) return;
         splash.dataset.dismissed = 'true';
@@ -106,6 +111,39 @@
           }
         }, 600);
       }
+
+      function checkAndDismiss() {
+        if (videoFinishedInitialPlay && unityMenuOpened) {
+          dismissSplash();
+        }
+      }
+
+      if (splashVideo) {
+        // Видео играет минимум один полный цикл от начала до конца
+        splashVideo.addEventListener('ended', function() {
+          videoFinishedInitialPlay = true;
+          if (unityMenuOpened) {
+            dismissSplash();
+          } else {
+            // Если Unity ещё инициализируется — продолжаем воспроизведение
+            splashVideo.currentTime = 0;
+            splashVideo.play();
+          }
+        });
+
+        splashVideo.play().catch(function() {
+          window.addEventListener('touchstart', function() {
+            splashVideo.play();
+          }, { once: true });
+        });
+      }
+
+      // Вызывается из Unity (GameUI.cs) ровно в момент, когда главное меню открыто
+      window.onUnityGameReady = function() {
+        console.log("[SporeTD] Unity Game Menu is Ready!");
+        unityMenuOpened = true;
+        checkAndDismiss();
+      };
 
       var canvas = document.querySelector("#unity-canvas");
 
@@ -161,8 +199,13 @@
               unityInstance.SetFullscreen(1);
             };
           }
-          // Smooth fade out of splash video once Unity renders
-          setTimeout(dismissSplash, 400);
+          // Fallback: если callback из C# задержался, через 2 секунды после инициализации
+          setTimeout(function() {
+            if (!unityMenuOpened) {
+              unityMenuOpened = true;
+              checkAndDismiss();
+            }
+          }, 2000);
         }).catch((message) => {
           dismissSplash();
           console.error("Unity load error:", message);
