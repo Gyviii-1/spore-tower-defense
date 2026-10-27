@@ -125,19 +125,29 @@
       ]
     },
     {
-      "source": "/unity/?(index\\.html)?",
+      "source": "/unity",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
-        },
+        }
+      ]
+    },
+    {
+      "source": "/unity/",
+      "headers": [
         {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/unity/index.html",
+      "headers": [
         {
-          "key": "Expires",
-          "value": "0"
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
