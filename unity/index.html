@@ -136,7 +136,7 @@
     <div id="splash-screen">
       <div id="splash-hero">
         <div id="splash-logo-wrapper">
-          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261027_v6" alt="SAM Logo" />
+          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261027_v7" alt="SAM Logo" />
         </div>
         <div id="splash-title">SPORE TD</div>
       </div>
@@ -253,6 +253,7 @@
         showBanner: unityShowBanner,
         devicePixelRatio: dpr,
         matchWebGLToCanvasSize: true,
+        autoSyncPersistentDataPath: true,
         cacheControl: function(url) {
           // Instruct UnityCache (IndexedDB) to cache WASM and data permanently
           return "immutable";
