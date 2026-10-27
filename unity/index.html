@@ -8,8 +8,8 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- Instant Asset Preloads for Fast Mobile Startup -->
-    <link rel="preload" href="TemplateData/splash_logo.png" as="image">
-    <link rel="preload" href="Build/spore_v4.loader.js?v=20261027_v5" as="script">
+    <link rel="preload" href="TemplateData/splash_logo.png?v=20261027_v6" as="image">
+    <link rel="preload" href="Build/spore_v4.loader.js?v=20261027_v6" as="script">
     <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -53,54 +53,27 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: opacity 0.4s ease;
         overflow: hidden;
         user-select: none;
         -webkit-user-select: none;
       }
 
-      /* Background Ambient Red Glow */
-      #splash-glow {
-        position: absolute;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(235, 30, 45, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
-        pointer-events: none;
-        animation: splashGlowPulse 3s ease-in-out infinite alternate;
-        z-index: 1;
-      }
-
-      @keyframes splashGlowPulse {
-        0% { transform: scale(0.85); opacity: 0.5; }
-        100% { transform: scale(1.15); opacity: 0.95; }
-      }
-
-      /* Logo & Brand Centerpiece (Always visible immediately) */
+      /* Logo & Brand */
       #splash-hero {
-        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        z-index: 2;
-        pointer-events: none;
-        transform: translateY(-28px);
+        transform: translateY(-24px);
       }
 
       #splash-logo-wrapper {
-        width: 160px;
-        height: 160px;
+        width: 150px;
+        height: 150px;
         display: flex;
         align-items: center;
         justify-content: center;
-        filter: drop-shadow(0 0 20px rgba(235, 30, 45, 0.35));
-        animation: logoFloat 3.5s ease-in-out infinite alternate;
-      }
-
-      @keyframes logoFloat {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(-5px); }
       }
 
       #splash-logo {
@@ -111,151 +84,68 @@
       }
 
       #splash-title {
-        margin-top: 14px;
+        margin-top: 18px;
         color: #ffffff;
-        font-size: 22px;
-        font-weight: 800;
-        letter-spacing: 3px;
-        text-shadow: 0 0 16px rgba(255, 255, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.9);
-      }
-
-      #splash-subtitle {
-        margin-top: 4px;
-        color: #e53935;
-        font-size: 11px;
+        font-size: 20px;
         font-weight: 700;
-        letter-spacing: 3.5px;
-        text-shadow: 0 0 10px rgba(229, 57, 53, 0.5);
+        letter-spacing: 3px;
+        text-align: center;
       }
 
-      /* Fullscreen Video Splash (Overlaid if autoplay is supported) */
-      #splash-video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        pointer-events: none;
-        z-index: 3;
-        opacity: 0;
-        transition: opacity 0.4s ease;
-      }
-
-      /* Sleek Bottom Loading Container */
+      /* Sleek Minimalist Progress Bar */
       #splash-loader-bar {
         position: absolute;
         bottom: 50px;
         left: 50%;
         transform: translateX(-50%);
-        width: 250px;
-        max-width: 82%;
+        width: 220px;
+        max-width: 80%;
         display: flex;
         flex-direction: column;
-        align-items: stretch;
-        gap: 7px;
-        z-index: 10;
-        pointer-events: none;
-      }
-
-      #splash-loader-header {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        font-size: 12px;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-      }
-
-      #splash-loader-hint {
-        color: rgba(255, 255, 255, 0.7);
-        font-weight: 500;
-        letter-spacing: 0.3px;
-      }
-
-      #splash-loader-text {
-        color: #00f2fe;
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.5px;
+        gap: 8px;
       }
 
       #splash-loader-track {
         width: 100%;
-        height: 5px;
-        background: rgba(255, 255, 255, 0.16);
-        border-radius: 3px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 2px;
         overflow: hidden;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
       }
 
       #splash-loader-fill {
         height: 100%;
         width: 0%;
-        background: linear-gradient(90deg, #e53935 0%, #ff5252 50%, #00f2fe 100%);
-        border-radius: 3px;
-        transition: width 0.25s ease-out;
-        box-shadow: 0 0 10px rgba(79, 172, 254, 0.7);
+        background: #e53935;
+        border-radius: 2px;
+        transition: width 0.2s ease-out;
       }
 
-      /* Skip Button */
-      #splash-skip-btn {
-        position: absolute;
-        top: 24px;
-        right: 20px;
-        background: rgba(10, 15, 25, 0.65);
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        border-radius: 20px;
-        padding: 8px 18px;
-        color: #ffffff;
-        font-size: 13px;
+      #splash-loader-text {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.5px;
-        cursor: pointer;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        opacity: 0;
-        display: none;
-        transition: opacity 0.3s ease, transform 0.15s ease;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-        z-index: 1000000;
-      }
-      #splash-skip-btn:active {
-        transform: scale(0.95);
-        background: rgba(255, 255, 255, 0.2);
+        letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
       }
     </style>
   </head>
   <body>
     <!-- Fullscreen Splash Overlay -->
     <div id="splash-screen">
-      <div id="splash-glow"></div>
-
-      <!-- Main Logo & Brand Hero (ALWAYS VISIBLE from Millisecond 0) -->
       <div id="splash-hero">
         <div id="splash-logo-wrapper">
-          <img id="splash-logo" src="TemplateData/splash_logo.png" alt="SAM Logo" />
+          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261027_v6" alt="SAM Logo" />
         </div>
         <div id="splash-title">SPORE TD</div>
-        <div id="splash-subtitle">TOWER DEFENSE</div>
       </div>
 
-      <!-- Fullscreen Video Splash (Overlaid smoothly if autoplay succeeds) -->
-      <video id="splash-video" src="TemplateData/splash.mp4?v=20261027_v5" poster="TemplateData/splash_logo.png" playsinline webkit-playsinline autoplay muted preload="auto"></video>
-
-      <!-- Skip Button -->
-      <div id="splash-skip-btn">Пропустить ▶</div>
-
-      <!-- Sleek Bottom Loading Container -->
       <div id="splash-loader-bar">
-        <div id="splash-loader-header">
-          <span id="splash-loader-hint">Подготовка ядра...</span>
-          <span id="splash-loader-text">0%</span>
-        </div>
         <div id="splash-loader-track">
           <div id="splash-loader-fill"></div>
         </div>
+        <div id="splash-loader-text">0%</div>
       </div>
     </div>
 
@@ -284,14 +174,10 @@
       }
 
       var splash = document.getElementById('splash-screen');
-      var splashVideo = document.getElementById('splash-video');
-      var skipBtn = document.getElementById('splash-skip-btn');
       var loaderFill = document.getElementById('splash-loader-fill');
       var loaderText = document.getElementById('splash-loader-text');
-      var loaderHint = document.getElementById('splash-loader-hint');
 
       var isGameReady = false;
-      var isVideoEnded = false;
       var currentProgress = 0;
 
       function updateLoaderProgress(p) {
@@ -303,17 +189,6 @@
         if (loaderText) {
           loaderText.textContent = percent + '%';
         }
-        if (loaderHint) {
-          if (percent < 25) {
-            loaderHint.textContent = 'Загрузка ядра...';
-          } else if (percent < 75) {
-            loaderHint.textContent = 'Загрузка ресурсов...';
-          } else if (percent < 98) {
-            loaderHint.textContent = 'Инициализация...';
-          } else {
-            loaderHint.textContent = 'Готово!';
-          }
-        }
       }
 
       function dismissSplash() {
@@ -321,76 +196,16 @@
         splash.dataset.dismissed = 'true';
         splash.style.opacity = '0';
         setTimeout(function() {
-          if (splashVideo) {
-            try { splashVideo.pause(); } catch (e) {}
-          }
-          if (splash.parentNode) {
+          if (splash && splash.parentNode) {
             splash.parentNode.removeChild(splash);
           }
-        }, 500);
+        }, 400);
       }
 
-      function enableSkipping() {
-        if (!splash || splash.dataset.dismissed) return;
-        if (skipBtn) {
-          skipBtn.style.display = 'block';
-          requestAnimationFrame(function() { skipBtn.style.opacity = '1'; });
-          skipBtn.onclick = function(e) {
-            e.stopPropagation();
-            dismissSplash();
-          };
-        }
-        splash.style.cursor = 'pointer';
-        splash.onclick = function() {
-          dismissSplash();
-        };
-      }
-
-      function onVideoFinished() {
-        if (isVideoEnded) return;
-        isVideoEnded = true;
-        try { splashVideo.pause(); } catch (e) {}
-        if (splashVideo) splashVideo.style.opacity = '0';
-
-        if (isGameReady) {
-          dismissSplash();
-        }
-      }
-
-      if (splashVideo) {
-        splashVideo.muted = true;
-        splashVideo.defaultMuted = true;
-        splashVideo.playsInline = true;
-
-        splashVideo.addEventListener('playing', function() {
-          splashVideo.style.opacity = '1';
+      if (splash) {
+        splash.addEventListener('click', function() {
+          if (isGameReady) dismissSplash();
         });
-
-        splashVideo.addEventListener('ended', onVideoFinished);
-        splashVideo.addEventListener('timeupdate', function() {
-          if (splashVideo.duration && splashVideo.currentTime >= splashVideo.duration - 0.25) {
-            onVideoFinished();
-          }
-        });
-        splashVideo.addEventListener('error', function() {
-          onVideoFinished();
-        });
-
-        setTimeout(function() {
-          if (!isVideoEnded) {
-            onVideoFinished();
-          }
-        }, 10500);
-
-        var playPromise = splashVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(function() {
-            // Autoplay blocked by mobile browser: keep static logo visible
-            window.addEventListener('touchstart', function() {
-              splashVideo.play().catch(function() {});
-            }, { once: true });
-          });
-        }
       }
 
       // Вызывается из Unity (GameUI.cs) ровно в момент, когда меню открыто
@@ -398,13 +213,7 @@
         console.log("[SporeTD] Unity Game Menu is Ready!");
         isGameReady = true;
         updateLoaderProgress(1.0);
-
-        if (!isVideoEnded) {
-          enableSkipping();
-          setTimeout(dismissSplash, 400);
-        } else {
-          setTimeout(dismissSplash, 300);
-        }
+        setTimeout(dismissSplash, 250);
       };
 
       var canvas = document.querySelector("#unity-canvas");
@@ -429,7 +238,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20261027_v5";
+      var buildVersion = "20261027_v6";
       var loaderUrl = buildUrl + "/spore_v4.loader.js?v=" + buildVersion;
       var dpr = Math.min(window.devicePixelRatio || 1, 3);
       var config = {
