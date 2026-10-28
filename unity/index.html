@@ -8,8 +8,8 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- Instant Asset Preloads for Fast Mobile Startup -->
-    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v11" as="image">
-    <link rel="preload" href="Build/spore_v9.loader.js?v=20261028_v11" as="script">
+    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v12" as="image">
+    <link rel="preload" href="Build/spore_v10.loader.js?v=20261028_v12" as="script">
     <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -304,12 +304,53 @@
         splash.addEventListener('pointerup', onUserAction);
       }
 
+      // Синхронизация роли игрока с Unity GameUI
+      function syncPlayerRole() {
+        if (!window.__unityInstance) return;
+        try {
+          var urlParams = new URLSearchParams(window.location.search);
+          var paramRole = urlParams.get('role');
+          var paramNick = urlParams.get('nick');
+          if (paramRole) {
+            window.__unityInstance.SendMessage('Canvas', 'SetPlayerProfile', JSON.stringify({
+              role: paramRole,
+              nick: paramNick || 'Игрок'
+            }));
+            return;
+          }
+
+          var initData = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp.initData : '';
+          if (initData) {
+            fetch('/api/me', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ initData: initData })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (data && data.ok && window.__unityInstance) {
+                window.__unityInstance.SendMessage('Canvas', 'SetPlayerProfile', JSON.stringify({
+                  role: data.role || 'player',
+                  nick: data.nick || 'Игрок'
+                }));
+              }
+            })
+            .catch(function(err) {
+              console.warn('[SporeTD] syncPlayerRole error:', err);
+            });
+          }
+        } catch (e) {
+          console.warn('[SporeTD] syncPlayerRole exception:', e);
+        }
+      }
+
       // Вызывается из Unity (GameUI.cs) ровно в момент, когда меню открыто
       window.onUnityGameReady = function() {
         console.log("[SporeTD] Unity Game Menu is Ready!");
         isGameReady = true;
         updateLoaderProgress(1.0);
         showContinuePrompt();
+        syncPlayerRole();
       };
 
       var canvas = document.querySelector("#unity-canvas");
@@ -334,14 +375,14 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20261028_v11";
-      var loaderUrl = buildUrl + "/spore_v9.loader.js?v=" + buildVersion;
+      var buildVersion = "20261028_v12";
+      var loaderUrl = buildUrl + "/spore_v10.loader.js?v=" + buildVersion;
       var dpr = Math.min(window.devicePixelRatio || 1, 3);
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/spore_v9.data.unityweb?v=" + buildVersion,
-        frameworkUrl: buildUrl + "/spore_v9.framework.js.unityweb?v=" + buildVersion,
-        codeUrl: buildUrl + "/spore_v9.wasm.unityweb?v=" + buildVersion,
+        dataUrl: buildUrl + "/spore_v10.data.unityweb?v=" + buildVersion,
+        frameworkUrl: buildUrl + "/spore_v10.framework.js.unityweb?v=" + buildVersion,
+        codeUrl: buildUrl + "/spore_v10.wasm.unityweb?v=" + buildVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SporeTD",
@@ -366,6 +407,7 @@
           updateLoaderProgress(progress);
         }).then((unityInstance) => {
           window.__unityInstance = unityInstance;
+          syncPlayerRole();
           var fsBtn = document.querySelector("#unity-fullscreen-button");
           if (fsBtn) {
             fsBtn.onclick = () => {
