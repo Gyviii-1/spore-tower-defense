@@ -8,8 +8,8 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- Instant Asset Preloads for Fast Mobile Startup -->
-    <link rel="preload" href="TemplateData/splash_logo.png?v=20261027_v7" as="image">
-    <link rel="preload" href="Build/spore_v5.loader.js?v=20261027_v7" as="script">
+    <link rel="preload" href="TemplateData/splash_logo.png?v=20261027_v9" as="image">
+    <link rel="preload" href="Build/spore_v7.loader.js?v=20261027_v9" as="script">
     <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -166,7 +166,7 @@
     <div id="splash-screen">
       <div id="splash-hero">
         <div id="splash-logo-wrapper">
-          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261027_v8" alt="SAM Logo" />
+          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261027_v9" alt="SAM Logo" />
         </div>
         <div id="splash-title">SPORE TD</div>
       </div>
@@ -219,6 +219,7 @@
 
       var isGameReady = false;
       var currentProgress = 0;
+      var hasStarted = false;
 
       function updateLoaderProgress(p) {
         currentProgress = Math.max(currentProgress, p);
@@ -237,6 +238,8 @@
       }
 
       function enterFullscreenAndStart() {
+        if (hasStarted) return;
+        hasStarted = true;
         tryExpandTelegram();
         try {
           var de = document.documentElement;
@@ -262,11 +265,15 @@
       }
 
       if (splash) {
-        splash.addEventListener('click', function() {
+        var onUserAction = function(e) {
           if (isGameReady) {
+            if (e && e.cancelable && e.type === 'touchend') e.preventDefault();
             enterFullscreenAndStart();
           }
-        });
+        };
+        splash.addEventListener('click', onUserAction);
+        splash.addEventListener('touchend', onUserAction, { passive: false });
+        splash.addEventListener('pointerup', onUserAction);
       }
 
       // Вызывается из Unity (GameUI.cs) ровно в момент, когда меню открыто
@@ -299,14 +306,14 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20261027_v8";
-      var loaderUrl = buildUrl + "/spore_v6.loader.js?v=" + buildVersion;
+      var buildVersion = "20261027_v9";
+      var loaderUrl = buildUrl + "/spore_v7.loader.js?v=" + buildVersion;
       var dpr = Math.min(window.devicePixelRatio || 1, 3);
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/spore_v6.data.unityweb?v=" + buildVersion,
-        frameworkUrl: buildUrl + "/spore_v6.framework.js.unityweb?v=" + buildVersion,
-        codeUrl: buildUrl + "/spore_v6.wasm.unityweb?v=" + buildVersion,
+        dataUrl: buildUrl + "/spore_v7.data.unityweb?v=" + buildVersion,
+        frameworkUrl: buildUrl + "/spore_v7.framework.js.unityweb?v=" + buildVersion,
+        codeUrl: buildUrl + "/spore_v7.wasm.unityweb?v=" + buildVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SporeTD",
