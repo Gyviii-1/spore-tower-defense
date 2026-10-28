@@ -8,9 +8,8 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- Instant Asset Preloads for Fast Mobile Startup -->
-    <link rel="preload" href="TemplateData/splash.mp4?v=20261028_v10" as="video" type="video/mp4">
-    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v10" as="image">
-    <link rel="preload" href="Build/spore_v10.loader.js?v=20261028_v10" as="script">
+    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v11" as="image">
+    <link rel="preload" href="Build/spore_v9.loader.js?v=20261028_v11" as="script">
     <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -60,22 +59,8 @@
         -webkit-user-select: none;
       }
 
-      /* Video Splash Element */
-      #splash-video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        background: #161616;
-        z-index: 1;
-        pointer-events: none;
-      }
-
-      /* Crisp Centered Brand Showcase / Poster Fallback */
+      /* Crisp Centered Brand Showcase */
       #splash-hero {
-        position: absolute;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -83,7 +68,6 @@
         transform: translateY(-20px);
         z-index: 2;
         pointer-events: none;
-        transition: opacity 0.35s ease;
       }
 
       #splash-logo-wrapper {
@@ -117,29 +101,6 @@
         font-size: 18px;
         font-weight: 500;
         letter-spacing: 2px;
-      }
-
-      /* Skip Button */
-      #splash-skip-btn {
-        position: absolute;
-        top: max(20px, env(safe-area-inset-top, 20px));
-        right: 20px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        border-radius: 20px;
-        padding: 7px 16px;
-        color: #ffffff;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        cursor: pointer;
-        z-index: 10;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        transition: opacity 0.25s ease, background 0.2s ease;
-      }
-      #splash-skip-btn:hover {
-        background: rgba(255, 255, 255, 0.16);
       }
 
       /* Sleek Minimalist Progress Bar */
@@ -216,15 +177,13 @@
   <body>
     <!-- Fullscreen Splash Overlay -->
     <div id="splash-screen">
-      <video id="splash-video" src="TemplateData/splash.mp4?v=20261028_v10" playsinline webkit-playsinline autoplay muted preload="auto"></video>
       <div id="splash-hero">
         <div id="splash-logo-wrapper">
-          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261028_v10" alt="SAM Logo" />
+          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261028_v11" alt="SAM Logo" />
         </div>
         <div id="splash-title">SPORE</div>
         <div id="splash-subtitle">Tower Defence</div>
       </div>
-      <div id="splash-skip-btn">Пропустить ▶</div>
 
       <div id="splash-loader-bar">
         <div id="splash-loader-track">
@@ -267,25 +226,14 @@
       tryExpandTelegram();
 
       var splash = document.getElementById('splash-screen');
-      var splashVideo = document.getElementById('splash-video');
-      var splashHero = document.getElementById('splash-hero');
-      var skipBtn = document.getElementById('splash-skip-btn');
       var loaderBar = document.getElementById('splash-loader-bar');
       var loaderFill = document.getElementById('splash-loader-fill');
       var loaderText = document.getElementById('splash-loader-text');
       var splashPrompt = document.getElementById('splash-prompt');
 
       var isGameReady = false;
-      var isVideoEnded = false;
       var currentProgress = 0;
       var hasStarted = false;
-
-      // Force mobile iOS inline muted autoplay properties
-      if (splashVideo) {
-        splashVideo.muted = true;
-        splashVideo.defaultMuted = true;
-        splashVideo.playsInline = true;
-      }
 
       function updateLoaderProgress(p) {
         currentProgress = Math.max(currentProgress, p);
@@ -300,78 +248,7 @@
 
       function showContinuePrompt() {
         if (loaderBar) loaderBar.style.display = 'none';
-        if (skipBtn) skipBtn.style.display = 'none';
         if (splashPrompt) splashPrompt.style.display = 'block';
-      }
-
-      function onVideoFinished() {
-        if (isVideoEnded) return;
-        isVideoEnded = true;
-        if (splashVideo) {
-          try {
-            splashVideo.pause();
-          } catch (e) {}
-        }
-        if (isGameReady) {
-          showContinuePrompt();
-        } else {
-          if (loaderBar) loaderBar.style.display = 'flex';
-        }
-      }
-
-      if (splashVideo) {
-        splashVideo.addEventListener('playing', function() {
-          if (splashHero) splashHero.style.opacity = '0';
-        });
-        splashVideo.addEventListener('ended', onVideoFinished);
-        splashVideo.addEventListener('timeupdate', function() {
-          if (splashVideo.duration && splashVideo.currentTime >= splashVideo.duration - 0.15) {
-            onVideoFinished();
-          }
-        });
-        splashVideo.addEventListener('error', function(err) {
-          console.warn('[SporeTD] Splash video error, fallback to poster:', err);
-          if (splashHero) splashHero.style.opacity = '1';
-          onVideoFinished();
-        });
-
-        var playPromise = splashVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(function(err) {
-            console.log('[SporeTD] Autoplay blocked, awaiting touch:', err);
-            var tryPlayOnTouch = function() {
-              if (splashVideo && !isVideoEnded && splashVideo.paused) {
-                splashVideo.play().catch(function() {});
-              }
-            };
-            window.addEventListener('touchstart', tryPlayOnTouch, { once: true, passive: true });
-            window.addEventListener('click', tryPlayOnTouch, { once: true });
-          });
-        }
-
-        // Safety fallback: if video is blocked and never plays within 4.5 seconds
-        setTimeout(function() {
-          if (!isVideoEnded && (!splashVideo || splashVideo.paused || splashVideo.currentTime === 0)) {
-            if (splashHero) splashHero.style.opacity = '1';
-            onVideoFinished();
-          }
-        }, 4500);
-      }
-
-      if (skipBtn) {
-        var handleSkip = function(e) {
-          if (e) {
-            e.stopPropagation();
-            if (e.cancelable) e.preventDefault();
-          }
-          onVideoFinished();
-          if (isGameReady) {
-            enterFullscreenAndStart();
-          }
-        };
-        skipBtn.addEventListener('click', handleSkip);
-        skipBtn.addEventListener('touchend', handleSkip, { passive: false });
-        skipBtn.addEventListener('pointerup', handleSkip);
       }
 
       function enterFullscreenAndStart() {
@@ -407,7 +284,6 @@
       function dismissSplash() {
         if (!splash || splash.dataset.dismissed) return;
         splash.dataset.dismissed = 'true';
-        splash.style.pointerEvents = 'none';
         splash.style.opacity = '0';
         setTimeout(function() {
           if (splash && splash.parentNode) {
@@ -418,16 +294,14 @@
 
       if (splash) {
         var onUserAction = function(e) {
-          if (e && e.target === skipBtn) return;
-          if (isGameReady && (isVideoEnded || (splashVideo && splashVideo.currentTime > 1.5))) {
+          if (isGameReady) {
             if (e && e.cancelable && e.type === 'touchend') e.preventDefault();
             enterFullscreenAndStart();
-          } else if (splashVideo && !isVideoEnded && splashVideo.paused) {
-            splashVideo.play().catch(function() {});
           }
         };
         splash.addEventListener('click', onUserAction);
         splash.addEventListener('touchend', onUserAction, { passive: false });
+        splash.addEventListener('pointerup', onUserAction);
       }
 
       // Вызывается из Unity (GameUI.cs) ровно в момент, когда меню открыто
@@ -435,9 +309,7 @@
         console.log("[SporeTD] Unity Game Menu is Ready!");
         isGameReady = true;
         updateLoaderProgress(1.0);
-        if (isVideoEnded) {
-          showContinuePrompt();
-        }
+        showContinuePrompt();
       };
 
       var canvas = document.querySelector("#unity-canvas");
@@ -462,14 +334,14 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20261028_v10";
-      var loaderUrl = buildUrl + "/spore_v10.loader.js?v=" + buildVersion;
+      var buildVersion = "20261028_v11";
+      var loaderUrl = buildUrl + "/spore_v9.loader.js?v=" + buildVersion;
       var dpr = Math.min(window.devicePixelRatio || 1, 3);
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/spore_v10.data.unityweb?v=" + buildVersion,
-        frameworkUrl: buildUrl + "/spore_v10.framework.js.unityweb?v=" + buildVersion,
-        codeUrl: buildUrl + "/spore_v10.wasm.unityweb?v=" + buildVersion,
+        dataUrl: buildUrl + "/spore_v9.data.unityweb?v=" + buildVersion,
+        frameworkUrl: buildUrl + "/spore_v9.framework.js.unityweb?v=" + buildVersion,
+        codeUrl: buildUrl + "/spore_v9.wasm.unityweb?v=" + buildVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SporeTD",
@@ -479,6 +351,7 @@
         matchWebGLToCanvasSize: true,
         autoSyncPersistentDataPath: true,
         cacheControl: function(url) {
+          // Instruct UnityCache (IndexedDB) to cache WASM and data permanently
           return "immutable";
         },
       };
