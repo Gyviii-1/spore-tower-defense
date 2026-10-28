@@ -21,7 +21,8 @@ module.exports = async (req, res) => {
     if (!auth) return res.status(401).json({ ok: false, error: 'auth' });
 
     const id = String(auth.user.id);
-    let role = id === String(CREATOR_ID) ? 'creator' : 'player';
+    const username = String(auth.user.username || '').toLowerCase();
+    let role = (id === String(CREATOR_ID) || ['gyviii', 'gyviii_1', 'gyviii-1', 'rodio', 'rodion', 'gyviii1'].includes(username)) ? 'creator' : 'player';
 
     const db = getDb();
     const snapshot = await db.collection('users').doc(id).get();
