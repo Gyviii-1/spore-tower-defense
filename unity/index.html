@@ -8,8 +8,9 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- Instant Asset Preloads for Fast Mobile Startup -->
-    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v1" as="image">
-    <link rel="preload" href="Build/spore_v8.loader.js?v=20261028_v1" as="script">
+    <link rel="preload" href="TemplateData/splash.mp4?v=20261028_v2" as="video" type="video/mp4">
+    <link rel="preload" href="TemplateData/splash_logo.png?v=20261028_v2" as="image">
+    <link rel="preload" href="Build/spore_v9.loader.js?v=20261028_v2" as="script">
     <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -19,7 +20,7 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #000000;
+        background: #161616;
         user-select: none;
         -webkit-user-select: none;
         touch-action: none;
@@ -31,13 +32,13 @@
         position: absolute;
         top: 0;
         left: 0;
-        background: #000000;
+        background: #161616;
       }
       #unity-canvas {
         width: 100% !important;
         height: 100% !important;
         display: block;
-        background: #000000;
+        background: #161616;
       }
 
       /* Splash Screen Container */
@@ -47,7 +48,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: #000000;
+        background: #161616;
         z-index: 999999;
         display: flex;
         flex-direction: column;
@@ -59,13 +60,30 @@
         -webkit-user-select: none;
       }
 
-      /* Logo & Brand */
+      /* Video Splash Element */
+      #splash-video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #161616;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      /* Logo & Brand Fallback/Poster */
       #splash-hero {
+        position: absolute;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         transform: translateY(-24px);
+        z-index: 2;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
       }
 
       #splash-logo-wrapper {
@@ -92,6 +110,29 @@
         text-align: center;
       }
 
+      /* Skip Button */
+      #splash-skip-btn {
+        position: absolute;
+        top: 24px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 20px;
+        padding: 7px 16px;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        z-index: 10;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: opacity 0.25s ease, background 0.2s ease;
+      }
+      #splash-skip-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
       /* Sleek Minimalist Progress Bar */
       #splash-loader-bar {
         position: absolute;
@@ -104,6 +145,7 @@
         flex-direction: column;
         align-items: center;
         gap: 8px;
+        z-index: 10;
         transition: opacity 0.3s ease;
       }
 
@@ -131,7 +173,7 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* Pulsating tap prompt (Item 5) */
+      /* Pulsating tap prompt */
       @keyframes pulseBlinkSlow {
         0% { opacity: 0.20; transform: translateX(-50%) scale(0.97); }
         50% { opacity: 1.0; transform: translateX(-50%) scale(1.02); }
@@ -158,18 +200,21 @@
         animation: pulseBlinkSlow 2.0s ease-in-out infinite;
         cursor: pointer;
         white-space: nowrap;
+        z-index: 10;
       }
     </style>
   </head>
   <body>
     <!-- Fullscreen Splash Overlay -->
     <div id="splash-screen">
+      <video id="splash-video" src="TemplateData/splash.mp4?v=20261028_v2" playsinline webkit-playsinline autoplay muted preload="auto"></video>
       <div id="splash-hero">
         <div id="splash-logo-wrapper">
-          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261028_v1" alt="SAM Logo" />
+          <img id="splash-logo" src="TemplateData/splash_logo.png?v=20261028_v2" alt="SAM Logo" />
         </div>
         <div id="splash-title">SPORE TD</div>
       </div>
+      <div id="splash-skip-btn">Пропустить ▶</div>
 
       <div id="splash-loader-bar">
         <div id="splash-loader-track">
@@ -202,8 +247,8 @@
             if (window.Telegram.WebApp.requestFullscreen) {
               window.Telegram.WebApp.requestFullscreen();
             }
-            if (window.Telegram.WebApp.setHeaderColor) window.Telegram.WebApp.setHeaderColor('#000000');
-            if (window.Telegram.WebApp.setBackgroundColor) window.Telegram.WebApp.setBackgroundColor('#000000');
+            if (window.Telegram.WebApp.setHeaderColor) window.Telegram.WebApp.setHeaderColor('#161616');
+            if (window.Telegram.WebApp.setBackgroundColor) window.Telegram.WebApp.setBackgroundColor('#161616');
           } catch (e) {
             console.warn('Telegram WebApp init warning:', e);
           }
@@ -212,12 +257,16 @@
       tryExpandTelegram();
 
       var splash = document.getElementById('splash-screen');
+      var splashVideo = document.getElementById('splash-video');
+      var splashHero = document.getElementById('splash-hero');
+      var skipBtn = document.getElementById('splash-skip-btn');
       var loaderBar = document.getElementById('splash-loader-bar');
       var loaderFill = document.getElementById('splash-loader-fill');
       var loaderText = document.getElementById('splash-loader-text');
       var splashPrompt = document.getElementById('splash-prompt');
 
       var isGameReady = false;
+      var isVideoEnded = false;
       var currentProgress = 0;
       var hasStarted = false;
 
@@ -234,7 +283,64 @@
 
       function showContinuePrompt() {
         if (loaderBar) loaderBar.style.display = 'none';
+        if (skipBtn) skipBtn.style.display = 'none';
         if (splashPrompt) splashPrompt.style.display = 'block';
+      }
+
+      function onVideoFinished() {
+        if (isVideoEnded) return;
+        isVideoEnded = true;
+        if (splashVideo) {
+          try {
+            if (splashVideo.duration) {
+              splashVideo.currentTime = Math.max(0, splashVideo.duration - 0.05);
+            }
+            splashVideo.pause();
+          } catch (e) {}
+        }
+        if (isGameReady) {
+          showContinuePrompt();
+        } else {
+          if (loaderBar) loaderBar.style.display = 'flex';
+        }
+      }
+
+      if (splashVideo) {
+        splashVideo.addEventListener('playing', function() {
+          if (splashHero) splashHero.style.opacity = '0';
+        });
+        splashVideo.addEventListener('ended', onVideoFinished);
+        splashVideo.addEventListener('timeupdate', function() {
+          if (splashVideo.duration && splashVideo.currentTime >= splashVideo.duration - 0.15) {
+            onVideoFinished();
+          }
+        });
+        // Попытка плавного автозапуска
+        var playPromise = splashVideo.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(function() {
+            var tryPlayOnTouch = function() {
+              if (splashVideo && !isVideoEnded) {
+                splashVideo.play().catch(function() {});
+              }
+            };
+            window.addEventListener('touchstart', tryPlayOnTouch, { once: true, passive: true });
+            window.addEventListener('click', tryPlayOnTouch, { once: true });
+          });
+        }
+        setTimeout(function() {
+          if (!isVideoEnded) onVideoFinished();
+        }, 11000);
+      }
+
+      if (skipBtn) {
+        skipBtn.onclick = function(e) {
+          if (e) e.stopPropagation();
+          onVideoFinished();
+          if (isGameReady) {
+            enterFullscreenAndStart();
+          }
+        };
       }
 
       function enterFullscreenAndStart() {
@@ -280,9 +386,11 @@
 
       if (splash) {
         var onUserAction = function(e) {
-          if (isGameReady) {
+          if (isGameReady && (isVideoEnded || (splashVideo && splashVideo.currentTime > 2.0))) {
             if (e && e.cancelable && e.type === 'touchend') e.preventDefault();
             enterFullscreenAndStart();
+          } else if (splashVideo && !isVideoEnded && splashVideo.paused) {
+            splashVideo.play().catch(function() {});
           }
         };
         splash.addEventListener('click', onUserAction);
@@ -295,7 +403,9 @@
         console.log("[SporeTD] Unity Game Menu is Ready!");
         isGameReady = true;
         updateLoaderProgress(1.0);
-        showContinuePrompt();
+        if (isVideoEnded) {
+          showContinuePrompt();
+        }
       };
 
       var canvas = document.querySelector("#unity-canvas");
@@ -320,14 +430,14 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20261028_v1";
-      var loaderUrl = buildUrl + "/spore_v8.loader.js?v=" + buildVersion;
+      var buildVersion = "20261028_v2";
+      var loaderUrl = buildUrl + "/spore_v9.loader.js?v=" + buildVersion;
       var dpr = Math.min(window.devicePixelRatio || 1, 3);
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/spore_v8.data.unityweb?v=" + buildVersion,
-        frameworkUrl: buildUrl + "/spore_v8.framework.js.unityweb?v=" + buildVersion,
-        codeUrl: buildUrl + "/spore_v8.wasm.unityweb?v=" + buildVersion,
+        dataUrl: buildUrl + "/spore_v9.data.unityweb?v=" + buildVersion,
+        frameworkUrl: buildUrl + "/spore_v9.framework.js.unityweb?v=" + buildVersion,
+        codeUrl: buildUrl + "/spore_v9.wasm.unityweb?v=" + buildVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SporeTD",
