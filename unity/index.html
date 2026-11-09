@@ -400,6 +400,9 @@
         productName: "SporeTD",
         productVersion: "1.0",
         showBanner: unityShowBanner,
+        errorHandler: function(err, type) {
+          console.warn('[SporeTD] Suppressed non-fatal runtime error:', err, type);
+        },
         devicePixelRatio: dpr,
         matchWebGLToCanvasSize: true,
         autoSyncPersistentDataPath: true,
@@ -414,6 +417,7 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
+      script.crossOrigin = "anonymous";
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           updateLoaderProgress(progress);
