@@ -57,7 +57,7 @@ SETTINGS_BUTTON = "⚙ Настройки"
 HELP_BUTTON = "❓ Помощь"
 TEST_BUTTON = "🧪 Тест"
 UNITY_BUTTON = "🎮 Unity (Тест)"
-UNITY_URL = "https://telegram-tower-defense.vercel.app/unity/"
+UNITY_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
 MENU_KEYBOARD = {
     "keyboard": [
