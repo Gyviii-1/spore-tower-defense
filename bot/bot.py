@@ -55,7 +55,6 @@ TOP_BUTTON = "🏆 Топ-10"
 ME_BUTTON = "📊 Мой рекорд"
 SETTINGS_BUTTON = "⚙ Настройки"
 HELP_BUTTON = "❓ Помощь"
-TEST_BUTTON = "🧪 Тест"
 UNITY_BUTTON = "🎮 Unity (Тест)"
 UNITY_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
@@ -77,7 +76,6 @@ def menu_keyboard(role):
     ]
     if role in ("creator", "tester"):
         rows.append([
-            {"text": TEST_BUTTON, "web_app": {"url": BETA_URL}},
             {"text": UNITY_BUTTON, "web_app": {"url": UNITY_URL}},
         ])
     return {"keyboard": rows, "resize_keyboard": True}
