@@ -1,3 +1,31 @@
+
+:root {
+  --ratio: 16 / 9;
+}
+
+#stage {
+  position: relative;
+  aspect-ratio: var(--ratio);
+  width: 100%;
+  height: 100%;
+  max-width: calc(100vh * (var(--ratio)));
+  max-width: calc(100dvh * (var(--ratio)));
+  max-height: calc(100vw / (var(--ratio)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000000;
+}
+
+#stage.stretch {
+  aspect-ratio: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
