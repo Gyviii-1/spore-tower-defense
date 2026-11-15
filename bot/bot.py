@@ -647,15 +647,13 @@ def handle_update(update):
     if text in ("/start", "/menu"):
         send_message(
             chat_id,
-            "🏰 *Spore Tower Defense*\n"
-            "\n"
-            "_Игра находится в альфа-тесте_\n"
+            "🏰 *Spore Tower Defense (Alpha)*\n"
             "\n"
             "Строй башни и не пусти врагов до конца дороги.\n"
             "\n"
-            "Личный рекорд и место в топе автоматически сохраняются\n"
+            "Личный рекорд и место в топе автоматически сохраняются.\n"
             "\n"
-            "🎮 Нажми «Играть» слева чтобы начать.\nИгра находиться в альфа разработке",
+            "🎮 Нажми «Играть» слева, чтобы начать.",
         )
     elif text in ("/help", "/commands", HELP_BUTTON):
         send_message(chat_id, commands_text(role))
