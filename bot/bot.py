@@ -575,12 +575,26 @@ def save_mod_data(data):
         print("[ERROR] save_mod_data local:", error)
 
 
-CAPTCHA_SYMBOLS = ["●", "■", "◆", "▲", "★", "⬟", "✦", "✖"]
+CAPTCHA_CATEGORIES = [
+    # Геометрия
+    ["●", "■", "◆", "▲", "★", "⬟", "✦", "✖", "◈", "▼", "◀", "▶", "⬢", "⬡", "◉", "◎"],
+    # Эмодзи еда и фрукты
+    ["🍎", "🍌", "🍇", "🍉", "🍓", "🍒", "🍕", "🍔", "🍦", "🍩", "🍪", "🥑", "🥕", "🌽"],
+    # Эмодзи космос и техника
+    ["🚀", "🛸", "🎮", "👾", "⚡", "🔥", "💎", "⭐", "🔔", "🔑", "🛡", "👑", "🎯", "🎲"],
+    # Эмодзи животные
+    ["🐱", "🐶", "🦊", "🐼", "🦁", "🐯", "🐸", "🐵", "🦄", "🐧", "🦉", "🐙", "🐬", "🦋"],
+    # Масти и символы
+    ["♠", "♣", "♥", "♦", "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"],
+    # Цифры и буквы
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "X", "Y", "Z"],
+]
 
 
 def generate_symbol_captcha(chat_id, user_id):
-    """Генерирует капчу с 4 символами в ряд и одним целевым символом."""
-    chosen = random.sample(CAPTCHA_SYMBOLS, 4)
+    """Генерирует разнообразную капчу со случайной категорией и 4 кнопками в ряд."""
+    category = random.choice(CAPTCHA_CATEGORIES)
+    chosen = random.sample(category, 4)
     target = random.choice(chosen)
     buttons = []
     for sym in chosen:
@@ -663,6 +677,11 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
         uid = member["id"]
         first_name = member.get("first_name") or "Новичок"
 
+        # Создателя и администраторов группы никогда не ограничиваем и не вызываем для них капчу
+        if str(uid) == str(CREATOR_ID) or is_chat_admin(chat_id, uid):
+            print(f"[CAPTCHA] Skipping admin/creator {uid} ({first_name}) in chat {chat_id}")
+            continue
+
         print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}, thread: {message_thread_id}")
         api(
             "restrictChatMember",
@@ -685,8 +704,7 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
         verify_url = f"https://t.me/{BOT_USERNAME}?start=verify_{chat_id}"
         keyboard = {
             "inline_keyboard": [
-                [{"text": "🚪 Открыть помощника", "url": verify_url}],
-                [{"text": "🎮 Spore Tower Defense", "url": f"https://t.me/{BOT_USERNAME}"}],
+                [{"text": "🚪 Пройти капчу", "url": verify_url}]
             ]
         }
         text = (
@@ -727,6 +745,10 @@ def handle_chat_member_update(cm):
     new_user = new_cm.get("user", {})
 
     if not new_user or new_user.get("is_bot"):
+        return
+
+    uid = new_user.get("id")
+    if str(uid) == str(CREATOR_ID) or is_chat_admin(chat_id, uid):
         return
 
     print(f"[CHAT_MEMBER] Chat {chat_id}: user {new_user.get('id')} ({new_user.get('first_name')}) status {old_status} -> {new_status}")
@@ -1200,6 +1222,16 @@ def handle_update(update):
                 print(f"[WARN] deleteMessage failed for left_chat_member: {del_res}")
             return
 
+        # Если участник ещё не прошёл капчу, удаляем его сообщения из группы
+        pending_key = f"{chat_id}_{user_id}"
+        mod_data = load_mod_data()
+        if pending_key in mod_data.get("pending_captcha", {}):
+            try:
+                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
+            except Exception:
+                pass
+            return
+
         if text:
             parts = text.split()
             first_token = parts[0].lower().split("@")[0]
@@ -1250,6 +1282,10 @@ def handle_update(update):
             if first_token in ("!капча", "!проверка", "/captcha"):
                 if reply_to:
                     target_u = reply_to.get("from", {})
+                    t_uid = target_u.get("id")
+                    if str(t_uid) == str(CREATOR_ID) or is_chat_admin(chat_id, t_uid):
+                        send_group_msg(chat_id, "⚠️ Нельзя вызвать проверку для администратора.", thread_id=thread_id, reply_to=message.get("message_id"))
+                        return
                     handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
                 else:
                     send_group_msg(chat_id, "ℹ️ Ответьте на сообщение участника командой `!капча`, чтобы вызвать для него проверку.", thread_id=thread_id, reply_to=message.get("message_id"))
