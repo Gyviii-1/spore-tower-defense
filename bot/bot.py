@@ -602,13 +602,21 @@ def is_chat_admin(chat_id, user_id):
 def handle_new_chat_members(chat_id, new_members, message_id=None, message_thread_id=None):
     """Ограничивает нового участника и отправляет капчу с кнопкой в личку."""
     mod_data = load_mod_data()
+
+    if message_thread_id:
+        if "chat_topics" not in mod_data:
+            mod_data["chat_topics"] = {}
+        mod_data["chat_topics"][str(chat_id)] = message_thread_id
+    elif str(chat_id) in mod_data.get("chat_topics", {}):
+        message_thread_id = mod_data["chat_topics"][str(chat_id)]
+
     for member in new_members:
         if member.get("is_bot"):
             continue
         uid = member["id"]
         first_name = member.get("first_name") or "Новичок"
 
-        print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}")
+        print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}, thread: {message_thread_id}")
         api(
             "restrictChatMember",
             chat_id=chat_id,
@@ -639,21 +647,7 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
             f"Нажми на кнопку ниже:"
         )
 
-        params = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "Markdown",
-            "reply_markup": keyboard,
-        }
-        if message_thread_id:
-            params["message_thread_id"] = message_thread_id
-
-        res = api("sendMessage", **params)
-        # Если топик закрыт или ошибка топика, пробуем отправить без message_thread_id
-        if not res.get("ok") and message_thread_id:
-            del params["message_thread_id"]
-            res = api("sendMessage", **params)
-
+        res = send_group_msg(chat_id, text, thread_id=message_thread_id, reply_markup=keyboard)
         greet_msg_id = res.get("result", {}).get("message_id") if res.get("ok") else None
 
         key = f"{chat_id}_{uid}"
@@ -1052,14 +1046,70 @@ def handle_update(update):
 
     # ---------------- Групповые сообщения (Капча и Модерация) ----------------
     if chat_type in ("group", "supergroup"):
+        reply_to = message.get("reply_to_message")
+
+        # Сохраняем ID топика чата для последующих приветствий
+        if thread_id:
+            mod_data = load_mod_data()
+            if mod_data.get("chat_topics", {}).get(str(chat_id)) != thread_id:
+                if "chat_topics" not in mod_data:
+                    mod_data["chat_topics"] = {}
+                mod_data["chat_topics"][str(chat_id)] = thread_id
+                save_mod_data(mod_data)
+
+        # Удаление сервисного сообщения Telegram "Пользователь вошёл в группу" + вызов капчи
         new_members = message.get("new_chat_members")
         if new_members:
+            try:
+                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
+            except Exception as e:
+                print(f"[WARN] Failed to delete system join msg: {e}")
             handle_new_chat_members(chat_id, new_members, message.get("message_id"), thread_id)
+            return
+
+        # Удаление сервисного сообщения Telegram "Пользователь покинул группу"
+        if message.get("left_chat_member"):
+            try:
+                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
+            except Exception:
+                pass
             return
 
         if text:
             parts = text.split()
             first_token = parts[0].lower().split("@")[0]
+
+            # Команда проверки статуса бота в этом топике
+            if first_token in ("!тест", "!чек", "/test", "/check"):
+                bot_me = api("getMe").get("result", {})
+                bot_perms = api("getChatMember", chat_id=chat_id, user_id=bot_me.get("id")).get("result", {})
+                can_del = bot_perms.get("can_delete_messages", False)
+                can_restr = bot_perms.get("can_restrict_members", False)
+                can_top = bot_perms.get("can_manage_topics", False)
+                status = bot_perms.get("status", "unknown")
+                send_group_msg(
+                    chat_id,
+                    f"🤖 *SporeTD Bot активен в этой ветке!*\n\n"
+                    f"📍 *ID чата:* `{chat_id}`\n"
+                    f"🧵 *Топик:* `{thread_id or 'General'}`\n"
+                    f"👑 *Статус:* `{status}`\n"
+                    f"🗑 Удаление сообщений: *{'✅' if can_del else '❌'}*\n"
+                    f"🔇 Ограничение/мут: *{'✅' if can_restr else '❌'}*\n"
+                    f"📂 Управление темами: *{'✅' if can_top else '❌'}*",
+                    thread_id=thread_id,
+                    reply_to=message.get("message_id"),
+                )
+                return
+
+            # Команда ручного вызова капчи на пользователя: !капча ответом
+            if first_token in ("!капча", "!проверка", "/captcha"):
+                if reply_to:
+                    target_u = reply_to.get("from", {})
+                    handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
+                else:
+                    send_group_msg(chat_id, "ℹ️ Ответьте на сообщение участника командой `!капча`, чтобы вызвать для него проверку.", thread_id=thread_id, reply_to=message.get("message_id"))
+                return
+
             cmd = MOD_MAP.get(first_token)
             if cmd:
                 handle_moderation_command(message, cmd, parts[1:])
@@ -1074,7 +1124,9 @@ def handle_update(update):
                     "• `!кик` — исключить из группы\n"
                     "• `!варн [причина]` — предупреждение (3 варна = мут на 24ч)\n"
                     "• `!анварн` — снять все предупреждения\n"
-                    "• `!дел` — удалить сообщение\n\n"
+                    "• `!дел` — удалить сообщение\n"
+                    "• `!капча` — принудительно выдать проверку участнику\n"
+                    "• `!тест` — проверить статус бота и права в топике\n\n"
                     "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
                 )
                 send_group_msg(chat_id, help_text, thread_id=thread_id, reply_to=message.get("message_id"))
