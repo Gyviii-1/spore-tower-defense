@@ -55,7 +55,8 @@ TOP_BUTTON = "🏆 Топ-10"
 ME_BUTTON = "📊 Мой рекорд"
 SETTINGS_BUTTON = "⚙ Настройки"
 HELP_BUTTON = "❓ Помощь"
-UNITY_BUTTON = "🎮 Unity (Тест)"
+UNITY_BUTTON = "🧪 Тест (Vercel)"
+GAME_URL = "https://gyviii-1.github.io/spore-tower-defense/unity/"
 UNITY_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
 BETA_URL = "https://telegram-tower-defense-git-beta-gyviii.vercel.app/unity/"
 MENU_KEYBOARD = {
@@ -790,6 +791,11 @@ def main():
     print("Бот:", me["result"]["username"])
 
     api("deleteWebhook", drop_pending_updates=False)
+
+    try:
+        api("setChatMenuButton", menu_button={"type": "web_app", "text": "Играть", "web_app": {"url": GAME_URL}})
+    except Exception as e:
+        print("Ошибка установки menu_button:", e)
 
     offset = 0
     while True:
