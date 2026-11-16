@@ -12,9 +12,12 @@
 import base64
 import json
 import os
+import re
 import time
 
 import requests
+
+BOT_USERNAME = "SporeTDBot"
 
 try:
     import firebase_admin
@@ -288,25 +291,36 @@ def toggle_hidden(user_id):
 def commands_text(role):
     """Список доступных команд с учётом роли."""
     lines = [
-        "📋 *Команды*",
+        "📋 *Команды бота*",
         "",
-        "/start — приветствие",
-        "/top — топ-10 игроков",
-        "/me — мой личный рекорд",
-        "/whoami — мой ID и роль",
-        "/settings — настройки (скрыть из списка)",
-        "/help — этот список",
+        "🎮 *Игра Spore Tower Defense:*",
+        "• Играть — кнопка «Играть» слева внизу",
+        "• Топ-10 и личный рекорд — кнопки меню внизу",
+        "• /whoami — мой ID и статус",
+        "• /settings — настройки профиля",
+        "• /help — эта справка",
+        "",
+        "🛡 *Модерация чата (в группах):*",
+        "• !мут [время] [причина] — ограничить отправку сообщений (ответом)",
+        "• !размут — снять ограничения",
+        "• !бан [причина] — заблокировать в группе",
+        "• !разбан — снять бан",
+        "• !кик — выгнать из группы",
+        "• !варн [причина] — предупреждение (3 варна = мут на 24ч)",
+        "• !анварн — снять предупреждения",
+        "• !дел — удалить сообщение",
+        "*(Работает ответом на сообщение нарушителя; время: 10м, 2ч, 1д)*",
     ]
     if role == "creator":
         lines += [
             "",
-            "*Только для создателя:*",
+            "👑 *Только для создателя:*",
             "/tester @user или ID — выдать тестер",
             "/untester @user или ID — забрать тестер",
             "/vip @user или ID — выдать VIP",
             "/unvip @user или ID — забрать VIP",
-            "/ban @user или ID — забанить",
-            "/unban @user или ID — разбанить",
+            "/ban @user или ID — глобальный бан в боте",
+            "/unban @user или ID — снять бан в боте",
             "/banlist — список забаненных",
             "/players — список пользователей",
             "Перешли сообщение человека — бот покажет его ID",
@@ -502,6 +516,389 @@ def format_player(player_id, records):
     return "🤷 Ты ещё не играл. Пройди игру до Game Over — рекорд сохранится автоматически."
 
 
+# --------------------------- Модерация и Капча ---------------------------
+MODERATION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "moderation_data.json")
+
+MOD_MAP = {
+    "мут": "mute", "!мут": "mute", "/mute": "mute", "/мут": "mute",
+    "размут": "unmute", "!размут": "unmute", "/unmute": "unmute", "/размут": "unmute",
+    "бан": "ban", "!бан": "ban", "/ban": "ban", "/бан": "ban",
+    "разбан": "unban", "!разбан": "unban", "/unban": "unban", "/разбан": "unban",
+    "кик": "kick", "!кик": "kick", "/kick": "kick", "/кик": "kick",
+    "варн": "warn", "!варн": "warn", "/warn": "warn", "/варн": "warn",
+    "анварн": "unwarn", "!анварн": "unwarn", "/unwarn": "unwarn", "!снятьварны": "unwarn",
+    "дел": "del", "!дел": "del", "/del": "del", "!del": "del",
+}
+
+
+def load_mod_data():
+    """Загружает данные модерации (варны и ожидающие капчи)."""
+    if os.path.exists(MODERATION_FILE):
+        try:
+            with open(MODERATION_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"warns": {}, "pending_captcha": {}}
+
+
+def save_mod_data(data):
+    """Сохраняет данные модерации."""
+    try:
+        with open(MODERATION_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as error:
+        print("[ERROR] save_mod_data:", error)
+
+
+def parse_time_str(s):
+    """Парсит строку вида '10м', '2ч', '1д' в количество секунд."""
+    if not s:
+        return None
+    s = s.strip().lower()
+    if s in ("навсегда", "forever", "0"):
+        return 0
+    m = re.match(r"^(\d+)\s*([смчдsmhd]|сек|мин|час|дн|день|дня|дней)?$", s)
+    if not m:
+        return None
+    val = int(m.group(1))
+    unit = (m.group(2) or "м").lower()
+    if unit in ("с", "s", "сек"):
+        return max(30, val)
+    if unit in ("м", "m", "мин"):
+        return val * 60
+    if unit in ("ч", "h", "час"):
+        return val * 3600
+    if unit in ("д", "d", "дн", "день", "дня", "дней"):
+        return val * 86400
+    return val * 60
+
+
+def format_duration(seconds):
+    """Форматирует секунды в человеческий вид."""
+    if not seconds or seconds <= 0:
+        return "навсегда"
+    if seconds >= 86400:
+        return f"{seconds // 86400} дн."
+    if seconds >= 3600:
+        return f"{seconds // 3600} ч."
+    return f"{max(1, seconds // 60)} мин."
+
+
+def is_chat_admin(chat_id, user_id):
+    """Проверяет, является ли пользователь администратором группы."""
+    if str(user_id) == str(CREATOR_ID):
+        return True
+    try:
+        res = api("getChatMember", chat_id=chat_id, user_id=user_id)
+        if res.get("ok"):
+            status = res["result"].get("status")
+            return status in ("creator", "administrator")
+    except Exception as e:
+        print(f"[WARN] is_chat_admin error: {e}")
+    return False
+
+
+def handle_new_chat_members(chat_id, new_members, message_id):
+    """Ограничивает нового участника и отправляет капчу с кнопкой в личку."""
+    mod_data = load_mod_data()
+    for member in new_members:
+        if member.get("is_bot"):
+            continue
+        uid = member["id"]
+        first_name = member.get("first_name") or "Новичок"
+
+        api(
+            "restrictChatMember",
+            chat_id=chat_id,
+            user_id=uid,
+            permissions={
+                "can_send_messages": False,
+                "can_send_audios": False,
+                "can_send_documents": False,
+                "can_send_photos": False,
+                "can_send_videos": False,
+                "can_send_video_notes": False,
+                "can_send_voice_notes": False,
+                "can_send_polls": False,
+                "can_send_other_messages": False,
+                "can_add_web_page_previews": False,
+            },
+        )
+
+        verify_url = f"https://t.me/{BOT_USERNAME}?start=verify_{chat_id}"
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🤖 Пройти капчу в боте", "url": verify_url}]
+            ]
+        }
+        text = (
+            f"👋 [{first_name}](tg://user?id={uid}), добро пожаловать в группу!\n\n"
+            f"🛡 *Чтобы писать в чате, подтверди, что ты человек.*\n"
+            f"Нажми на кнопку ниже:"
+        )
+        res = api("sendMessage", chat_id=chat_id, text=text, parse_mode="Markdown", reply_markup=keyboard)
+        greet_msg_id = res.get("result", {}).get("message_id") if res.get("ok") else None
+
+        key = f"{chat_id}_{uid}"
+        if "pending_captcha" not in mod_data:
+            mod_data["pending_captcha"] = {}
+        mod_data["pending_captcha"][key] = {
+            "chat_id": chat_id,
+            "user_id": uid,
+            "first_name": first_name,
+            "greet_msg_id": greet_msg_id,
+            "time": time.time(),
+        }
+    save_mod_data(mod_data)
+
+
+def handle_captcha_callback(callback):
+    """Снимает ограничения после нажатия кнопки капчи в личке."""
+    callback_id = callback.get("id")
+    user_id = callback.get("from", {}).get("id")
+    chat_id = callback.get("message", {}).get("chat", {}).get("id")
+    message_id = callback.get("message", {}).get("message_id")
+    data = callback.get("data", "")
+
+    target_chat = data.replace("verify_pass_", "").strip()
+    try:
+        target_chat_id = int(target_chat)
+    except ValueError:
+        target_chat_id = target_chat
+
+    api(
+        "restrictChatMember",
+        chat_id=target_chat_id,
+        user_id=user_id,
+        permissions={
+            "can_send_messages": True,
+            "can_send_audios": True,
+            "can_send_documents": True,
+            "can_send_photos": True,
+            "can_send_videos": True,
+            "can_send_video_notes": True,
+            "can_send_voice_notes": True,
+            "can_send_polls": True,
+            "can_send_other_messages": True,
+            "can_add_web_page_previews": True,
+        },
+    )
+
+    mod_data = load_mod_data()
+    key = f"{target_chat_id}_{user_id}"
+    pending = mod_data.get("pending_captcha", {}).pop(key, None)
+    save_mod_data(mod_data)
+
+    if pending and pending.get("greet_msg_id"):
+        try:
+            api("deleteMessage", chat_id=target_chat_id, message_id=pending["greet_msg_id"])
+        except Exception:
+            pass
+
+    api("answerCallbackQuery", callback_query_id=callback_id, text="Проверка пройдена! Чат разблокирован.")
+    api(
+        "editMessageText",
+        chat_id=chat_id,
+        message_id=message_id,
+        text=(
+            "✅ *Проверка успешно пройдена!*\n\n"
+            "Ограничения в чате сняты — можешь свободно писать.\n\n"
+            "🎮 А пока общаешься, сыграй в *Spore Tower Defense*!\n"
+            "Кнопка запуска находится в меню слева."
+        ),
+        parse_mode="Markdown",
+    )
+
+
+def handle_moderation_command(message, cmd, args):
+    """Обрабатывает команды модератора: мут, бан, кик, варн, дел и т.д."""
+    chat_id = message["chat"]["id"]
+    sender = message.get("from", {})
+    sender_id = sender.get("id")
+    message_id = message.get("message_id")
+    reply_to = message.get("reply_to_message")
+
+    if not is_chat_admin(chat_id, sender_id):
+        api("sendMessage", chat_id=chat_id, text="⚠️ Эта команда доступна только администраторам группы.", reply_to_message_id=message_id)
+        return
+
+    if cmd == "del":
+        if reply_to:
+            api("deleteMessage", chat_id=chat_id, message_id=reply_to.get("message_id"))
+            api("deleteMessage", chat_id=chat_id, message_id=message_id)
+        else:
+            api("sendMessage", chat_id=chat_id, text="ℹ️ Ответьте на сообщение нарушителя командой `!дел`", reply_to_message_id=message_id, parse_mode="Markdown")
+        return
+
+    target_id = None
+    target_name = None
+
+    if reply_to:
+        reply_user = reply_to.get("from", {})
+        target_id = reply_user.get("id")
+        target_name = reply_user.get("first_name") or "Пользователь"
+        if reply_user.get("username"):
+            target_name = f"@{reply_user['username']}"
+    else:
+        if args and (args[0].startswith("@") or args[0].isdigit()):
+            raw_target = args[0]
+            args = args[1:]
+            if raw_target.isdigit():
+                target_id = int(raw_target)
+                target_name = f"ID:{target_id}"
+            else:
+                uname = raw_target.lstrip("@")
+                doc_id, _ = resolve_target(f"@{uname}")
+                if doc_id and doc_id.isdigit():
+                    target_id = int(doc_id)
+                target_name = f"@{uname}"
+
+    if not target_id:
+        api(
+            "sendMessage",
+            chat_id=chat_id,
+            text="ℹ️ Ответьте на сообщение пользователя или укажите: `!команда @username`",
+            reply_to_message_id=message_id,
+            parse_mode="Markdown",
+        )
+        return
+
+    me = api("getMe")
+    if me.get("ok") and target_id == me["result"]["id"]:
+        api("sendMessage", chat_id=chat_id, text="🤖 Нельзя применить команду к боту.", reply_to_message_id=message_id)
+        return
+
+    if is_chat_admin(chat_id, target_id):
+        api("sendMessage", chat_id=chat_id, text="⚠️ Нельзя применить действие к администратору группы.", reply_to_message_id=message_id)
+        return
+
+    duration = None
+    reason_parts = []
+    for a in args:
+        sec = parse_time_str(a)
+        if sec is not None and duration is None:
+            duration = sec
+        else:
+            reason_parts.append(a)
+    reason = " ".join(reason_parts).strip() or "Не указана"
+
+    mod_data = load_mod_data()
+
+    if cmd == "mute":
+        if duration is None:
+            duration = 3600
+        until_date = int(time.time()) + duration if duration > 0 else 0
+        res = api(
+            "restrictChatMember",
+            chat_id=chat_id,
+            user_id=target_id,
+            until_date=until_date,
+            permissions={
+                "can_send_messages": False,
+                "can_send_audios": False,
+                "can_send_documents": False,
+                "can_send_photos": False,
+                "can_send_videos": False,
+                "can_send_video_notes": False,
+                "can_send_voice_notes": False,
+                "can_send_polls": False,
+                "can_send_other_messages": False,
+                "can_add_web_page_previews": False,
+            },
+        )
+        if res.get("ok"):
+            time_str = format_duration(duration)
+            api("sendMessage", chat_id=chat_id, text=f"🔇 *{target_name}* замучен на *{time_str}*.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+        else:
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка мута: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+
+    elif cmd == "unmute":
+        res = api(
+            "restrictChatMember",
+            chat_id=chat_id,
+            user_id=target_id,
+            permissions={
+                "can_send_messages": True,
+                "can_send_audios": True,
+                "can_send_documents": True,
+                "can_send_photos": True,
+                "can_send_videos": True,
+                "can_send_video_notes": True,
+                "can_send_voice_notes": True,
+                "can_send_polls": True,
+                "can_send_other_messages": True,
+                "can_add_web_page_previews": True,
+            },
+        )
+        if res.get("ok"):
+            api("sendMessage", chat_id=chat_id, text=f"🔊 С *{target_name}* сняты ограничения (размут).", parse_mode="Markdown")
+        else:
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка размута: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+
+    elif cmd == "ban":
+        res = api("banChatMember", chat_id=chat_id, user_id=target_id)
+        if res.get("ok"):
+            api("sendMessage", chat_id=chat_id, text=f"⛔ *{target_name}* заблокирован в группе.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+        else:
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка бана: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+
+    elif cmd == "unban":
+        res = api("unbanChatMember", chat_id=chat_id, user_id=target_id, only_if_banned=True)
+        if res.get("ok"):
+            api("sendMessage", chat_id=chat_id, text=f"✅ *{target_name}* разблокирован в группе.", parse_mode="Markdown")
+        else:
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка разбана: {res.get('description', 'Не удалось')}", reply_to_message_id=message_id)
+
+    elif cmd == "kick":
+        res = api("banChatMember", chat_id=chat_id, user_id=target_id)
+        if res.get("ok"):
+            api("unbanChatMember", chat_id=chat_id, user_id=target_id)
+            api("sendMessage", chat_id=chat_id, text=f"🚪 *{target_name}* исключён из группы.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+        else:
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка кика: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+
+    elif cmd == "warn":
+        warn_key = f"{chat_id}_{target_id}"
+        if "warns" not in mod_data:
+            mod_data["warns"] = {}
+        current_warns = mod_data["warns"].get(warn_key, 0) + 1
+        if current_warns >= 3:
+            mod_data["warns"][warn_key] = 0
+            save_mod_data(mod_data)
+            until_date = int(time.time()) + 86400
+            api(
+                "restrictChatMember",
+                chat_id=chat_id,
+                user_id=target_id,
+                until_date=until_date,
+                permissions={
+                    "can_send_messages": False,
+                    "can_send_audios": False,
+                    "can_send_documents": False,
+                    "can_send_photos": False,
+                    "can_send_videos": False,
+                    "can_send_video_notes": False,
+                    "can_send_voice_notes": False,
+                    "can_send_polls": False,
+                    "can_send_other_messages": False,
+                    "can_add_web_page_previews": False,
+                },
+            )
+            api("sendMessage", chat_id=chat_id, text=f"🚫 *{target_name}* получил предупреждение (*3/3*).\n\nЛимит исчерпан — выдан мут на *24 часа*!\n📝 *Причина:* {reason}", parse_mode="Markdown")
+        else:
+            mod_data["warns"][warn_key] = current_warns
+            save_mod_data(mod_data)
+            api("sendMessage", chat_id=chat_id, text=f"⚠️ *{target_name}* получил предупреждение (*{current_warns}/3*).\n📝 *Причина:* {reason}", parse_mode="Markdown")
+
+    elif cmd == "unwarn":
+        warn_key = f"{chat_id}_{target_id}"
+        if "warns" in mod_data and warn_key in mod_data["warns"]:
+            del mod_data["warns"][warn_key]
+            save_mod_data(mod_data)
+        api("sendMessage", chat_id=chat_id, text=f"✅ С *{target_name}* сняты все предупреждения.", parse_mode="Markdown")
+
+
 # ------------------------------ Обработка ------------------------------
 def handle_callback(callback):
     """Нажатия на inline-кнопки."""
@@ -511,6 +908,10 @@ def handle_callback(callback):
     message_id = message.get("message_id")
     user_id = str(callback.get("from", {}).get("id", ""))
     is_creator = str(user_id) == str(CREATOR_ID)
+
+    if data.startswith("verify_pass_"):
+        handle_captcha_callback(callback)
+        return
 
     if data == "toggle_hidden":
         new_value = toggle_hidden(user_id)
@@ -581,11 +982,61 @@ def handle_update(update):
     if not message:
         return
 
-    chat_id = message["chat"]["id"]
+    chat = message.get("chat", {})
+    chat_id = chat.get("id")
+    chat_type = chat.get("type", "private")
     sender = message.get("from", {})
     user_id = str(sender.get("id", ""))
     username = sender.get("username")
     text = (message.get("text") or "").strip()
+
+    # ---------------- Групповые сообщения (Капча и Модерация) ----------------
+    if chat_type in ("group", "supergroup"):
+        new_members = message.get("new_chat_members")
+        if new_members:
+            handle_new_chat_members(chat_id, new_members, message.get("message_id"))
+            return
+
+        if text:
+            parts = text.split()
+            first_token = parts[0].lower().split("@")[0]
+            cmd = MOD_MAP.get(first_token)
+            if cmd:
+                handle_moderation_command(message, cmd, parts[1:])
+                return
+            if first_token in ("/help", "!help", "!хелп", "!помощь"):
+                help_text = (
+                    "🛡 *Команды модератора (ответом на сообщение нарушителя):*\n\n"
+                    "• `!мут [время] [причина]` — замутить нарушителя\n"
+                    "• `!размут` — снять мут\n"
+                    "• `!бан [причина]` — заблокировать в группе\n"
+                    "• `!разбан [@user / ID]` — разблокировать\n"
+                    "• `!кик` — исключить из группы\n"
+                    "• `!варн [причина]` — предупреждение (3 варна = мут на 24ч)\n"
+                    "• `!анварн` — снять все предупреждения\n"
+                    "• `!дел` — удалить сообщение\n\n"
+                    "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
+                )
+                api("sendMessage", chat_id=chat_id, text=help_text, parse_mode="Markdown", reply_to_message_id=message.get("message_id"))
+                return
+
+        return
+
+    # ---------------- Личные сообщения ----------------
+    if text.startswith("/start verify_"):
+        target_chat = text.replace("/start verify_", "").strip()
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "✅ Я человек (Разблокировать чат)", "callback_data": f"verify_pass_{target_chat}"}]
+            ]
+        }
+        send_message(
+            chat_id,
+            "🛡 *Проверка безопасности для входа в группу*\n\n"
+            "Нажми кнопку ниже, чтобы подтвердить, что ты не робот, и получить доступ к отправке сообщений в чате:",
+            keyboard=keyboard,
+        )
+        return
 
     ensure_user(user_id, user_nick(message), username)
     is_creator = str(user_id) == str(CREATOR_ID)
@@ -665,7 +1116,7 @@ def handle_update(update):
             markdown=False,
             keyboard=settings_keyboard(user_id),
         )
-    elif text in ("/top", "/leaderboard", TOP_BUTTON):
+    elif text == TOP_BUTTON:
         try:
             send_message(chat_id, format_top(load_leaderboard()), markdown=False)
         except Exception as error:
