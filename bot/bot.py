@@ -599,7 +599,7 @@ def is_chat_admin(chat_id, user_id):
     return False
 
 
-def handle_new_chat_members(chat_id, new_members, message_id):
+def handle_new_chat_members(chat_id, new_members, message_id=None, message_thread_id=None):
     """Ограничивает нового участника и отправляет капчу с кнопкой в личку."""
     mod_data = load_mod_data()
     for member in new_members:
@@ -608,6 +608,7 @@ def handle_new_chat_members(chat_id, new_members, message_id):
         uid = member["id"]
         first_name = member.get("first_name") or "Новичок"
 
+        print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}")
         api(
             "restrictChatMember",
             chat_id=chat_id,
@@ -637,7 +638,22 @@ def handle_new_chat_members(chat_id, new_members, message_id):
             f"🛡 *Чтобы писать в чате, подтверди, что ты человек.*\n"
             f"Нажми на кнопку ниже:"
         )
-        res = api("sendMessage", chat_id=chat_id, text=text, parse_mode="Markdown", reply_markup=keyboard)
+
+        params = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown",
+            "reply_markup": keyboard,
+        }
+        if message_thread_id:
+            params["message_thread_id"] = message_thread_id
+
+        res = api("sendMessage", **params)
+        # Если топик закрыт или ошибка топика, пробуем отправить без message_thread_id
+        if not res.get("ok") and message_thread_id:
+            del params["message_thread_id"]
+            res = api("sendMessage", **params)
+
         greet_msg_id = res.get("result", {}).get("message_id") if res.get("ok") else None
 
         key = f"{chat_id}_{uid}"
@@ -651,6 +667,27 @@ def handle_new_chat_members(chat_id, new_members, message_id):
             "time": time.time(),
         }
     save_mod_data(mod_data)
+
+
+def handle_chat_member_update(cm):
+    """Событие изменения участника (вход через канал, инвайт, сообщество)."""
+    chat = cm.get("chat", {})
+    chat_id = chat.get("id")
+    chat_type = chat.get("type", "")
+    if chat_type not in ("group", "supergroup"):
+        return
+
+    old_status = cm.get("old_chat_member", {}).get("status")
+    new_cm = cm.get("new_chat_member", {})
+    new_status = new_cm.get("status")
+    new_user = new_cm.get("user", {})
+
+    if not new_user or new_user.get("is_bot"):
+        return
+
+    print(f"[CHAT_MEMBER] Chat {chat_id}: user {new_user.get('id')} ({new_user.get('first_name')}) status {old_status} -> {new_status}")
+    if old_status in ("left", "kicked", None) and new_status in ("member", "restricted"):
+        handle_new_chat_members(chat_id, [new_user], message_id=None, message_thread_id=None)
 
 
 def handle_captcha_callback(callback):
@@ -711,16 +748,39 @@ def handle_captcha_callback(callback):
     )
 
 
+def send_group_msg(chat_id, text, thread_id=None, reply_to=None, **kwargs):
+    """Отправляет сообщение в группу с поддержкой топиков (тем) и фоллбэком."""
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown",
+    }
+    if reply_to:
+        payload["reply_to_message_id"] = reply_to
+    if thread_id:
+        payload["message_thread_id"] = thread_id
+    payload.update(kwargs)
+    res = api("sendMessage", **payload)
+    if not res.get("ok") and thread_id:
+        del payload["message_thread_id"]
+        res = api("sendMessage", **payload)
+    return res
+
+
 def handle_moderation_command(message, cmd, args):
     """Обрабатывает команды модератора: мут, бан, кик, варн, дел и т.д."""
     chat_id = message["chat"]["id"]
+    thread_id = message.get("message_thread_id")
     sender = message.get("from", {})
     sender_id = sender.get("id")
     message_id = message.get("message_id")
     reply_to = message.get("reply_to_message")
 
+    def msg_reply(text):
+        return send_group_msg(chat_id, text, thread_id=thread_id, reply_to=message_id)
+
     if not is_chat_admin(chat_id, sender_id):
-        api("sendMessage", chat_id=chat_id, text="⚠️ Эта команда доступна только администраторам группы.", reply_to_message_id=message_id)
+        msg_reply("⚠️ Эта команда доступна только администраторам группы.")
         return
 
     if cmd == "del":
@@ -728,7 +788,7 @@ def handle_moderation_command(message, cmd, args):
             api("deleteMessage", chat_id=chat_id, message_id=reply_to.get("message_id"))
             api("deleteMessage", chat_id=chat_id, message_id=message_id)
         else:
-            api("sendMessage", chat_id=chat_id, text="ℹ️ Ответьте на сообщение нарушителя командой `!дел`", reply_to_message_id=message_id, parse_mode="Markdown")
+            msg_reply("ℹ️ Ответьте на сообщение нарушителя командой `!дел`")
         return
 
     target_id = None
@@ -755,22 +815,16 @@ def handle_moderation_command(message, cmd, args):
                 target_name = f"@{uname}"
 
     if not target_id:
-        api(
-            "sendMessage",
-            chat_id=chat_id,
-            text="ℹ️ Ответьте на сообщение пользователя или укажите: `!команда @username`",
-            reply_to_message_id=message_id,
-            parse_mode="Markdown",
-        )
+        msg_reply("ℹ️ Ответьте на сообщение пользователя или укажите: `!команда @username`")
         return
 
     me = api("getMe")
     if me.get("ok") and target_id == me["result"]["id"]:
-        api("sendMessage", chat_id=chat_id, text="🤖 Нельзя применить команду к боту.", reply_to_message_id=message_id)
+        msg_reply("🤖 Нельзя применить команду к боту.")
         return
 
     if is_chat_admin(chat_id, target_id):
-        api("sendMessage", chat_id=chat_id, text="⚠️ Нельзя применить действие к администратору группы.", reply_to_message_id=message_id)
+        msg_reply("⚠️ Нельзя применить действие к администратору группы.")
         return
 
     duration = None
@@ -809,9 +863,9 @@ def handle_moderation_command(message, cmd, args):
         )
         if res.get("ok"):
             time_str = format_duration(duration)
-            api("sendMessage", chat_id=chat_id, text=f"🔇 *{target_name}* замучен на *{time_str}*.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+            msg_reply(f"🔇 *{target_name}* замучен на *{time_str}*.\n📝 *Причина:* {reason}")
         else:
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка мута: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+            msg_reply(f"⚠️ Ошибка мута: {res.get('description', 'Недостаточно прав')}")
 
     elif cmd == "unmute":
         res = api(
@@ -832,31 +886,31 @@ def handle_moderation_command(message, cmd, args):
             },
         )
         if res.get("ok"):
-            api("sendMessage", chat_id=chat_id, text=f"🔊 С *{target_name}* сняты ограничения (размут).", parse_mode="Markdown")
+            msg_reply(f"🔊 С *{target_name}* сняты ограничения (размут).")
         else:
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка размута: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+            msg_reply(f"⚠️ Ошибка размута: {res.get('description', 'Недостаточно прав')}")
 
     elif cmd == "ban":
         res = api("banChatMember", chat_id=chat_id, user_id=target_id)
         if res.get("ok"):
-            api("sendMessage", chat_id=chat_id, text=f"⛔ *{target_name}* заблокирован в группе.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+            msg_reply(f"⛔ *{target_name}* заблокирован в группе.\n📝 *Причина:* {reason}")
         else:
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка бана: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+            msg_reply(f"⚠️ Ошибка бана: {res.get('description', 'Недостаточно прав')}")
 
     elif cmd == "unban":
         res = api("unbanChatMember", chat_id=chat_id, user_id=target_id, only_if_banned=True)
         if res.get("ok"):
-            api("sendMessage", chat_id=chat_id, text=f"✅ *{target_name}* разблокирован в группе.", parse_mode="Markdown")
+            msg_reply(f"✅ *{target_name}* разблокирован в группе.")
         else:
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка разбана: {res.get('description', 'Не удалось')}", reply_to_message_id=message_id)
+            msg_reply(f"⚠️ Ошибка разбана: {res.get('description', 'Не удалось')}")
 
     elif cmd == "kick":
         res = api("banChatMember", chat_id=chat_id, user_id=target_id)
         if res.get("ok"):
             api("unbanChatMember", chat_id=chat_id, user_id=target_id)
-            api("sendMessage", chat_id=chat_id, text=f"🚪 *{target_name}* исключён из группы.\n📝 *Причина:* {reason}", parse_mode="Markdown")
+            msg_reply(f"🚪 *{target_name}* исключён из группы.\n📝 *Причина:* {reason}")
         else:
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ Ошибка кика: {res.get('description', 'Недостаточно прав')}", reply_to_message_id=message_id)
+            msg_reply(f"⚠️ Ошибка кика: {res.get('description', 'Недостаточно прав')}")
 
     elif cmd == "warn":
         warn_key = f"{chat_id}_{target_id}"
@@ -885,18 +939,18 @@ def handle_moderation_command(message, cmd, args):
                     "can_add_web_page_previews": False,
                 },
             )
-            api("sendMessage", chat_id=chat_id, text=f"🚫 *{target_name}* получил предупреждение (*3/3*).\n\nЛимит исчерпан — выдан мут на *24 часа*!\n📝 *Причина:* {reason}", parse_mode="Markdown")
+            msg_reply(f"🚫 *{target_name}* получил предупреждение (*3/3*).\n\nЛимит исчерпан — выдан мут на *24 часа*!\n📝 *Причина:* {reason}")
         else:
             mod_data["warns"][warn_key] = current_warns
             save_mod_data(mod_data)
-            api("sendMessage", chat_id=chat_id, text=f"⚠️ *{target_name}* получил предупреждение (*{current_warns}/3*).\n📝 *Причина:* {reason}", parse_mode="Markdown")
+            msg_reply(f"⚠️ *{target_name}* получил предупреждение (*{current_warns}/3*).\n📝 *Причина:* {reason}")
 
     elif cmd == "unwarn":
         warn_key = f"{chat_id}_{target_id}"
         if "warns" in mod_data and warn_key in mod_data["warns"]:
             del mod_data["warns"][warn_key]
             save_mod_data(mod_data)
-        api("sendMessage", chat_id=chat_id, text=f"✅ С *{target_name}* сняты все предупреждения.", parse_mode="Markdown")
+        msg_reply(f"✅ С *{target_name}* сняты все предупреждения.")
 
 
 # ------------------------------ Обработка ------------------------------
@@ -973,6 +1027,11 @@ def handle_callback(callback):
 def handle_update(update):
     global CURRENT_KEYBOARD
 
+    chat_member = update.get("chat_member")
+    if chat_member:
+        handle_chat_member_update(chat_member)
+        return
+
     callback = update.get("callback_query")
     if callback:
         handle_callback(callback)
@@ -985,6 +1044,7 @@ def handle_update(update):
     chat = message.get("chat", {})
     chat_id = chat.get("id")
     chat_type = chat.get("type", "private")
+    thread_id = message.get("message_thread_id")
     sender = message.get("from", {})
     user_id = str(sender.get("id", ""))
     username = sender.get("username")
@@ -994,7 +1054,7 @@ def handle_update(update):
     if chat_type in ("group", "supergroup"):
         new_members = message.get("new_chat_members")
         if new_members:
-            handle_new_chat_members(chat_id, new_members, message.get("message_id"))
+            handle_new_chat_members(chat_id, new_members, message.get("message_id"), thread_id)
             return
 
         if text:
@@ -1017,7 +1077,7 @@ def handle_update(update):
                     "• `!дел` — удалить сообщение\n\n"
                     "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
                 )
-                api("sendMessage", chat_id=chat_id, text=help_text, parse_mode="Markdown", reply_to_message_id=message.get("message_id"))
+                send_group_msg(chat_id, help_text, thread_id=thread_id, reply_to=message.get("message_id"))
                 return
 
         return
