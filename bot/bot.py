@@ -12,6 +12,7 @@
 import base64
 import json
 import os
+import random
 import re
 import time
 
@@ -532,23 +533,68 @@ MOD_MAP = {
 
 
 def load_mod_data():
-    """Загружает данные модерации (варны и ожидающие капчи)."""
+    """Загружает данные модерации (варны, капчи, топики) из Firestore или локального кэша."""
+    if db is not None:
+        try:
+            doc = db.collection("settings").document("moderation").get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                if "warns" not in data:
+                    data["warns"] = {}
+                if "pending_captcha" not in data:
+                    data["pending_captcha"] = {}
+                if "chat_topics" not in data:
+                    data["chat_topics"] = {}
+                return data
+        except Exception as e:
+            print("[WARN] Firestore load_mod_data error:", e)
+
     if os.path.exists(MODERATION_FILE):
         try:
             with open(MODERATION_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if "chat_topics" not in data:
+                    data["chat_topics"] = {}
+                return data
         except Exception:
             pass
-    return {"warns": {}, "pending_captcha": {}}
+    return {"warns": {}, "pending_captcha": {}, "chat_topics": {}}
 
 
 def save_mod_data(data):
-    """Сохраняет данные модерации."""
+    """Сохраняет данные модерации в Firestore и локально."""
+    if db is not None:
+        try:
+            db.collection("settings").document("moderation").set(data, merge=True)
+        except Exception as e:
+            print("[WARN] Firestore save_mod_data error:", e)
     try:
         with open(MODERATION_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as error:
-        print("[ERROR] save_mod_data:", error)
+        print("[ERROR] save_mod_data local:", error)
+
+
+CAPTCHA_SYMBOLS = ["●", "■", "◆", "▲", "★", "⬟", "✦", "✖"]
+
+
+def generate_symbol_captcha(chat_id, user_id):
+    """Генерирует капчу с 4 символами в ряд и одним целевым символом."""
+    chosen = random.sample(CAPTCHA_SYMBOLS, 4)
+    target = random.choice(chosen)
+    buttons = []
+    for sym in chosen:
+        is_correct = (sym == target)
+        cb = f"c_ok:{chat_id}:{user_id}:{sym}" if is_correct else f"c_no:{chat_id}:{user_id}:{sym}"
+        buttons.append({"text": sym, "callback_data": cb})
+    keyboard = {"inline_keyboard": [buttons]}
+    text = (
+        "✅ *Быстрая проверка*\n\n"
+        f"Чтобы войти в группу, нажмите кнопку с символом: *{target}*\n\n"
+        "✅ *Quick check*\n"
+        f"To enter the chat, press: *{target}*"
+    )
+    return text, keyboard, target
 
 
 def parse_time_str(s):
@@ -600,13 +646,14 @@ def is_chat_admin(chat_id, user_id):
 
 
 def handle_new_chat_members(chat_id, new_members, message_id=None, message_thread_id=None):
-    """Ограничивает нового участника и отправляет капчу с кнопкой в личку."""
+    """Ограничивает нового участника и отправляет сообщение-помощник с кнопкой проверки."""
     mod_data = load_mod_data()
 
     if message_thread_id:
         if "chat_topics" not in mod_data:
             mod_data["chat_topics"] = {}
         mod_data["chat_topics"][str(chat_id)] = message_thread_id
+        save_mod_data(mod_data)
     elif str(chat_id) in mod_data.get("chat_topics", {}):
         message_thread_id = mod_data["chat_topics"][str(chat_id)]
 
@@ -638,13 +685,16 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
         verify_url = f"https://t.me/{BOT_USERNAME}?start=verify_{chat_id}"
         keyboard = {
             "inline_keyboard": [
-                [{"text": "🤖 Пройти капчу в боте", "url": verify_url}]
+                [{"text": "🚪 Открыть помощника", "url": verify_url}],
+                [{"text": "🎮 Spore Tower Defense", "url": f"https://t.me/{BOT_USERNAME}"}],
             ]
         }
         text = (
-            f"👋 [{first_name}](tg://user?id={uid}), добро пожаловать в группу!\n\n"
-            f"🛡 *Чтобы писать в чате, подтверди, что ты человек.*\n"
-            f"Нажми на кнопку ниже:"
+            f"👋 *Добро пожаловать, {first_name}!*"
+            "\n\n"
+            "Открой помощника: он может решить частую проблему или сразу провести входную проверку."
+            "\n\n"
+            "⏳ *На вход и проверку даётся 30 минут.*"
         )
 
         res = send_group_msg(chat_id, text, thread_id=message_thread_id, reply_markup=keyboard)
@@ -685,7 +735,7 @@ def handle_chat_member_update(cm):
 
 
 def handle_captcha_callback(callback):
-    """Снимает ограничения после нажатия кнопки капчи в личке."""
+    """Снимает ограничения после нажатия старой кнопки капчи (обратная совместимость)."""
     callback_id = callback.get("id")
     user_id = callback.get("from", {}).get("id")
     chat_id = callback.get("message", {}).get("chat", {}).get("id")
@@ -755,9 +805,12 @@ def send_group_msg(chat_id, text, thread_id=None, reply_to=None, **kwargs):
         payload["message_thread_id"] = thread_id
     payload.update(kwargs)
     res = api("sendMessage", **payload)
-    if not res.get("ok") and thread_id:
-        del payload["message_thread_id"]
-        res = api("sendMessage", **payload)
+    if not res.get("ok"):
+        print(f"[GROUP_MSG] Error sending with thread_id={thread_id}: {res}")
+        if thread_id:
+            payload.pop("message_thread_id", None)
+            res = api("sendMessage", **payload)
+            print(f"[GROUP_MSG] Fallback to chat root: {res}")
     return res
 
 
@@ -957,6 +1010,78 @@ def handle_callback(callback):
     user_id = str(callback.get("from", {}).get("id", ""))
     is_creator = str(user_id) == str(CREATOR_ID)
 
+    if data.startswith("c_ok:") or data.startswith("c_no:"):
+        is_ok = data.startswith("c_ok:")
+        parts = data.split(":")
+        target_chat = parts[1]
+        target_user_id = parts[2]
+
+        if str(user_id) != str(target_user_id) and str(user_id) != str(CREATOR_ID):
+            api("answerCallbackQuery", callback_query_id=callback.get("id"), text="⚠️ Эта проверка для другого пользователя!", show_alert=True)
+            return
+
+        if not is_ok:
+            api("answerCallbackQuery", callback_query_id=callback.get("id"), text="❌ Неверный символ! Попробуйте ещё раз.", show_alert=True)
+            new_text, new_kb, _ = generate_symbol_captcha(target_chat, target_user_id)
+            api("editMessageText", chat_id=chat_id, message_id=message_id, text=new_text, reply_markup=new_kb, parse_mode="Markdown")
+            return
+
+        api("answerCallbackQuery", callback_query_id=callback.get("id"), text="✅ Проверка пройдена!")
+
+        if target_chat != "test":
+            try:
+                target_chat_id = int(target_chat)
+            except ValueError:
+                target_chat_id = target_chat
+
+            api(
+                "restrictChatMember",
+                chat_id=target_chat_id,
+                user_id=int(target_user_id),
+                permissions={
+                    "can_send_messages": True,
+                    "can_send_audios": True,
+                    "can_send_documents": True,
+                    "can_send_photos": True,
+                    "can_send_videos": True,
+                    "can_send_video_notes": True,
+                    "can_send_voice_notes": True,
+                    "can_send_polls": True,
+                    "can_send_other_messages": True,
+                    "can_add_web_page_previews": True,
+                },
+            )
+
+            mod_data = load_mod_data()
+            key = f"{target_chat_id}_{target_user_id}"
+            pending = mod_data.get("pending_captcha", {}).pop(key, None)
+            save_mod_data(mod_data)
+
+            if pending and pending.get("greet_msg_id"):
+                try:
+                    api("deleteMessage", chat_id=target_chat_id, message_id=pending["greet_msg_id"])
+                except Exception:
+                    pass
+
+        success_keyboard = {
+            "inline_keyboard": [
+                [{"text": "🎮 Играть в Spore TD", "web_app": {"url": GAME_URL}}]
+            ]
+        }
+        api(
+            "editMessageText",
+            chat_id=chat_id,
+            message_id=message_id,
+            text=(
+                "✅ *Проверка успешно пройдена!*\n\n"
+                "Ограничения в группе сняты — добро пожаловать в чат!\n\n"
+                "🎮 А пока общаешься, сыграй в нашу игру *Spore Tower Defense*!"
+            ),
+            reply_markup=success_keyboard,
+            parse_mode="Markdown",
+        )
+        return
+
     if data.startswith("verify_pass_"):
         handle_captcha_callback(callback)
         return
@@ -1058,26 +1183,41 @@ def handle_update(update):
                 save_mod_data(mod_data)
 
         # Удаление сервисного сообщения Telegram "Пользователь вошёл в группу" + вызов капчи
-        new_members = message.get("new_chat_members")
+        new_members = message.get("new_chat_members") or ([message["new_chat_participant"]] if message.get("new_chat_participant") else None)
         if new_members:
-            try:
-                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
-            except Exception as e:
-                print(f"[WARN] Failed to delete system join msg: {e}")
-            handle_new_chat_members(chat_id, new_members, message.get("message_id"), thread_id)
+            mid = message.get("message_id")
+            del_res = api("deleteMessage", chat_id=chat_id, message_id=mid)
+            if not del_res.get("ok"):
+                print(f"[WARN] deleteMessage failed for new_chat_members: {del_res}")
+            handle_new_chat_members(chat_id, new_members, mid, thread_id)
             return
 
         # Удаление сервисного сообщения Telegram "Пользователь покинул группу"
         if message.get("left_chat_member"):
-            try:
-                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
-            except Exception:
-                pass
+            mid = message.get("message_id")
+            del_res = api("deleteMessage", chat_id=chat_id, message_id=mid)
+            if not del_res.get("ok"):
+                print(f"[WARN] deleteMessage failed for left_chat_member: {del_res}")
             return
 
         if text:
             parts = text.split()
             first_token = parts[0].lower().split("@")[0]
+
+            # Команда назначения текущего топика для приветствий и проверок
+            if first_token in ("!топик", "!сеттопик", "/settopic"):
+                mod_data = load_mod_data()
+                if "chat_topics" not in mod_data:
+                    mod_data["chat_topics"] = {}
+                mod_data["chat_topics"][str(chat_id)] = thread_id
+                save_mod_data(mod_data)
+                send_group_msg(
+                    chat_id,
+                    f"✅ Топик сохранён для приветствий и капчи!\n🧵 *ID топика:* `{thread_id or 'General'}`",
+                    thread_id=thread_id,
+                    reply_to=message.get("message_id"),
+                )
+                return
 
             # Команда проверки статуса бота в этом топике
             if first_token in ("!тест", "!чек", "/test", "/check"):
@@ -1087,11 +1227,16 @@ def handle_update(update):
                 can_restr = bot_perms.get("can_restrict_members", False)
                 can_top = bot_perms.get("can_manage_topics", False)
                 status = bot_perms.get("status", "unknown")
+                mod_data = load_mod_data()
+                if "chat_topics" not in mod_data:
+                    mod_data["chat_topics"] = {}
+                mod_data["chat_topics"][str(chat_id)] = thread_id
+                save_mod_data(mod_data)
                 send_group_msg(
                     chat_id,
                     f"🤖 *SporeTD Bot активен в этой ветке!*\n\n"
                     f"📍 *ID чата:* `{chat_id}`\n"
-                    f"🧵 *Топик:* `{thread_id or 'General'}`\n"
+                    f"🧵 *Топик:* `{thread_id or 'General'}` (сохранён для приветствий)\n"
                     f"👑 *Статус:* `{status}`\n"
                     f"🗑 Удаление сообщений: *{'✅' if can_del else '❌'}*\n"
                     f"🔇 Ограничение/мут: *{'✅' if can_restr else '❌'}*\n"
@@ -1126,6 +1271,7 @@ def handle_update(update):
                     "• `!анварн` — снять все предупреждения\n"
                     "• `!дел` — удалить сообщение\n"
                     "• `!капча` — принудительно выдать проверку участнику\n"
+                    "• `!топик` — назначить текущую тему для приветствий\n"
                     "• `!тест` — проверить статус бота и права в топике\n\n"
                     "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
                 )
@@ -1137,16 +1283,20 @@ def handle_update(update):
     # ---------------- Личные сообщения ----------------
     if text.startswith("/start verify_"):
         target_chat = text.replace("/start verify_", "").strip()
-        keyboard = {
-            "inline_keyboard": [
-                [{"text": "✅ Я человек (Разблокировать чат)", "callback_data": f"verify_pass_{target_chat}"}]
-            ]
-        }
+        captcha_text, captcha_kb, _ = generate_symbol_captcha(target_chat, user_id)
         send_message(
             chat_id,
-            "🛡 *Проверка безопасности для входа в группу*\n\n"
-            "Нажми кнопку ниже, чтобы подтвердить, что ты не робот, и получить доступ к отправке сообщений в чате:",
-            keyboard=keyboard,
+            captcha_text,
+            keyboard=captcha_kb,
+        )
+        return
+
+    if text in ("/testcaptcha", "/captcha", "!капча", "!тесткапча"):
+        captcha_text, captcha_kb, _ = generate_symbol_captcha("test", user_id)
+        send_message(
+            chat_id,
+            captcha_text,
+            keyboard=captcha_kb,
         )
         return
 
