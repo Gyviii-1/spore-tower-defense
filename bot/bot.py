@@ -1251,7 +1251,12 @@ def main():
     offset = 0
     while True:
         try:
-            updates = api("getUpdates", offset=offset, timeout=30).get("result", [])
+            updates = api(
+                "getUpdates",
+                offset=offset,
+                timeout=30,
+                allowed_updates=["message", "edited_message", "callback_query", "chat_member"],
+            ).get("result", [])
             for update in updates:
                 offset = update["update_id"] + 1
                 handle_update(update)
