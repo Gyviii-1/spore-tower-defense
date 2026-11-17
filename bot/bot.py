@@ -17,6 +17,10 @@ import re
 import time
 
 import requests
+import urllib3.util.connection as urllib_conn
+
+# Отключаем IPv6 для urllib3/requests на системах с отключённым IPv6 в ядре (предотвращает [Errno 99])
+urllib_conn.HAS_IPV6 = False
 
 BOT_USERNAME = "SporeTDBot"
 
@@ -133,6 +137,7 @@ SESSION_API = requests.Session()
 
 def api(method, **params):
     """Вызов метода Telegram Bot API с постоянными keep-alive сессиями."""
+    global SESSION_UPDATES, SESSION_API
     sess = SESSION_UPDATES if method == "getUpdates" else SESSION_API
     timeout = 25 if method == "getUpdates" else 15
     try:
@@ -140,6 +145,15 @@ def api(method, **params):
         return response.json()
     except Exception as e:
         print(f"[API ERROR] {method}: {e}")
+        try:
+            if method == "getUpdates":
+                SESSION_UPDATES.close()
+                SESSION_UPDATES = requests.Session()
+            else:
+                SESSION_API.close()
+                SESSION_API = requests.Session()
+        except Exception:
+            pass
         return {"ok": False, "description": str(e)}
 
 
@@ -151,7 +165,13 @@ def send_message(chat_id, text, markdown=True, keyboard=None):
     }
     if markdown:
         payload["parse_mode"] = "Markdown"
-    api("sendMessage", **payload)
+    res = api("sendMessage", **payload)
+    if not res.get("ok"):
+        desc = res.get("description", "").lower()
+        if "can't parse entities" in desc:
+            payload.pop("parse_mode", None)
+            res = api("sendMessage", **payload)
+    return res
 
 
 # ------------------------------- Роли -------------------------------
@@ -541,47 +561,64 @@ MOD_MAP = {
 }
 
 
-def load_mod_data():
-    """Загружает данные модерации (варны, капчи, топики) из Firestore или локального кэша."""
-    if db is not None:
-        try:
-            doc = db.collection("settings").document("moderation").get()
-            if doc.exists:
-                data = doc.to_dict() or {}
-                if "warns" not in data:
-                    data["warns"] = {}
-                if "pending_captcha" not in data:
-                    data["pending_captcha"] = {}
-                if "chat_topics" not in data:
-                    data["chat_topics"] = {}
-                return data
-        except Exception as e:
-            print("[WARN] Firestore load_mod_data error:", e)
+_MOD_DATA_CACHE = None
+_MOD_DATA_CACHE_TIME = 0
+MOD_CACHE_TTL = 30  # кэш в памяти на 30 сек для защиты от лишних сетевых вызовов
 
+def load_mod_data():
+    """Загружает данные модерации (варны, капчи, топики) из кэша памяти, локального файла или Firestore."""
+    global _MOD_DATA_CACHE, _MOD_DATA_CACHE_TIME
+    now = time.time()
+    if _MOD_DATA_CACHE is not None and (now - _MOD_DATA_CACHE_TIME) < MOD_CACHE_TTL:
+        return _MOD_DATA_CACHE
+
+    data = None
     if os.path.exists(MODERATION_FILE):
         try:
             with open(MODERATION_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if "chat_topics" not in data:
-                    data["chat_topics"] = {}
-                return data
-        except Exception:
-            pass
-    return {"warns": {}, "pending_captcha": {}, "chat_topics": {}}
+        except Exception as error:
+            print("[ERROR] load_mod_data file error:", error)
+
+    if data is None and db is not None:
+        try:
+            doc = db.collection("settings").document("moderation").get(timeout=5)
+            if doc.exists:
+                data = doc.to_dict() or {}
+        except Exception as e:
+            print("[WARN] Firestore load_mod_data error:", e)
+
+    if not isinstance(data, dict):
+        data = {}
+    if "warns" not in data:
+        data["warns"] = {}
+    if "pending_captcha" not in data:
+        data["pending_captcha"] = {}
+    if "chat_topics" not in data:
+        data["chat_topics"] = {}
+
+    _MOD_DATA_CACHE = data
+    _MOD_DATA_CACHE_TIME = now
+    return _MOD_DATA_CACHE
 
 
 def save_mod_data(data):
-    """Сохраняет данные модерации в Firestore и локально."""
-    if db is not None:
-        try:
-            db.collection("settings").document("moderation").set(data, merge=True)
-        except Exception as e:
-            print("[WARN] Firestore save_mod_data error:", e)
+    """Сохраняет данные модерации в память, локальный файл и синхронизирует с Firestore."""
+    global _MOD_DATA_CACHE, _MOD_DATA_CACHE_TIME
+    _MOD_DATA_CACHE = data
+    _MOD_DATA_CACHE_TIME = time.time()
+
     try:
         with open(MODERATION_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as error:
         print("[ERROR] save_mod_data local:", error)
+
+    if db is not None:
+        try:
+            db.collection("settings").document("moderation").set(data, merge=True)
+        except Exception as e:
+            print("[WARN] Firestore save_mod_data error:", e)
 
 
 CAPTCHA_CATEGORIES = [
@@ -654,15 +691,25 @@ def format_duration(seconds):
     return f"{max(1, seconds // 60)} мин."
 
 
+_ADMIN_CACHE = {}
+
 def is_chat_admin(chat_id, user_id):
-    """Проверяет, является ли пользователь администратором группы."""
+    """Проверяет, является ли пользователь администратором группы (с локальным кэшем на 60 сек)."""
     if str(user_id) == str(CREATOR_ID):
         return True
+    key = f"{chat_id}_{user_id}"
+    now = time.time()
+    if key in _ADMIN_CACHE:
+        val, ts = _ADMIN_CACHE[key]
+        if now - ts < 60:
+            return val
     try:
         res = api("getChatMember", chat_id=chat_id, user_id=user_id)
         if res.get("ok"):
             status = res["result"].get("status")
-            return status in ("creator", "administrator")
+            is_adm = status in ("creator", "administrator")
+            _ADMIN_CACHE[key] = (is_adm, now)
+            return is_adm
     except Exception as e:
         print(f"[WARN] is_chat_admin error: {e}")
     return False
@@ -672,13 +719,8 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
     """Ограничивает нового участника и отправляет сообщение-помощник с кнопкой проверки."""
     mod_data = load_mod_data()
 
-    if message_thread_id:
-        if "chat_topics" not in mod_data:
-            mod_data["chat_topics"] = {}
-        mod_data["chat_topics"][str(chat_id)] = message_thread_id
-        save_mod_data(mod_data)
-    elif str(chat_id) in mod_data.get("chat_topics", {}):
-        message_thread_id = mod_data["chat_topics"][str(chat_id)]
+    # Топик берём из сохранённых настроек группы или переданного message_thread_id
+    target_thread = mod_data.get("chat_topics", {}).get(str(chat_id)) or message_thread_id
 
     for member in new_members:
         if member.get("is_bot"):
@@ -691,7 +733,7 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
             print(f"[CAPTCHA] Skipping admin/creator {uid} ({first_name}) in chat {chat_id}")
             continue
 
-        print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}, thread: {message_thread_id}")
+        print(f"[CAPTCHA] Restricting new member {uid} ({first_name}) in chat {chat_id}, thread: {target_thread}")
         api(
             "restrictChatMember",
             chat_id=chat_id,
@@ -724,7 +766,7 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
             "⏳ *На вход и проверку даётся 30 минут.*"
         )
 
-        res = send_group_msg(chat_id, text, thread_id=message_thread_id, reply_markup=keyboard)
+        res = send_group_msg(chat_id, text, thread_id=target_thread, reply_markup=keyboard)
         greet_msg_id = res.get("result", {}).get("message_id") if res.get("ok") else None
 
         key = f"{chat_id}_{uid}"
@@ -839,11 +881,19 @@ def send_group_msg(chat_id, text, thread_id=None, reply_to=None, **kwargs):
     payload.update(kwargs)
     res = api("sendMessage", **payload)
     if not res.get("ok"):
+        desc = res.get("description", "").lower()
         print(f"[GROUP_MSG] Error sending with thread_id={thread_id}: {res}")
-        if thread_id:
+        if "can't parse entities" in desc:
+            payload.pop("parse_mode", None)
+            res = api("sendMessage", **payload)
+            print(f"[GROUP_MSG] Fallback without Markdown: {res.get('ok')}")
+        elif thread_id and any(k in desc for k in ("thread not found", "message thread not found", "top_message")):
             payload.pop("message_thread_id", None)
             res = api("sendMessage", **payload)
-            print(f"[GROUP_MSG] Fallback to chat root: {res}")
+            if not res.get("ok") and "can't parse entities" in res.get("description", "").lower():
+                payload.pop("parse_mode", None)
+                res = api("sendMessage", **payload)
+            print(f"[GROUP_MSG] Fallback to chat root: {res.get('ok')}")
     return res
 
 
@@ -859,8 +909,9 @@ def handle_moderation_command(message, cmd, args):
     def msg_reply(text):
         return send_group_msg(chat_id, text, thread_id=thread_id, reply_to=message_id)
 
-    if not is_chat_admin(chat_id, sender_id):
-        msg_reply("⚠️ Эта команда доступна только администраторам группы.")
+    # Команды модерации бота временно разрешены только создателю
+    if str(sender_id) != str(CREATOR_ID):
+        msg_reply("⛔ Команды бота временно доступны только создателю.")
         return
 
     if cmd == "del":
@@ -1119,6 +1170,11 @@ def handle_callback(callback):
         handle_captcha_callback(callback)
         return
 
+    # Все остальные inline-действия (настройки, список, поиск, баны) — строго только для создателя
+    if not is_creator:
+        api("answerCallbackQuery", callback_query_id=callback.get("id"), text="⛔ Доступно только создателю.", show_alert=True)
+        return
+
     if data == "toggle_hidden":
         new_value = toggle_hidden(user_id)
         api("answerCallbackQuery", callback_query_id=callback.get("id"))
@@ -1131,11 +1187,6 @@ def handle_callback(callback):
             text=settings_text(user_id),
             reply_markup=settings_keyboard(user_id),
         )
-        return
-
-    # Остальные inline-кнопки (список, поиск, баны) — только для создателя.
-    if not is_creator:
-        api("answerCallbackQuery", callback_query_id=callback.get("id"), text="Только для создателя")
         return
 
     def edit(text, keyboard):
@@ -1208,15 +1259,6 @@ def handle_update(update):
     if chat_type in ("group", "supergroup"):
         reply_to = message.get("reply_to_message")
 
-        # Сохраняем ID топика чата для последующих приветствий
-        if thread_id:
-            mod_data = load_mod_data()
-            if mod_data.get("chat_topics", {}).get(str(chat_id)) != thread_id:
-                if "chat_topics" not in mod_data:
-                    mod_data["chat_topics"] = {}
-                mod_data["chat_topics"][str(chat_id)] = thread_id
-                save_mod_data(mod_data)
-
         # Удаление сервисного сообщения Telegram "Пользователь вошёл в группу" + вызов капчи
         new_members = message.get("new_chat_members") or ([message["new_chat_participant"]] if message.get("new_chat_participant") else None)
         if new_members:
@@ -1238,103 +1280,124 @@ def handle_update(update):
         # Если участник ещё не прошёл капчу, удаляем его сообщения из группы
         pending_key = f"{chat_id}_{user_id}"
         mod_data = load_mod_data()
-        if str(user_id) == str(CREATOR_ID) or is_chat_admin(chat_id, user_id):
-            if pending_key in mod_data.get("pending_captcha", {}):
+        if pending_key in mod_data.get("pending_captcha", {}):
+            if str(user_id) == str(CREATOR_ID) or is_chat_admin(chat_id, user_id):
                 mod_data["pending_captcha"].pop(pending_key, None)
                 save_mod_data(mod_data)
-        elif pending_key in mod_data.get("pending_captcha", {}):
-            try:
-                api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
-            except Exception:
-                pass
-            return
+            else:
+                try:
+                    api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
+                except Exception:
+                    pass
+                return
 
         if text:
             parts = text.split()
             first_token = parts[0].lower().split("@")[0]
+            is_creator = str(user_id) == str(CREATOR_ID)
 
-            # Команда назначения текущего топика для приветствий и проверок
-            if first_token in ("!топик", "!сеттопик", "/settopic"):
-                mod_data = load_mod_data()
-                if "chat_topics" not in mod_data:
-                    mod_data["chat_topics"] = {}
-                mod_data["chat_topics"][str(chat_id)] = thread_id
-                save_mod_data(mod_data)
-                send_group_msg(
-                    chat_id,
-                    f"✅ Топик сохранён для приветствий и капчи!\n🧵 *ID топика:* `{thread_id or 'General'}`",
-                    thread_id=thread_id,
-                    reply_to=message.get("message_id"),
-                )
-                return
+            is_mod_cmd = (first_token in MOD_MAP) or (first_token.lstrip("!/") in MOD_MAP)
+            is_bot_cmd = (
+                first_token.startswith(("/", "!"))
+                or is_mod_cmd
+                or first_token in ("капча", "проверка", "тест", "чек", "топик", "хелп", "помощь")
+            )
 
-            # Команда проверки статуса бота в этом топике
-            if first_token in ("!тест", "!чек", "/test", "/check"):
-                bot_me = api("getMe").get("result", {})
-                bot_perms = api("getChatMember", chat_id=chat_id, user_id=bot_me.get("id")).get("result", {})
-                can_del = bot_perms.get("can_delete_messages", False)
-                can_restr = bot_perms.get("can_restrict_members", False)
-                can_top = bot_perms.get("can_manage_topics", False)
-                status = bot_perms.get("status", "unknown")
-                mod_data = load_mod_data()
-                if "chat_topics" not in mod_data:
-                    mod_data["chat_topics"] = {}
-                mod_data["chat_topics"][str(chat_id)] = thread_id
-                save_mod_data(mod_data)
-                send_group_msg(
-                    chat_id,
-                    f"🤖 *SporeTD Bot активен в этой ветке!*\n\n"
-                    f"📍 *ID чата:* `{chat_id}`\n"
-                    f"🧵 *Топик:* `{thread_id or 'General'}` (сохранён для приветствий)\n"
-                    f"👑 *Статус:* `{status}`\n"
-                    f"🗑 Удаление сообщений: *{'✅' if can_del else '❌'}*\n"
-                    f"🔇 Ограничение/мут: *{'✅' if can_restr else '❌'}*\n"
-                    f"📂 Управление темами: *{'✅' if can_top else '❌'}*",
-                    thread_id=thread_id,
-                    reply_to=message.get("message_id"),
-                )
-                return
+            if is_bot_cmd:
+                if not is_creator:
+                    send_group_msg(
+                        chat_id,
+                        "⛔ Команды бота временно доступны только создателю.",
+                        thread_id=thread_id,
+                        reply_to=message.get("message_id"),
+                    )
+                    return
 
-            # Команда ручного вызова капчи или теста капчи
-            if first_token in ("!капча", "!проверка", "/captcha", "/testcaptcha", "!тесткапча"):
-                if reply_to:
-                    target_u = reply_to.get("from", {})
-                    t_uid = target_u.get("id")
-                    if str(t_uid) == str(CREATOR_ID) or is_chat_admin(chat_id, t_uid):
-                        send_group_msg(chat_id, "⚠️ Нельзя вызвать проверку для администратора.", thread_id=thread_id, reply_to=message.get("message_id"))
-                        return
-                    handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
-                else:
-                    captcha_text, captcha_kb, _ = generate_symbol_captcha(str(chat_id), user_id)
-                    send_group_msg(chat_id, f"🧪 *Тестовая проверка:*\n\n{captcha_text}", thread_id=thread_id, reply_to=message.get("message_id"), keyboard=captcha_kb)
-                return
+                # Команда назначения текущего топика для приветствий и проверок (только создатель)
+                if first_token in ("!топик", "!сеттопик", "/settopic"):
+                    mod_data = load_mod_data()
+                    if "chat_topics" not in mod_data:
+                        mod_data["chat_topics"] = {}
+                    mod_data["chat_topics"][str(chat_id)] = thread_id
+                    save_mod_data(mod_data)
+                    send_group_msg(
+                        chat_id,
+                        f"✅ Топик сохранён для приветствий и капчи!\n🧵 *ID топика:* `{thread_id or 'General'}`",
+                        thread_id=thread_id,
+                        reply_to=message.get("message_id"),
+                    )
+                    return
 
-            cmd = MOD_MAP.get(first_token)
-            if cmd:
-                handle_moderation_command(message, cmd, parts[1:])
-                return
-            if first_token in ("/help", "!help", "!хелп", "!помощь"):
-                help_text = (
-                    "🛡 *Команды модератора (ответом на сообщение нарушителя):*\n\n"
-                    "• `!мут [время] [причина]` — замутить нарушителя\n"
-                    "• `!размут` — снять мут\n"
-                    "• `!бан [причина]` — заблокировать в группе\n"
-                    "• `!разбан [@user / ID]` — разблокировать\n"
-                    "• `!кик` — исключить из группы\n"
-                    "• `!варн [причина]` — предупреждение (3 варна = мут на 24ч)\n"
-                    "• `!анварн` — снять все предупреждения\n"
-                    "• `!дел` — удалить сообщение\n"
-                    "• `!капча` — принудительно выдать проверку участнику\n"
-                    "• `!топик` — назначить текущую тему для приветствий\n"
-                    "• `!тест` — проверить статус бота и права в топике\n\n"
-                    "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
-                )
-                send_group_msg(chat_id, help_text, thread_id=thread_id, reply_to=message.get("message_id"))
+                # Команда проверки статуса бота в этом топике (только создатель)
+                if first_token in ("!тест", "!чек", "/test", "/check"):
+                    bot_me = api("getMe").get("result", {})
+                    bot_perms = api("getChatMember", chat_id=chat_id, user_id=bot_me.get("id")).get("result", {})
+                    can_del = bot_perms.get("can_delete_messages", False)
+                    can_restr = bot_perms.get("can_restrict_members", False)
+                    can_top = bot_perms.get("can_manage_topics", False)
+                    status = bot_perms.get("status", "unknown")
+                    mod_data = load_mod_data()
+                    saved_top = mod_data.get("chat_topics", {}).get(str(chat_id))
+                    send_group_msg(
+                        chat_id,
+                        f"🤖 *SporeTD Bot активен в этой ветке!*\n\n"
+                        f"📍 *ID чата:* `{chat_id}`\n"
+                        f"🧵 *Топик:* `{thread_id or 'General'}` (настроенный для капчи: `{saved_top or 'не задан'}`)\n"
+                        f"👑 *Статус:* `{status}`\n"
+                        f"🗑 Удаление сообщений: *{'✅' if can_del else '❌'}*\n"
+                        f"🔇 Ограничение/мут: *{'✅' if can_restr else '❌'}*\n"
+                        f"📂 Управление темами: *{'✅' if can_top else '❌'}*",
+                        thread_id=thread_id,
+                        reply_to=message.get("message_id"),
+                    )
+                    return
+
+                # Команда ручного вызова капчи или теста капчи (только создатель)
+                if first_token in ("!капча", "!проверка", "/captcha", "/testcaptcha", "!тесткапча"):
+                    if reply_to:
+                        target_u = reply_to.get("from", {})
+                        t_uid = target_u.get("id")
+                        if str(t_uid) == str(CREATOR_ID):
+                            send_group_msg(chat_id, "⚠️ Нельзя вызвать проверку для создателя.", thread_id=thread_id, reply_to=message.get("message_id"))
+                            return
+                        handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
+                    else:
+                        captcha_text, captcha_kb, _ = generate_symbol_captcha(str(chat_id), user_id)
+                        send_group_msg(chat_id, f"🧪 *Тестовая проверка:*\n\n{captcha_text}", thread_id=thread_id, reply_to=message.get("message_id"), keyboard=captcha_kb)
+                    return
+
+                cmd = MOD_MAP.get(first_token) or MOD_MAP.get(first_token.lstrip("!/"))
+                if cmd:
+                    handle_moderation_command(message, cmd, parts[1:])
+                    return
+
+                if first_token in ("/help", "!help", "!хелп", "!помощь"):
+                    help_text = (
+                        "🛡 *Команды (доступны только создателю):*\n\n"
+                        "• `!мут [время] [причина]` — замутить нарушителя\n"
+                        "• `!размут` — снять мут\n"
+                        "• `!бан [причина]` — заблокировать в группе\n"
+                        "• `!разбан [@user / ID]` — разблокировать\n"
+                        "• `!кик` — исключить из группы\n"
+                        "• `!варн [причина]` — предупреждение (3 варна = мут на 24ч)\n"
+                        "• `!анварн` — снять все предупреждения\n"
+                        "• `!дел` — удалить сообщение\n"
+                        "• `!капча` — принудительно выдать проверку участнику (ответом) или протестировать капчу\n"
+                        "• `!топик` — назначить текущую тему для приветствий\n"
+                        "• `!тест` — проверить статус бота и права в топике\n\n"
+                        "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
+                    )
+                    send_group_msg(chat_id, help_text, thread_id=thread_id, reply_to=message.get("message_id"))
+                    return
+
+                send_group_msg(chat_id, "ℹ️ В группе поддерживаются команды модерации и капчи. Список: `!help`", thread_id=thread_id, reply_to=message.get("message_id"))
                 return
 
         return
 
     # ---------------- Личные сообщения ----------------
+    is_creator = str(user_id) == str(CREATOR_ID)
+
     if text.startswith("/start verify_"):
         target_chat = text.replace("/start verify_", "").strip()
         captcha_text, captcha_kb, _ = generate_symbol_captcha(target_chat, user_id)
@@ -1342,6 +1405,15 @@ def handle_update(update):
             chat_id,
             captcha_text,
             keyboard=captcha_kb,
+        )
+        return
+
+    if not is_creator:
+        send_message(
+            chat_id,
+            "⛔ Команды бота временно доступны только создателю.",
+            markdown=False,
+            keyboard={"remove_keyboard": True},
         )
         return
 
@@ -1567,12 +1639,16 @@ def main():
     offset = 0
     while True:
         try:
-            updates = api(
+            res = api(
                 "getUpdates",
                 offset=offset,
                 timeout=15,
                 allowed_updates=["message", "edited_message", "callback_query", "chat_member"],
-            ).get("result", [])
+            )
+            if not res.get("ok"):
+                time.sleep(2)
+                continue
+            updates = res.get("result", [])
             for update in updates:
                 offset = update["update_id"] + 1
                 handle_update(update)
@@ -1580,7 +1656,7 @@ def main():
             print("Остановлено.")
             break
         except Exception as error:
-            print("Ошибка сети, повтор через 3 сек:", error)
+            print("Ошибка в основном цикле, повтор через 3 сек:", error)
             time.sleep(3)
 
 
