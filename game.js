@@ -6754,6 +6754,12 @@ class GameScene extends Phaser.Scene {
     telegram.ready(); // сообщаем Telegram, что приложение готово
     telegram.expand(); // разворачиваем на весь экран
 
+    try {
+      if (typeof telegram.disableVerticalSwipes === 'function') telegram.disableVerticalSwipes();
+    } catch (error) {
+      /* не критично */
+    }
+
     // Пробуем полноэкранный режим и фиксацию ориентации (если поддерживается).
     try {
       if (telegram.requestFullscreen) telegram.requestFullscreen();

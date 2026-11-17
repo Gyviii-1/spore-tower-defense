@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=yes, viewport-fit=cover">
     <title>Spore TD (Unity WebGL)</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css?v=20261111_nobars">
@@ -324,23 +324,74 @@
     </div>
 
     <script>
-      // Telegram WebApp init & immediate expand / fullscreen
-      function tryExpandTelegram() {
+      // Telegram WebApp init & Fullscreen Controller (Bot API 8.0+)
+      function requestAppFullscreen() {
         if (window.Telegram && window.Telegram.WebApp) {
+          var tg = window.Telegram.WebApp;
           try {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-            if (window.Telegram.WebApp.requestFullscreen) {
-              window.Telegram.WebApp.requestFullscreen();
+            if (typeof tg.expand === 'function') tg.expand();
+            if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+            if (typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+              tg.requestFullscreen();
             }
-            if (window.Telegram.WebApp.setHeaderColor) window.Telegram.WebApp.setHeaderColor('#14121A');
-            if (window.Telegram.WebApp.setBackgroundColor) window.Telegram.WebApp.setBackgroundColor('#14121A');
+            if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#14121A');
+            if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#14121A');
           } catch (e) {
-            console.warn('Telegram WebApp init warning:', e);
+            console.warn('[TelegramWebApp] requestFullscreen warning:', e);
+          }
+        }
+
+        try {
+          var de = document.documentElement;
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            var p = null;
+            if (de.requestFullscreen) p = de.requestFullscreen();
+            else if (de.webkitRequestFullscreen) p = de.webkitRequestFullscreen();
+            else if (de.mozRequestFullScreen) p = de.mozRequestFullScreen();
+            else if (de.msRequestFullscreen) p = de.msRequestFullscreen();
+            if (p && p.catch) p.catch(function(err) {});
+          }
+        } catch (e) {}
+      }
+
+      function initTelegramApp() {
+        if (window.Telegram && window.Telegram.WebApp) {
+          var tg = window.Telegram.WebApp;
+          try {
+            tg.ready();
+            if (typeof tg.expand === 'function') tg.expand();
+            if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+            if (typeof tg.requestFullscreen === 'function') {
+              tg.requestFullscreen();
+            }
+            if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#14121A');
+            if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#14121A');
+
+            if (typeof tg.onEvent === 'function') {
+              tg.onEvent('fullscreenFailed', function(error) {
+                console.warn('[TelegramWebApp] Fullscreen request deferred until user touch:', error);
+              });
+              tg.onEvent('fullscreenChanged', function() {
+                console.log('[TelegramWebApp] Fullscreen state changed. isFullscreen =', tg.isFullscreen);
+              });
+            }
+          } catch (e) {
+            console.warn('[TelegramWebApp] init warning:', e);
           }
         }
       }
-      tryExpandTelegram();
+      initTelegramApp();
+
+      // Ensure fullscreen is requested upon first user interaction if not already active
+      var fsUserTapHandler = function() {
+        requestAppFullscreen();
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.isFullscreen) {
+          window.removeEventListener('pointerdown', fsUserTapHandler);
+          window.removeEventListener('click', fsUserTapHandler);
+        }
+      };
+      window.addEventListener('pointerdown', fsUserTapHandler, { passive: true });
+      window.addEventListener('click', fsUserTapHandler, { passive: true });
 
       // Screen Layout & Orientation Controller
       window.SporeLayout = {
@@ -348,6 +399,38 @@
           var winW = window.innerWidth || (window.screen ? window.screen.width : 0);
           var winH = window.innerHeight || (window.screen ? window.screen.height : 0);
           return winW < winH;
+        },
+
+        requestFullscreen: function() {
+          requestAppFullscreen();
+        },
+
+        exitFullscreen: function() {
+          if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.exitFullscreen === 'function') {
+            try { window.Telegram.WebApp.exitFullscreen(); } catch (e) {}
+          }
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(function() {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        },
+
+        addToHomeScreen: function() {
+          if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.addToHomeScreen === 'function') {
+            try {
+              window.Telegram.WebApp.addToHomeScreen();
+            } catch (e) {
+              console.warn('[TelegramWebApp] addToHomeScreen error:', e);
+            }
+          }
+        },
+
+        isFullscreen: function() {
+          if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.isFullscreen !== 'undefined') {
+            return !!window.Telegram.WebApp.isFullscreen;
+          }
+          return !!(document.fullscreenElement || document.webkitFullscreenElement);
         },
 
         setOrientationLock: function(locked) {
@@ -467,7 +550,7 @@
       function enterFullscreenAndStart() {
         if (hasStarted) return;
         hasStarted = true;
-        tryExpandTelegram();
+        requestAppFullscreen();
 
         try {
           var de = document.documentElement;

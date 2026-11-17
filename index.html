@@ -8,6 +8,28 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
   />
   <title>Spore Tower Defense</title>
+  <!-- Telegram Mini App SDK: даёт доступ к данным пользователя и нативному Fullscreen -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    (function () {
+      function requestAppFs() {
+        if (window.Telegram && window.Telegram.WebApp) {
+          var tg = window.Telegram.WebApp;
+          try {
+            tg.ready();
+            if (typeof tg.expand === 'function') tg.expand();
+            if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+            if (typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+              tg.requestFullscreen();
+            }
+          } catch (e) {}
+        }
+      }
+      requestAppFs();
+      window.addEventListener('pointerdown', requestAppFs, { passive: true });
+      window.addEventListener('click', requestAppFs, { passive: true });
+    })();
+  </script>
   <style>
     /* Убираем отступы браузера, растягиваем игру на весь экран */
     html,
