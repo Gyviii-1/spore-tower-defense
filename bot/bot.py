@@ -128,11 +128,19 @@ def init_firebase():
 
 
 # ----------------------------- Telegram API -----------------------------
+SESSION_UPDATES = requests.Session()
+SESSION_API = requests.Session()
+
 def api(method, **params):
-    """Вызов метода Telegram Bot API."""
-    timeout = 25 if method == "getUpdates" else 30
-    response = requests.post(f"{API}/{method}", json=params, timeout=timeout)
-    return response.json()
+    """Вызов метода Telegram Bot API с постоянными keep-alive сессиями."""
+    sess = SESSION_UPDATES if method == "getUpdates" else SESSION_API
+    timeout = 25 if method == "getUpdates" else 15
+    try:
+        response = sess.post(f"{API}/{method}", json=params, timeout=timeout)
+        return response.json()
+    except Exception as e:
+        print(f"[API ERROR] {method}: {e}")
+        return {"ok": False, "description": str(e)}
 
 
 def send_message(chat_id, text, markdown=True, keyboard=None):
@@ -826,6 +834,8 @@ def send_group_msg(chat_id, text, thread_id=None, reply_to=None, **kwargs):
         payload["reply_to_message_id"] = reply_to
     if thread_id:
         payload["message_thread_id"] = thread_id
+    if "keyboard" in kwargs:
+        payload["reply_markup"] = kwargs.pop("keyboard")
     payload.update(kwargs)
     res = api("sendMessage", **payload)
     if not res.get("ok"):
@@ -1191,6 +1201,8 @@ def handle_update(update):
     user_id = str(sender.get("id", ""))
     username = sender.get("username")
     text = (message.get("text") or "").strip()
+    if text:
+        print(f"[MSG] chat={chat_id} ({chat_type}) from={user_id}: {text}")
 
     # ---------------- Групповые сообщения (Капча и Модерация) ----------------
     if chat_type in ("group", "supergroup"):
