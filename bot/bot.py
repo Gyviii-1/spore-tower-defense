@@ -130,7 +130,8 @@ def init_firebase():
 # ----------------------------- Telegram API -----------------------------
 def api(method, **params):
     """Вызов метода Telegram Bot API."""
-    response = requests.post(f"{API}/{method}", json=params, timeout=40)
+    timeout = 25 if method == "getUpdates" else 30
+    response = requests.post(f"{API}/{method}", json=params, timeout=timeout)
     return response.json()
 
 
@@ -1225,7 +1226,11 @@ def handle_update(update):
         # Если участник ещё не прошёл капчу, удаляем его сообщения из группы
         pending_key = f"{chat_id}_{user_id}"
         mod_data = load_mod_data()
-        if pending_key in mod_data.get("pending_captcha", {}):
+        if str(user_id) == str(CREATOR_ID) or is_chat_admin(chat_id, user_id):
+            if pending_key in mod_data.get("pending_captcha", {}):
+                mod_data["pending_captcha"].pop(pending_key, None)
+                save_mod_data(mod_data)
+        elif pending_key in mod_data.get("pending_captcha", {}):
             try:
                 api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
             except Exception:
@@ -1278,8 +1283,8 @@ def handle_update(update):
                 )
                 return
 
-            # Команда ручного вызова капчи на пользователя: !капча ответом
-            if first_token in ("!капча", "!проверка", "/captcha"):
+            # Команда ручного вызова капчи или теста капчи
+            if first_token in ("!капча", "!проверка", "/captcha", "/testcaptcha", "!тесткапча"):
                 if reply_to:
                     target_u = reply_to.get("from", {})
                     t_uid = target_u.get("id")
@@ -1288,7 +1293,8 @@ def handle_update(update):
                         return
                     handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
                 else:
-                    send_group_msg(chat_id, "ℹ️ Ответьте на сообщение участника командой `!капча`, чтобы вызвать для него проверку.", thread_id=thread_id, reply_to=message.get("message_id"))
+                    captcha_text, captcha_kb, _ = generate_symbol_captcha(str(chat_id), user_id)
+                    send_group_msg(chat_id, f"🧪 *Тестовая проверка:*\n\n{captcha_text}", thread_id=thread_id, reply_to=message.get("message_id"), keyboard=captcha_kb)
                 return
 
             cmd = MOD_MAP.get(first_token)
@@ -1552,7 +1558,7 @@ def main():
             updates = api(
                 "getUpdates",
                 offset=offset,
-                timeout=30,
+                timeout=15,
                 allowed_updates=["message", "edited_message", "callback_query", "chat_member"],
             ).get("result", [])
             for update in updates:
