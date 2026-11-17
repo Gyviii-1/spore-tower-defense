@@ -882,12 +882,16 @@ def send_group_msg(chat_id, text, thread_id=None, reply_to=None, **kwargs):
     res = api("sendMessage", **payload)
     if not res.get("ok"):
         desc = res.get("description", "").lower()
-        print(f"[GROUP_MSG] Error sending with thread_id={thread_id}: {res}")
-        if "can't parse entities" in desc:
+        print(f"[GROUP_MSG] Initial send error (thread={thread_id}, reply={reply_to}): {res}")
+        if any(k in desc for k in ("reply", "replied")) and "not found" in desc:
+            payload.pop("reply_to_message_id", None)
+            res = api("sendMessage", **payload)
+            desc = res.get("description", "").lower()
+        if not res.get("ok") and "can't parse entities" in desc:
             payload.pop("parse_mode", None)
             res = api("sendMessage", **payload)
-            print(f"[GROUP_MSG] Fallback without Markdown: {res.get('ok')}")
-        elif thread_id and any(k in desc for k in ("thread not found", "message thread not found", "top_message")):
+            desc = res.get("description", "").lower()
+        if not res.get("ok") and thread_id and any(k in desc for k in ("thread not found", "message thread not found", "top_message")):
             payload.pop("message_thread_id", None)
             res = api("sendMessage", **payload)
             if not res.get("ok") and "can't parse entities" in res.get("description", "").lower():
@@ -1097,6 +1101,8 @@ def handle_callback(callback):
     if data.startswith("c_ok:") or data.startswith("c_no:"):
         is_ok = data.startswith("c_ok:")
         parts = data.split(":")
+        if len(parts) < 3:
+            return
         target_chat = parts[1]
         target_user_id = parts[2]
 
@@ -1152,7 +1158,7 @@ def handle_callback(callback):
                 [{"text": "🎮 Играть в Spore TD", "web_app": {"url": GAME_URL}}]
             ]
         }
-        api(
+        res_edit = api(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,
@@ -1164,6 +1170,18 @@ def handle_callback(callback):
             reply_markup=success_keyboard,
             parse_mode="Markdown",
         )
+        if not res_edit.get("ok") and "can't parse entities" in res_edit.get("description", "").lower():
+            api(
+                "editMessageText",
+                chat_id=chat_id,
+                message_id=message_id,
+                text=(
+                    "✅ Проверка успешно пройдена!\n\n"
+                    "Ограничения в группе сняты — добро пожаловать в чат!\n\n"
+                    "🎮 А пока общаешься, сыграй в нашу игру Spore Tower Defense!"
+                ),
+                reply_markup=success_keyboard,
+            )
         return
 
     if data.startswith("verify_pass_"):
@@ -1293,15 +1311,23 @@ def handle_update(update):
 
         if text:
             parts = text.split()
-            first_token = parts[0].lower().split("@")[0]
+            raw_token = parts[0].lower()
+            if raw_token == f"@{BOT_USERNAME.lower()}" and len(parts) > 1:
+                parts = parts[1:]
+                raw_token = parts[0].lower()
+
+            first_token = raw_token.split("@")[0]
             is_creator = str(user_id) == str(CREATOR_ID)
 
-            is_mod_cmd = (first_token in MOD_MAP) or (first_token.lstrip("!/") in MOD_MAP)
-            is_bot_cmd = (
-                first_token.startswith(("/", "!"))
-                or is_mod_cmd
-                or first_token in ("капча", "проверка", "тест", "чек", "топик", "хелп", "помощь")
-            )
+            # Командой считаются:
+            # 1) Начинающиеся с / или ! (например: !капча, /help, !тест, !бан, !мут)
+            # 2) Упоминание бота (@SporeTDBot ...)
+            # 3) Модерационные слова (бан, мут, дел...), но ТОЛЬКО если это ответ (reply_to) на чужое сообщение
+            has_cmd_prefix = first_token.startswith(("/", "!"))
+            is_bot_mention = raw_token.startswith(f"@{BOT_USERNAME.lower()}")
+            is_mod_shortcut = (reply_to is not None) and (first_token in MOD_MAP or first_token.lstrip("!/") in MOD_MAP)
+
+            is_bot_cmd = has_cmd_prefix or is_bot_mention or is_mod_shortcut
 
             if is_bot_cmd:
                 if not is_creator:
@@ -1398,8 +1424,9 @@ def handle_update(update):
     # ---------------- Личные сообщения ----------------
     is_creator = str(user_id) == str(CREATOR_ID)
 
-    if text.startswith("/start verify_"):
-        target_chat = text.replace("/start verify_", "").strip()
+    start_verify_match = re.match(r"^/start\s+verify_([-\w]+)", text)
+    if start_verify_match:
+        target_chat = start_verify_match.group(1).strip()
         captcha_text, captcha_kb, _ = generate_symbol_captcha(target_chat, user_id)
         send_message(
             chat_id,
@@ -1643,7 +1670,7 @@ def main():
                 "getUpdates",
                 offset=offset,
                 timeout=15,
-                allowed_updates=["message", "edited_message", "callback_query", "chat_member"],
+                allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"],
             )
             if not res.get("ok"):
                 time.sleep(2)
@@ -1651,7 +1678,12 @@ def main():
             updates = res.get("result", [])
             for update in updates:
                 offset = update["update_id"] + 1
-                handle_update(update)
+                try:
+                    handle_update(update)
+                except Exception as err:
+                    import traceback
+                    print(f"[ERROR] handle_update exception for update_id={update.get('update_id')}: {err}")
+                    traceback.print_exc()
         except KeyboardInterrupt:
             print("Остановлено.")
             break
