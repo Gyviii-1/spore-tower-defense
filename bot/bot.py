@@ -795,7 +795,7 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
             "⏳ *На вход и проверку даётся 30 минут.*"
         )
 
-        res = send_group_msg(chat_id, text, thread_id=target_thread, reply_markup=keyboard)
+        res = send_group_msg(chat_id, text, thread_id=target_thread, keyboard=keyboard)
         greet_msg_id = res.get("result", {}).get("message_id") if res.get("ok") else None
 
         key = f"{chat_id}_{uid}"
@@ -812,27 +812,51 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
 
 
 def handle_chat_member_update(cm):
-    """Событие изменения участника (вход через канал, инвайт, сообщество)."""
+    """Событие изменения участника (вход через канал, инвайт, сообщество, перезаход)."""
     chat = cm.get("chat", {})
     chat_id = chat.get("id")
     chat_type = chat.get("type", "")
     if chat_type not in ("group", "supergroup"):
         return
 
-    old_status = cm.get("old_chat_member", {}).get("status")
+    old_cm = cm.get("old_chat_member", {})
     new_cm = cm.get("new_chat_member", {})
+    old_status = old_cm.get("status")
     new_status = new_cm.get("status")
+    old_is_member = old_cm.get("is_member", False)
+    new_is_member = new_cm.get("is_member", True)
     new_user = new_cm.get("user", {})
 
     if not new_user or new_user.get("is_bot"):
         return
 
     uid = new_user.get("id")
-    if str(uid) == str(CREATOR_ID) or is_chat_admin(chat_id, uid):
+    if is_creator_user(uid, new_user.get("username")) or is_chat_admin(chat_id, uid):
         return
 
-    print(f"[CHAT_MEMBER] Chat {chat_id}: user {new_user.get('id')} ({new_user.get('first_name')}) status {old_status} -> {new_status}")
-    if old_status in ("left", "kicked", None) and new_status in ("member", "restricted"):
+    print(f"[CHAT_MEMBER] Chat {chat_id}: user {uid} ({new_user.get('first_name')}) status {old_status} (member={old_is_member}) -> {new_status} (member={new_is_member})")
+
+    # Если участник покинул чат
+    if new_status in ("left", "kicked") or (not new_is_member and old_is_member):
+        mod_data = load_mod_data()
+        key = f"{chat_id}_{uid}"
+        if key in mod_data.get("pending_captcha", {}):
+            mod_data["pending_captcha"].pop(key, None)
+            save_mod_data(mod_data)
+        return
+
+    # Вход или повторный вход в чат
+    was_not_in_chat = old_status in ("left", "kicked", None) or not old_is_member
+    is_now_in_chat = new_status in ("member", "restricted") and new_is_member
+
+    if was_not_in_chat and is_now_in_chat:
+        handle_new_chat_members(chat_id, [new_user], message_id=None, message_thread_id=None)
+        return
+
+    # Если уже был в pending_captcha и переподключился
+    mod_data = load_mod_data()
+    key = f"{chat_id}_{uid}"
+    if key in mod_data.get("pending_captcha", {}) and is_now_in_chat:
         handle_new_chat_members(chat_id, [new_user], message_id=None, message_thread_id=None)
 
 
@@ -1332,6 +1356,18 @@ def handle_update(update):
                     api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
                 except Exception:
                     pass
+                last_rem = mod_data["pending_captcha"][pending_key].get("last_remind", 0)
+                if time.time() - last_rem > 15:
+                    mod_data["pending_captcha"][pending_key]["last_remind"] = time.time()
+                    save_mod_data(mod_data)
+                    verify_url = f"https://t.me/{BOT_USERNAME}?start=verify_{chat_id}"
+                    remind_kb = {"inline_keyboard": [[{"text": "🚪 Пройти капчу", "url": verify_url}]]}
+                    send_group_msg(
+                        chat_id,
+                        f"⚠️ *{sender.get('first_name', 'Участник')}*, сообщения заблокированы до прохождения проверки!\nНажмите кнопку ниже:",
+                        thread_id=thread_id,
+                        keyboard=remind_kb
+                    )
                 return
 
         if text:
