@@ -34,6 +34,7 @@ except ImportError:
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CREATOR_ID = os.environ.get("CREATOR_ID")
+CREATOR_USERNAME = os.environ.get("CREATOR_USERNAME", "gyviii")
 PROJECT_ID = "telegram-tower-defense"
 API_KEY = "AIzaSyDSIr6tflEu5cYQNXexM0co5hqkDXMVd8Y"
 SA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "service-account.json")
@@ -45,10 +46,19 @@ try:
 
     BOT_TOKEN = BOT_TOKEN or getattr(config, "BOT_TOKEN", None)
     CREATOR_ID = CREATOR_ID or getattr(config, "CREATOR_ID", None)
+    CREATOR_USERNAME = getattr(config, "CREATOR_USERNAME", CREATOR_USERNAME)
     PROJECT_ID = getattr(config, "PROJECT_ID", PROJECT_ID)
     API_KEY = getattr(config, "API_KEY", API_KEY)
 except ImportError:
     pass
+
+def is_creator_user(user_id, username=None):
+    """Проверяет, является ли пользователь создателем по ID или @username."""
+    if user_id and str(user_id) == str(CREATOR_ID):
+        return True
+    if username and str(username).lower().lstrip('@') == str(CREATOR_USERNAME).lower().lstrip('@'):
+        return True
+    return False
 
 if not BOT_TOKEN:
     raise SystemExit("Не задан BOT_TOKEN (переменная окружения BOT_TOKEN или config.py).")
@@ -914,7 +924,7 @@ def handle_moderation_command(message, cmd, args):
         return send_group_msg(chat_id, text, thread_id=thread_id, reply_to=message_id)
 
     # Команды модерации бота временно разрешены только создателю
-    if str(sender_id) != str(CREATOR_ID):
+    if not is_creator_user(sender_id, sender.get("username")):
         msg_reply("⛔ Команды бота временно доступны только создателю.")
         return
 
@@ -1095,8 +1105,10 @@ def handle_callback(callback):
     message = callback.get("message", {})
     chat_id = message.get("chat", {}).get("id")
     message_id = message.get("message_id")
-    user_id = str(callback.get("from", {}).get("id", ""))
-    is_creator = str(user_id) == str(CREATOR_ID)
+    cb_sender = callback.get("from", {})
+    user_id = str(cb_sender.get("id", ""))
+    user_name = cb_sender.get("username")
+    is_creator = is_creator_user(user_id, user_name)
 
     if data.startswith("c_ok:") or data.startswith("c_no:"):
         is_ok = data.startswith("c_ok:")
@@ -1106,7 +1118,7 @@ def handle_callback(callback):
         target_chat = parts[1]
         target_user_id = parts[2]
 
-        if str(user_id) != str(target_user_id) and str(user_id) != str(CREATOR_ID):
+        if str(user_id) != str(target_user_id) and not is_creator:
             api("answerCallbackQuery", callback_query_id=callback.get("id"), text="⚠️ Эта проверка для другого пользователя!", show_alert=True)
             return
 
@@ -1299,7 +1311,7 @@ def handle_update(update):
         pending_key = f"{chat_id}_{user_id}"
         mod_data = load_mod_data()
         if pending_key in mod_data.get("pending_captcha", {}):
-            if str(user_id) == str(CREATOR_ID) or is_chat_admin(chat_id, user_id):
+            if is_creator_user(user_id, username) or is_chat_admin(chat_id, user_id):
                 mod_data["pending_captcha"].pop(pending_key, None)
                 save_mod_data(mod_data)
             else:
@@ -1317,7 +1329,7 @@ def handle_update(update):
                 raw_token = parts[0].lower()
 
             first_token = raw_token.split("@")[0]
-            is_creator = str(user_id) == str(CREATOR_ID)
+            is_creator = is_creator_user(user_id, username)
 
             # Командой считаются:
             # 1) Начинающиеся с / или ! (например: !капча, /help, !тест, !бан, !мут)
@@ -1422,7 +1434,7 @@ def handle_update(update):
         return
 
     # ---------------- Личные сообщения ----------------
-    is_creator = str(user_id) == str(CREATOR_ID)
+    is_creator = is_creator_user(user_id, username)
 
     start_verify_match = re.match(r"^/start\s+verify_([-\w]+)", text)
     if start_verify_match:
