@@ -1421,8 +1421,12 @@ def handle_update(update):
                             return
                         handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
                     else:
-                        captcha_text, captcha_kb, _ = generate_symbol_captcha(str(chat_id), user_id)
-                        send_group_msg(chat_id, f"🧪 *Тестовая проверка:*\n\n{captcha_text}", thread_id=thread_id, reply_to=message.get("message_id"), keyboard=captcha_kb)
+                        try:
+                            api("deleteMessage", chat_id=chat_id, message_id=message.get("message_id"))
+                        except Exception:
+                            pass
+                        captcha_text, captcha_kb, _ = generate_symbol_captcha("test", user_id)
+                        send_message(user_id, f"🧪 *Тестовая проверка:*\n\n{captcha_text}", keyboard=captcha_kb)
                     return
 
                 cmd = MOD_MAP.get(first_token) or MOD_MAP.get(first_token.lstrip("!/"))
