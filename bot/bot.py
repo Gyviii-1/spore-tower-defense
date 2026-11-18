@@ -886,9 +886,7 @@ def handle_captcha_callback(callback):
         message_id=message_id,
         text=(
             "✅ *Проверка успешно пройдена!*\n\n"
-            "Ограничения в чате сняты — можешь свободно писать.\n\n"
-            "🎮 А пока общаешься, сыграй в *Spore Tower Defense*!\n"
-            "Кнопка запуска находится в меню слева."
+            "Ограничения в чате сняты — можешь свободно писать."
         ),
         parse_mode="Markdown",
     )
@@ -1184,21 +1182,24 @@ def handle_callback(callback):
                 except Exception:
                     pass
 
-        success_keyboard = {
-            "inline_keyboard": [
-                [{"text": "🎮 Играть в Spore TD", "web_app": {"url": GAME_URL}}]
-            ]
-        }
+        if target_chat_id == "test":
+            success_text = "✅ *Проверка успешно пройдена!*"
+            plain_success = "✅ Проверка успешно пройдена!"
+        else:
+            success_text = (
+                "✅ *Проверка успешно пройдена!*\n\n"
+                "Ограничения в группе сняты — добро пожаловать в чат!"
+            )
+            plain_success = (
+                "✅ Проверка успешно пройдена!\n\n"
+                "Ограничения в группе сняты — добро пожаловать в чат!"
+            )
+
         res_edit = api(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,
-            text=(
-                "✅ *Проверка успешно пройдена!*\n\n"
-                "Ограничения в группе сняты — добро пожаловать в чат!\n\n"
-                "🎮 А пока общаешься, сыграй в нашу игру *Spore Tower Defense*!"
-            ),
-            reply_markup=success_keyboard,
+            text=success_text,
             parse_mode="Markdown",
         )
         if not res_edit.get("ok") and "can't parse entities" in res_edit.get("description", "").lower():
@@ -1206,12 +1207,7 @@ def handle_callback(callback):
                 "editMessageText",
                 chat_id=chat_id,
                 message_id=message_id,
-                text=(
-                    "✅ Проверка успешно пройдена!\n\n"
-                    "Ограничения в группе сняты — добро пожаловать в чат!\n\n"
-                    "🎮 А пока общаешься, сыграй в нашу игру Spore Tower Defense!"
-                ),
-                reply_markup=success_keyboard,
+                text=plain_success,
             )
         return
 
