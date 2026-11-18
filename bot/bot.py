@@ -748,8 +748,8 @@ def handle_new_chat_members(chat_id, new_members, message_id=None, message_threa
     """Ограничивает нового участника и отправляет сообщение-помощник с кнопкой проверки."""
     mod_data = load_mod_data()
 
-    # Топик берём из сохранённых настроек группы или переданного message_thread_id
-    target_thread = mod_data.get("chat_topics", {}).get(str(chat_id)) or message_thread_id
+    # Топик берём строго из сохранённых настроек группы, чтобы не писать в разные темы
+    target_thread = mod_data.get("chat_topics", {}).get(str(chat_id))
 
     for member in new_members:
         if member.get("is_bot"):
@@ -1400,8 +1400,8 @@ def handle_update(update):
                     )
                     return
 
-                # Команда назначения текущего топика для приветствий и проверок (только создатель)
-                if first_token in ("!топик", "!сеттопик", "/settopic"):
+                # Команда назначения текущего топика для приветствий новичков
+                if first_token in ("!приветствие", "!сетприветствие", "!топик", "!сеттопик", "/settopic", "/setwelcome"):
                     mod_data = load_mod_data()
                     if "chat_topics" not in mod_data:
                         mod_data["chat_topics"] = {}
@@ -1409,7 +1409,20 @@ def handle_update(update):
                     save_mod_data(mod_data)
                     send_group_msg(
                         chat_id,
-                        f"✅ Топик сохранён для приветствий и капчи!\n🧵 *ID топика:* `{thread_id or 'General'}`",
+                        f"✅ Тема закреплена для приветствий и капчи!\n🧵 *ID темы:* `{thread_id or 'General'}`\nБот будет писать приветствия только сюда.",
+                        thread_id=thread_id,
+                        reply_to=message.get("message_id"),
+                    )
+                    return
+
+                # Команда отмены привязки топика приветствий
+                if first_token in ("!-приветствие", "!-топик", "!сбростопик", "!сбросприветствие", "/unsettopic", "/unsetwelcome"):
+                    mod_data = load_mod_data()
+                    mod_data.get("chat_topics", {}).pop(str(chat_id), None)
+                    save_mod_data(mod_data)
+                    send_group_msg(
+                        chat_id,
+                        "✅ Закрепление темы для приветствий снято.\nПриветствия будут приходить в общий чат (General).",
                         thread_id=thread_id,
                         reply_to=message.get("message_id"),
                     )
@@ -1474,7 +1487,8 @@ def handle_update(update):
                         "• `!анварн` — снять все предупреждения\n"
                         "• `!дел` — удалить сообщение\n"
                         "• `!капча` — принудительно выдать проверку участнику (ответом) или протестировать капчу\n"
-                        "• `!топик` — назначить текущую тему для приветствий\n"
+                        "• `!приветствие` (или `!топик`) — закрепить текущую тему для приветствий\n"
+                        "• `!-приветствие` (или `!-топик`) — сбросить закрепление темы\n"
                         "• `!тест` — проверить статус бота и права в топике\n\n"
                         "⏱ *Время:* `10м`, `2ч`, `1д` (если не указано — 1 час)."
                     )
