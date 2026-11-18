@@ -33,8 +33,8 @@ except ImportError:
     FIREBASE_ADMIN_AVAILABLE = False
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-CREATOR_ID = os.environ.get("CREATOR_ID")
-CREATOR_USERNAME = os.environ.get("CREATOR_USERNAME", "gyviii")
+CREATOR_ID = os.environ.get("CREATOR_ID") or "1802519292"
+CREATOR_USERNAME = os.environ.get("CREATOR_USERNAME") or "gyviii"
 PROJECT_ID = "telegram-tower-defense"
 API_KEY = "AIzaSyDSIr6tflEu5cYQNXexM0co5hqkDXMVd8Y"
 SA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "service-account.json")
@@ -142,29 +142,48 @@ def init_firebase():
 
 
 # ----------------------------- Telegram API -----------------------------
-SESSION_UPDATES = requests.Session()
-SESSION_API = requests.Session()
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+
+def _create_http_session():
+    sess = requests.Session()
+    retries = Retry(total=2, backoff_factor=0.3, status_forcelist=[500, 502, 503, 504], raise_on_status=False)
+    adapter = HTTPAdapter(max_retries=retries, pool_connections=5, pool_maxsize=10)
+    sess.mount("https://", adapter)
+    sess.mount("http://", adapter)
+    return sess
+
+SESSION_UPDATES = _create_http_session()
+SESSION_API = _create_http_session()
 
 def api(method, **params):
-    """Вызов метода Telegram Bot API с постоянными keep-alive сессиями."""
+    """Вызов метода Telegram Bot API с пулом и автоматическим переподключением."""
     global SESSION_UPDATES, SESSION_API
-    sess = SESSION_UPDATES if method == "getUpdates" else SESSION_API
-    timeout = 25 if method == "getUpdates" else 15
-    try:
-        response = sess.post(f"{API}/{method}", json=params, timeout=timeout)
-        return response.json()
-    except Exception as e:
-        print(f"[API ERROR] {method}: {e}")
+    is_get_updates = (method == "getUpdates")
+    timeout = 25 if is_get_updates else 12
+    max_attempts = 1 if is_get_updates else 3
+
+    last_error = None
+    for attempt in range(max_attempts):
+        sess = SESSION_UPDATES if is_get_updates else SESSION_API
         try:
-            if method == "getUpdates":
-                SESSION_UPDATES.close()
-                SESSION_UPDATES = requests.Session()
-            else:
-                SESSION_API.close()
-                SESSION_API = requests.Session()
-        except Exception:
-            pass
-        return {"ok": False, "description": str(e)}
+            response = sess.post(f"{API}/{method}", json=params, timeout=timeout)
+            return response.json()
+        except Exception as e:
+            last_error = e
+            print(f"[API ERROR] {method} (попытка {attempt+1}/{max_attempts}): {e}")
+            try:
+                if is_get_updates:
+                    SESSION_UPDATES.close()
+                    SESSION_UPDATES = _create_http_session()
+                else:
+                    SESSION_API.close()
+                    SESSION_API = _create_http_session()
+            except Exception:
+                pass
+            if attempt < max_attempts - 1:
+                time.sleep(0.3)
+    return {"ok": False, "description": str(last_error)}
 
 
 def send_message(chat_id, text, markdown=True, keyboard=None):
@@ -1288,6 +1307,8 @@ def handle_update(update):
     # ---------------- Групповые сообщения (Капча и Модерация) ----------------
     if chat_type in ("group", "supergroup"):
         reply_to = message.get("reply_to_message")
+        if reply_to and reply_to.get("forum_topic_created"):
+            reply_to = None
 
         # Удаление сервисного сообщения Telegram "Пользователь вошёл в группу" + вызов капчи
         new_members = message.get("new_chat_members") or ([message["new_chat_participant"]] if message.get("new_chat_participant") else None)
@@ -1395,7 +1416,7 @@ def handle_update(update):
                     if reply_to:
                         target_u = reply_to.get("from", {})
                         t_uid = target_u.get("id")
-                        if str(t_uid) == str(CREATOR_ID):
+                        if is_creator_user(t_uid, target_u.get("username")):
                             send_group_msg(chat_id, "⚠️ Нельзя вызвать проверку для создателя.", thread_id=thread_id, reply_to=message.get("message_id"))
                             return
                         handle_new_chat_members(chat_id, [target_u], reply_to.get("message_id"), thread_id)
