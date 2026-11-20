@@ -113,7 +113,7 @@ db = None
 
 def init_firebase():
     """Подключаем Firebase Admin (сервисный аккаунт) — для чтения и записи ролей."""
-    global db
+    global db, _MOD_DATA_CACHE, _MOD_DATA_CACHE_TIME
     if not FIREBASE_ADMIN_AVAILABLE:
         print("[WARN] firebase-admin не установлен — роли недоступны.")
         return
@@ -121,6 +121,8 @@ def init_firebase():
     try:
         if firebase_admin._apps:
             db = firestore.client()
+            _MOD_DATA_CACHE = None
+            _MOD_DATA_CACHE_TIME = 0
             return
     except Exception:
         pass
@@ -136,6 +138,8 @@ def init_firebase():
 
         firebase_admin.initialize_app(cred)
         db = firestore.client()
+        _MOD_DATA_CACHE = None
+        _MOD_DATA_CACHE_TIME = 0
         print("[INFO] Firebase Admin подключён.")
     except Exception as error:
         print("[ERROR] Firebase Admin:", error)
@@ -655,20 +659,20 @@ def load_mod_data():
         return _MOD_DATA_CACHE
 
     data = None
-    if os.path.exists(MODERATION_FILE):
-        try:
-            with open(MODERATION_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as error:
-            print("[ERROR] load_mod_data file error:", error)
-
-    if data is None and db is not None:
+    if db is not None:
         try:
             doc = db.collection("settings").document("moderation").get(timeout=5)
             if doc.exists:
                 data = doc.to_dict() or {}
         except Exception as e:
             print("[WARN] Firestore load_mod_data error:", e)
+
+    if not data and os.path.exists(MODERATION_FILE):
+        try:
+            with open(MODERATION_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as error:
+            print("[ERROR] load_mod_data file error:", error)
 
     if not isinstance(data, dict):
         data = {}
@@ -699,6 +703,10 @@ def load_mod_data():
         data["referral_stats"] = {}
     if "known_users" not in data:
         data["known_users"] = {}
+
+    for k, v in data.get("known_users", {}).items():
+        if isinstance(v, (list, tuple)) and len(v) >= 2:
+            _KNOWN_USERS[str(k).lower().lstrip("@")] = (str(v[0]), str(v[1]))
 
     _MOD_DATA_CACHE = data
     _MOD_DATA_CACHE_TIME = now
