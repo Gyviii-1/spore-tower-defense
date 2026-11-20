@@ -1,8 +1,15 @@
 @echo off
-chcp 65001 >nul
+title Spore TD Bot
 cd /d "%~dp0"
-echo Запускаю бота Tower Defense...
-python bot.py
+echo ========================================
+echo   Spore TD Telegram Bot Starting...
+echo   Do not close this window!
+echo ========================================
 echo.
-echo Бот остановлен. Нажми любую клавишу, чтобы закрыть окно.
-pause >nul
+"C:\Program Files\Python312\python.exe" bot.py
+if %errorlevel% neq 0 (
+    echo.
+    echo Bot stopped with error.
+    pause
+)
+pause
