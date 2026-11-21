@@ -89,10 +89,10 @@
       pointer-events: none;
       background: linear-gradient(
         rgba(10, 20, 10, 0) 50%,
-        rgba(0, 0, 0, 0.32) 50%
+        rgba(0, 0, 0, 0.28) 50%
       );
       background-size: 100% 3px;
-      opacity: 0.85;
+      opacity: 0.8;
     }
 
     /* Затемнение по краям (кривизна кинескопа) и зеленоватый ореол */
@@ -103,8 +103,8 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      box-shadow: inset 0 0 80px rgba(0, 20, 5, 0.82),
-                  inset 0 0 20px rgba(0, 255, 102, 0.14);
+      box-shadow: inset 0 0 35px rgba(0, 15, 5, 0.75),
+                  inset 0 0 12px rgba(0, 255, 102, 0.12);
       border: 1px solid rgba(0, 255, 102, 0.22);
     }
 
@@ -116,20 +116,21 @@
       border: 2px solid rgba(51, 255, 102, 0.45);
       pointer-events: none;
     }
-    .crt-corner.top-left { top: 8px; left: 8px; border-right: none; border-bottom: none; }
-    .crt-corner.top-right { top: 8px; right: 8px; border-left: none; border-bottom: none; }
-    .crt-corner.bottom-left { bottom: 8px; left: 8px; border-right: none; border-top: none; }
-    .crt-corner.bottom-right { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+    .crt-corner.top-left { top: max(6px, env(safe-area-inset-top)); left: max(6px, env(safe-area-inset-left)); border-right: none; border-bottom: none; }
+    .crt-corner.top-right { top: max(6px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right)); border-left: none; border-bottom: none; }
+    .crt-corner.bottom-left { bottom: max(6px, env(safe-area-inset-bottom)); left: max(6px, env(safe-area-inset-left)); border-right: none; border-top: none; }
+    .crt-corner.bottom-right { bottom: max(6px, env(safe-area-inset-bottom)); right: max(6px, env(safe-area-inset-right)); border-left: none; border-top: none; }
 
     /* Верхняя статусная строка терминала S.A.M. */
     .crt-terminal-header {
       position: fixed;
-      top: 4px;
+      top: max(4px, env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
-      font-size: 10px;
-      letter-spacing: 2px;
+      font-size: clamp(8px, 1.8vw, 11px);
+      letter-spacing: 1.5px;
       color: rgba(51, 255, 102, 0.45);
+      text-shadow: 0 0 4px rgba(51, 255, 102, 0.35);
       pointer-events: none;
       z-index: 99997;
       text-transform: uppercase;

@@ -430,7 +430,7 @@ const WAVE_TABLE = [
 const GAME_DIFFICULTIES = {
   easy: {
     id: 'easy',
-    name: '[ НИЗКИЙ ]',
+    name: 'НИЗКИЙ',
     badge: 'НИЗКИЙ',
     color: '#33ff66',
     colorHex: 0x166534,
@@ -445,7 +445,7 @@ const GAME_DIFFICULTIES = {
   },
   medium: {
     id: 'medium',
-    name: '[ СРЕДНИЙ ]',
+    name: 'СРЕДНИЙ',
     badge: 'СРЕДНИЙ',
     color: '#22c55e',
     colorHex: 0x15803d,
@@ -460,7 +460,7 @@ const GAME_DIFFICULTIES = {
   },
   hard: {
     id: 'hard',
-    name: '[ КРИТИЧЕСКИЙ ]',
+    name: 'КРИТИЧЕСКИЙ',
     badge: 'КРИТИЧЕСКИЙ',
     color: '#ff3333',
     colorHex: 0x991b1b,
@@ -2385,9 +2385,9 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, '> СЕКТОР ОБОРОНЫ', { fontFamily: UI_FONT, fontSize: '12px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapPrevBtn = this.add
-      .text(0, 0, '‹', {
+      .text(0, 0, '< ', {
         fontFamily: UI_FONT,
-        fontSize: '26px',
+        fontSize: '20px',
         color: '#33ff66',
         backgroundColor: '#051408',
         padding: { x: 12 * DPR, y: 6 * DPR },
@@ -2406,9 +2406,9 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '18px', color: '#33ff66', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapNextBtn = this.add
-      .text(0, 0, '›', {
+      .text(0, 0, ' >', {
         fontFamily: UI_FONT,
-        fontSize: '26px',
+        fontSize: '20px',
         color: '#33ff66',
         backgroundColor: '#051408',
         padding: { x: 12 * DPR, y: 6 * DPR },
@@ -2450,7 +2450,7 @@ class MenuScene extends Phaser.Scene {
     diffKeys.forEach((k) => {
       const def = GAME_DIFFICULTIES[k];
       const btn = this.add
-        .text(0, 0, def.name, {
+        .text(0, 0, `[ ${def.name} ]`, {
           fontFamily: UI_FONT,
           fontSize: '13px',
           color: '#33ff66',
@@ -3883,67 +3883,67 @@ class MenuScene extends Phaser.Scene {
 
     const crates = [
       {
-        name: 'Обычный Ящик',
+        name: '[ ОБЫЧНЫЙ КОНТЕЙНЕР ]',
         tier: 'common',
         desc: 'Базовые компоненты турелей и тактические модули',
-        colorHex: 0x94a3b8,
-        glowHex: 0x64748b,
+        colorHex: 0x166534,
+        glowHex: 0x33ff66,
       },
       {
-        name: 'Редкий Ящик',
+        name: '[ РЕДКИЙ КОНТЕЙНЕР ]',
         tier: 'rare',
         desc: 'Защитные и тактические модули «Спецназ» и «Крио»',
-        colorHex: 0x38bdf8,
-        glowHex: 0x0284c7,
+        colorHex: 0x22c55e,
+        glowHex: 0x4ade80,
       },
       {
-        name: 'Легендарный Ящик',
+        name: '[ ЭЛИТНЫЙ КОНТЕЙНЕР ]',
         tier: 'legendary',
         desc: 'Эксклюзивные модули усиления «Омега-Прайм»',
-        colorHex: 0xf59e0b,
-        glowHex: 0xd97706,
+        colorHex: 0xd97706,
+        glowHex: 0xffb000,
       },
     ];
 
     for (const crate of crates) {
       const row = this.add.container(0, 0);
-      const bg = this.add.rectangle(0, 0, 320, 80, 0x121620, 0.95);
+      const bg = this.add.rectangle(0, 0, 320, 80, 0x051408, 0.95);
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x121620,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 10,
-        strokeColor: crate.glowHex,
-        strokeWidth: 1,
+        radius: 3 * DPR,
+        strokeColor: crate.colorHex,
+        strokeWidth: 1.2 * DPR,
       });
 
-      // Отрисованный кодом стилизованный компактный 3D-сундук
+      // Отрисованный кодом стилизованный компактный 3D-сундук в стиле тактического терминала
       const chestGfx = this.add.graphics();
       chestGfx.setPosition(-132, 0);
 
       // Свечение сзади ящика
-      chestGfx.fillStyle(crate.glowHex, 0.25);
+      chestGfx.fillStyle(crate.glowHex, 0.15);
       chestGfx.fillCircle(0, 0, 18);
 
       // Корпус сундука
-      chestGfx.fillStyle(0x182030, 1);
-      chestGfx.fillRoundedRect(-14, -10, 28, 20, 4);
-      chestGfx.lineStyle(1.5, crate.colorHex, 1);
-      chestGfx.strokeRoundedRect(-14, -10, 28, 20, 4);
+      chestGfx.fillStyle(0x06170a, 1);
+      chestGfx.fillRoundedRect(-14, -10, 28, 20, 2);
+      chestGfx.lineStyle(1.5, crate.glowHex, 0.9);
+      chestGfx.strokeRoundedRect(-14, -10, 28, 20, 2);
 
       // Крышка сундука
       chestGfx.fillStyle(crate.colorHex, 0.9);
-      chestGfx.fillRoundedRect(-15, -13, 30, 7, 2.5);
+      chestGfx.fillRoundedRect(-15, -13, 30, 7, 2);
 
       // Замок сундука
-      chestGfx.fillStyle(0xffffff, 0.95);
+      chestGfx.fillStyle(0x33ff66, 0.95);
       chestGfx.fillCircle(0, -2, 2.5);
 
       const title = this.add
         .text(-108, -16, crate.name, {
           fontFamily: UI_FONT,
-          fontSize: '14.5px',
-          color: '#ffffff',
+          fontSize: '13px',
+          color: '#33ff66',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
@@ -3951,32 +3951,32 @@ class MenuScene extends Phaser.Scene {
       const sub = this.add
         .text(-108, 0, crate.desc, {
           fontFamily: UI_FONT,
-          fontSize: '11px',
-          color: '#8492a6',
+          fontSize: '10.5px',
+          color: '#4ade80',
           wordWrap: { width: 175 },
           lineSpacing: 1.5,
         })
         .setOrigin(0, 0);
 
-      // КНОПКА СТРОГО "Скоро"
+      // КНОПКА СТРОГО "[ СКОРО ]"
       const soonBtn = this.add
-        .text(120, 0, 'Скоро', {
+        .text(120, 0, '[ СКОРО ]', {
           fontFamily: UI_FONT,
-          fontSize: '12px',
-          color: '#94a3b8',
-          backgroundColor: '#1e2433',
-          padding: { x: 10, y: 5 },
+          fontSize: '11px',
+          color: '#33ff66',
+          backgroundColor: '#051408',
+          padding: { x: 8 * DPR, y: 5 * DPR },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, soonBtn, {
-        color: 0x1a2130,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 7,
-        strokeColor: 0x334155,
-        strokeWidth: 1,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
+        strokeWidth: 1 * DPR,
       });
 
       soonBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -5980,12 +5980,15 @@ class GameScene extends Phaser.Scene {
     this.clearRangeRing(); // убираем кольцо радиуса
     this.hideEnemyInfo();
     this.updateStaffUI(); // прячем кнопку ускорения
+    this.layoutUI(this.scale.width, this.scale.height);
 
-    // Небольшой эффект появления.
-    this.gameOverText.setScale(0.5);
+    // Небольшой эффект появления с учётом экранного зума.
+    const cam = this.cameras && this.cameras.main;
+    const baseScale = 1 / ((cam && cam.zoom) || 1);
+    this.gameOverText.setScale(0.5 * baseScale);
     this.tweens.add({
       targets: this.gameOverText,
-      scale: 1,
+      scale: baseScale,
       duration: 300,
       ease: 'Back.easeOut',
     });
@@ -6134,7 +6137,7 @@ class GameScene extends Phaser.Scene {
     if (!this.towerViewPill) return;
     const width = this.scale.width;
     const height = this.scale.height;
-    this.towerViewPill.setPosition(width / 2, height - 125 * DPR);
+    this.setUIScreenPos(this.towerViewPill, width / 2, height - 125 * DPR);
     updateRoundBgs(this);
   }
 
@@ -6309,7 +6312,7 @@ class GameScene extends Phaser.Scene {
     const top = y - halfH;
 
     this.towerMenuBg.setSize(menuW, menuH);
-    this.towerMenuBg.setPosition(x, y);
+    this.setUIScreenPos(this.towerMenuBg, x, y);
 
     // Размеры и координаты элементов
     const iconBoxSize = 50 * DPR;
@@ -6339,92 +6342,101 @@ class GameScene extends Phaser.Scene {
     const cardW = menuW - pad * 2;
     const cardH = (top + menuH - pad) - cardY;
 
-    // Отрисовка графики окна, рамки и 4-сегментной полосы прогресса
+    // Отрисовка графики окна, рамки и 4-сегментной полосы прогресса в терминальном стиле
     const gfx = this.towerMenuGfx;
     gfx.clear();
+    this.setUIScreenPos(gfx, left, top);
 
-    // 1. Внешний корпус окна (тёмный контейнер со скруглением и обводкой)
-    gfx.fillStyle(0x11141d, 0.97);
-    gfx.fillRoundedRect(left, top, menuW, menuH, 14 * DPR);
-    gfx.lineStyle(1.5 * DPR, 0x283144, 1);
-    gfx.strokeRoundedRect(left, top, menuW, menuH, 14 * DPR);
+    // 1. Внешний корпус окна (тёмный кинескопный контейнер)
+    gfx.fillStyle(0x051408, 0.98);
+    gfx.fillRoundedRect(0, 0, menuW, menuH, 3 * DPR);
+    gfx.lineStyle(1.5 * DPR, 0x33ff66, 0.95);
+    gfx.strokeRoundedRect(0, 0, menuW, menuH, 3 * DPR);
 
-    // 2. Рамка иконки башни (квадратная со скруглением)
-    gfx.fillStyle(0x161a25, 1);
-    gfx.fillRoundedRect(iconX, iconY, iconBoxSize, iconBoxSize, 8 * DPR);
-    gfx.lineStyle(1.5 * DPR, 0x323c50, 1);
-    gfx.strokeRoundedRect(iconX, iconY, iconBoxSize, iconBoxSize, 8 * DPR);
+    // 2. Рамка иконки башни
+    const relIconX = pad;
+    const relIconY = pad;
+    gfx.fillStyle(0x081e0d, 1);
+    gfx.fillRoundedRect(relIconX, relIconY, iconBoxSize, iconBoxSize, 2 * DPR);
+    gfx.lineStyle(1.2 * DPR, 0x166534, 1);
+    gfx.strokeRoundedRect(relIconX, relIconY, iconBoxSize, iconBoxSize, 2 * DPR);
 
     // 3. Четырёхсегментная полоса уровней с диагональными штрихами
+    const relBarY = pad + iconBoxSize + 8 * DPR;
     for (let i = 0; i < 4; i++) {
-      const segX = left + pad + i * (segW + barGap);
+      const segX = pad + i * (segW + barGap);
       const isFilled = tower.level >= i + 2;
-      const bgCol = isFilled ? 0x27ae60 : 0x202431;
-      const stripeCol = isFilled ? 0x55efc4 : 0x303749;
+      const bgCol = isFilled ? 0x143c1c : 0x06150a;
+      const stripeCol = isFilled ? 0x33ff66 : 0x0d2813;
       const stripeAlpha = isFilled ? 0.45 : 0.6;
-      const strokeCol = isFilled ? 0x4cd137 : 0x2d3546;
+      const strokeCol = isFilled ? 0x33ff66 : 0x166534;
 
       gfx.fillStyle(bgCol, 1);
-      gfx.fillRoundedRect(segX, barY, segW, segH, 4 * DPR);
+      gfx.fillRoundedRect(segX, relBarY, segW, segH, 2 * DPR);
 
       // Диагональные полосы под углом 45 градусов
       for (let off = -segH; off < segW + segH; off += 7 * DPR) {
         const x1 = Math.max(segX, segX + off);
-        const y1 = barY + (x1 - (segX + off));
+        const y1 = relBarY + (x1 - (segX + off));
         const x2 = Math.min(segX + segW, segX + off + segH);
-        const y2 = barY + (x2 - (segX + off));
-        if (x2 > x1 && y1 >= barY && y2 <= barY + segH) {
-          gfx.lineStyle(2 * DPR, stripeCol, stripeAlpha);
+        const y2 = relBarY + (x2 - (segX + off));
+        if (x2 > x1 && y1 >= relBarY && y2 <= relBarY + segH) {
+          gfx.lineStyle(1.5 * DPR, stripeCol, stripeAlpha);
           gfx.lineBetween(x1, y1, x2, y2);
         }
       }
 
-      gfx.lineStyle(1.5 * DPR, strokeCol, 0.95);
-      gfx.strokeRoundedRect(segX, barY, segW, segH, 4 * DPR);
+      gfx.lineStyle(1.2 * DPR, strokeCol, 0.95);
+      gfx.strokeRoundedRect(segX, relBarY, segW, segH, 2 * DPR);
     }
 
     // 4. Нижняя карточка характеристик
-    gfx.fillStyle(0x151823, 1);
-    gfx.fillRoundedRect(left + pad, cardY, cardW, cardH, 10 * DPR);
-    gfx.lineStyle(1 * DPR, 0x283042, 1);
-    gfx.strokeRoundedRect(left + pad, cardY, cardW, cardH, 10 * DPR);
+    const relCardY = relBarY + segH + 8 * DPR;
+    gfx.fillStyle(0x051408, 1);
+    gfx.fillRoundedRect(pad, relCardY, cardW, cardH, 2 * DPR);
+    gfx.lineStyle(1 * DPR, 0x166534, 1);
+    gfx.strokeRoundedRect(pad, relCardY, cardW, cardH, 2 * DPR);
 
-    // Размещение спрайтов и текста
-    this.towerMenuIconBase.setPosition(iconCenterX, iconCenterY).setDisplaySize(38 * DPR, 38 * DPR);
+    // Размещение спрайтов и текста с точной экранной компенсацией
+    const cam = this.cameras && this.cameras.main;
+    const z = (cam && cam.zoom) || 1;
+    this.setUIScreenPos(this.towerMenuIconBase, iconCenterX, iconCenterY);
+    this.towerMenuIconBase.setDisplaySize(38 * DPR / z, 38 * DPR / z);
     if (this.towerMenuIconGun.visible) {
-      this.towerMenuIconGun.setPosition(iconCenterX, iconCenterY).setDisplaySize(38 * DPR, 38 * DPR);
+      this.setUIScreenPos(this.towerMenuIconGun, iconCenterX, iconCenterY);
+      this.towerMenuIconGun.setDisplaySize(38 * DPR / z, 38 * DPR / z);
     }
 
-    this.towerMenuHeader.setPosition(headerX, headerY);
-    this.towerMenuClose.setPosition(closeX, closeY);
+    this.setUIScreenPos(this.towerMenuHeader, headerX, headerY);
+    this.setUIScreenPos(this.towerMenuClose, closeX, closeY);
 
     if (!isAiming) {
-      this.towerMenuUpgrade.setPosition(upBtnCenterX, upBtnCenterY);
+      this.setUIScreenPos(this.towerMenuUpgrade, upBtnCenterX, upBtnCenterY);
     }
 
-    this.towerMenuStats.setPosition(left + pad + 10 * DPR, cardY + 8 * DPR);
+    this.setUIScreenPos(this.towerMenuStats, left + pad + 10 * DPR, cardY + 8 * DPR);
 
     const btnY = cardY + cardH - 18 * DPR;
 
     const showView = this.canUseTowerViewMode();
     if (isAiming) {
-      this.towerMenuConfirmRotate.setPosition(left + pad + cardW * 0.30, btnY);
-      this.towerMenuCancelRotate.setPosition(left + pad + cardW * 0.72, btnY);
+      this.setUIScreenPos(this.towerMenuConfirmRotate, left + pad + cardW * 0.30, btnY);
+      this.setUIScreenPos(this.towerMenuCancelRotate, left + pad + cardW * 0.72, btnY);
     } else if (hasArcNotRotated) {
       if (showView) {
-        this.towerMenuView.setPosition(left + pad + cardW * 0.20, btnY);
-        this.towerMenuRotate.setPosition(left + pad + cardW * 0.52, btnY);
-        this.towerMenuSell.setPosition(left + pad + cardW * 0.82, btnY);
+        this.setUIScreenPos(this.towerMenuView, left + pad + cardW * 0.20, btnY);
+        this.setUIScreenPos(this.towerMenuRotate, left + pad + cardW * 0.52, btnY);
+        this.setUIScreenPos(this.towerMenuSell, left + pad + cardW * 0.82, btnY);
       } else {
-        this.towerMenuRotate.setPosition(left + pad + cardW * 0.30, btnY);
-        this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
+        this.setUIScreenPos(this.towerMenuRotate, left + pad + cardW * 0.30, btnY);
+        this.setUIScreenPos(this.towerMenuSell, left + pad + cardW * 0.72, btnY);
       }
     } else {
       if (showView) {
-        this.towerMenuView.setPosition(left + pad + cardW * 0.28, btnY);
-        this.towerMenuSell.setPosition(left + pad + cardW * 0.72, btnY);
+        this.setUIScreenPos(this.towerMenuView, left + pad + cardW * 0.28, btnY);
+        this.setUIScreenPos(this.towerMenuSell, left + pad + cardW * 0.72, btnY);
       } else {
-        this.towerMenuSell.setPosition(left + pad + cardW * 0.50, btnY);
+        this.setUIScreenPos(this.towerMenuSell, left + pad + cardW * 0.50, btnY);
       }
     }
 
@@ -6520,7 +6532,7 @@ class GameScene extends Phaser.Scene {
 
       // Название башни
       const nameLabel = this.add
-        .text(0, 0, `[ ${type.name.toUpperCase()} ]`, {
+        .text(0, 0, type.name.toUpperCase(), {
           fontFamily: UI_FONT,
           fontSize: `${10 * DPR}px`,
           color: '#33ff66',
@@ -6613,36 +6625,43 @@ class GameScene extends Phaser.Scene {
       const x = startX + index * (buttonWidth + gap);
       const b = this.buildButtons[key];
       if (!b) return;
-      b.bg.setPosition(x, y);
       b.bg.setSize(buttonWidth, 86 * DPR);
       if (b.bg._roundItem) {
         b.bg._roundItem.w = buttonWidth;
         b.bg._roundItem.h = 86 * DPR;
       }
-      b.iconBase.setPosition(x, y - 14 * DPR);
-      if (b.iconWeapon) b.iconWeapon.setPosition(x, y - 14 * DPR);
+      this.setUIScreenPos(b.bg, x, y);
+      const cam = this.cameras && this.cameras.main;
+      const z = (cam && cam.zoom) || 1;
+      const iconSize = Math.min(32 * DPR, buttonWidth * 0.38);
+      this.setUIScreenPos(b.iconBase, x, y - 14 * DPR);
+      b.iconBase.setDisplaySize(iconSize / z, iconSize / z);
+      if (b.iconWeapon) {
+        this.setUIScreenPos(b.iconWeapon, x, y - 14 * DPR);
+        b.iconWeapon.setDisplaySize(iconSize / z, iconSize / z);
+      }
 
       const maxTextW = Math.max(30, buttonWidth - 6 * DPR);
       let nameFs = Math.max(7 * DPR, Math.min(10.5 * DPR, Math.floor(buttonWidth * 0.155)));
-      b.nameLabel.setPosition(x, y + 14 * DPR);
       b.nameLabel.setStyle({
         fontSize: `${nameFs}px`,
-        wordWrap: { width: maxTextW, useAdvancedWrap: true },
+        wordWrap: null,
       });
-      while (nameFs > 6 * DPR && b.nameLabel.width > maxTextW) {
+      while (nameFs > 5.5 * DPR && b.nameLabel.width > maxTextW) {
         nameFs -= 0.5 * DPR;
         b.nameLabel.setFontSize(`${nameFs}px`);
       }
+      this.setUIScreenPos(b.nameLabel, x, y + 13 * DPR);
 
       let costFs = Math.max(7.5 * DPR, Math.min(11 * DPR, Math.floor(buttonWidth * 0.165)));
-      b.costLabel.setPosition(x, y + 27 * DPR);
       b.costLabel.setStyle({
         fontSize: `${costFs}px`,
       });
-      while (costFs > 6.5 * DPR && b.costLabel.width > maxTextW) {
+      while (costFs > 6 * DPR && b.costLabel.width > maxTextW) {
         costFs -= 0.5 * DPR;
         b.costLabel.setFontSize(`${costFs}px`);
       }
+      this.setUIScreenPos(b.costLabel, x, y + 26 * DPR);
     });
     updateRoundBgs(this);
   }
@@ -6720,8 +6739,8 @@ class GameScene extends Phaser.Scene {
 
     this.isGameOver = true;
     if (this.gameOverText) {
-      this.gameOverText.setText('ИГРА ОКОНЧЕНА');
-      this.gameOverText.setColor('#e63946');
+      this.gameOverText.setText('[ ! КРИТИЧЕСКИЙ ПРОРЫВ ! ]');
+      this.gameOverText.setColor('#ff3333');
     }
     this.playSfx('sfx_gameover', 0.6);
     if (this.waveSpawnTimer) this.waveSpawnTimer.remove(false); // прекращаем спавн
@@ -6738,8 +6757,8 @@ class GameScene extends Phaser.Scene {
 
     this.isGameOver = true;
     if (this.gameOverText) {
-      this.gameOverText.setText('ПОБЕДА!');
-      this.gameOverText.setColor('#2ecc71');
+      this.gameOverText.setText('[ ОБЪЕКТ УДЕРЖАН // ПОБЕДА ]');
+      this.gameOverText.setColor('#33ff66');
     }
     if (this.waveSpawnTimer) this.waveSpawnTimer.remove(false);
     this.showGameOver();
@@ -6866,6 +6885,19 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  // Точное позиционирование и масштабирование UI-элементов на экране независимо от зума камеры
+  setUIScreenPos(obj, sx, sy, scale = 1) {
+    if (!obj) return;
+    const cam = this.cameras && this.cameras.main;
+    const z = (cam && cam.zoom) || 1;
+    const cx = (cam && cam.width ? cam.width : this.scale.width) * 0.5;
+    const cy = (cam && cam.height ? cam.height : this.scale.height) * 0.5;
+    obj.setPosition(cx + (sx - cx) / z, cy + (sy - cy) / z);
+    if (obj.type !== 'Image') {
+      obj.setScale(scale / z);
+    }
+  }
+
   // Пересчёт размеров и перерисовка под текущий размер экрана.
   // Вызывается при старте и при каждом ресайзе (поворот телефона и т.п.).
   layout() {
@@ -6875,20 +6907,20 @@ class GameScene extends Phaser.Scene {
     // Пиксельный масштаб мира — константа (iso), не зависит от экрана.
     this.cellSize = ISO_HW;
 
+    this.setupCamera(true);
     this.drawGround();
     this.drawRoad();
     this.drawTowers();
     this.layoutTowerSprites();
     this.layoutUI(width, height);
-    this.setupCamera();
   }
 
   // Камера работает поверх world-space (iso-пикселей).
-  setupCamera() {
+  setupCamera(forceFit = false) {
     const cam = this.cameras.main;
     const center = worldToScreen(WORLD_SIZE / 2, WORLD_SIZE / 2);
     cam.centerOn(center.x, center.y);
-    if (!this.cameraInitialized) {
+    if (!this.cameraInitialized || forceFit) {
       cam.setZoom(this.fitZoom());
       this.cameraInitialized = true;
     }
@@ -6928,6 +6960,7 @@ class GameScene extends Phaser.Scene {
     this.input.on('wheel', (pointer, gameObjects, dx, dy) => {
       const factor = dy > 0 ? 0.9 : 1.1;
       cam.setZoom(Phaser.Math.Clamp(cam.zoom * factor, this.minZoom(), this.maxZoom()));
+      this.layoutUI(this.scale.width, this.scale.height);
     });
 
     this.input.addPointer(1);
@@ -6979,6 +7012,7 @@ class GameScene extends Phaser.Scene {
               this.maxZoom()
             );
             cam.setZoom(next);
+            this.layoutUI(this.scale.width, this.scale.height);
           }
           // Пан по движению середины.
           cam.scrollX -= (midX - this.pinchMid.x) / cam.zoom;
@@ -7025,66 +7059,64 @@ class GameScene extends Phaser.Scene {
   // Позиционируем элементы интерфейса под новый размер экрана.
   layoutUI(width, height) {
     const pad = Math.max(10 * DPR, Math.min(width, height) * 0.03);
-    const uiSize = Math.max(16 * DPR, Math.min(width, height) * 0.05);
+    const uiSize = Math.max(12 * DPR, Math.min(18 * DPR, Math.round(Math.min(width, height) * 0.032)));
 
-    this.uiText.setPosition(width - pad, pad);
-    this.uiText.setStyle({ fontSize: `${Math.round(uiSize)}px` });
+    this.uiText.setStyle({ fontSize: `${Math.round(uiSize * 0.82)}px` });
+    this.setUIScreenPos(this.uiText, width - pad, pad);
     this.uiText.setVisible(!this.isGameOver);
 
     // Кнопка старта волны — сверху по центру. На телефоне опускаем ниже,
     // чтобы не упиралась в шапку Telegram / верхний отступ.
     const isTouch = this.game.device.input.touch;
-    const startY = isTouch ? pad + uiSize * 2.5 : pad;
-    this.startButton.setPosition(width / 2, startY);
+    const startY = isTouch ? pad + uiSize * 2.2 : pad + uiSize * 0.8;
     this.startButton.setStyle({ fontSize: `${Math.round(uiSize)}px` });
+    this.setUIScreenPos(this.startButton, width / 2, startY);
     this.startButton.setVisible(!this.isWaveActive && !this.isGameOver);
 
     // Кнопка меню — вверху слева.
-    this.menuButton.setPosition(pad, pad);
-    this.menuButton.setStyle({ fontSize: `${Math.round(uiSize * 0.9)}px` });
+    this.menuButton.setStyle({ fontSize: `${Math.round(uiSize * 0.85)}px` });
+    this.setUIScreenPos(this.menuButton, pad + 45 * DPR, pad + 15 * DPR);
     this.menuButton.setVisible(!this.isGameOver);
 
     // Чит-меню (стафф/локал) — слева, под кнопкой меню.
     if (this.cheatButton) {
-      this.cheatButton.setPosition(pad, pad + uiSize * 1.9);
-      this.cheatButton.setStyle({ fontSize: `${Math.round(uiSize * 0.9)}px` });
-      const cy = pad + uiSize * 3.2;
+      this.cheatButton.setStyle({ fontSize: `${Math.round(uiSize * 0.85)}px` });
+      this.setUIScreenPos(this.cheatButton, pad + 35 * DPR, pad + uiSize * 2.2);
+      const cy = pad + uiSize * 3.5;
       const rowH = uiSize * 1.6;
       this.cheatParts.forEach((p, i) => {
-        p.setPosition(pad, cy + i * rowH);
         p.setStyle({ fontSize: `${Math.round(uiSize * 0.6)}px` });
+        this.setUIScreenPos(p, pad + 35 * DPR, cy + i * rowH);
       });
       this.updateStaffUI();
     }
 
-    this.messageText.setPosition(width / 2, height * 0.8);
     this.messageText.setStyle({ fontSize: `${Math.round(uiSize * 0.9)}px` });
+    this.setUIScreenPos(this.messageText, width / 2, height * 0.75);
 
     this.overlay.setSize(width, height);
-    this.overlay.setPosition(0, 0);
+    this.setUIScreenPos(this.overlay, width / 2, height / 2);
 
     // Плашка HP врага (по клику) — сбоку экрана.
     if (this.enemyInfoBg) {
       const ibw = this.enemyInfoBg.width;
       const ix = width - ibw / 2 - pad;
       const iy = height * 0.5;
-      this.enemyInfoBg.setPosition(ix, iy);
-      this.enemyInfoText.setPosition(ix, iy);
+      this.setUIScreenPos(this.enemyInfoBg, ix, iy);
+      this.setUIScreenPos(this.enemyInfoText, ix, iy);
     }
 
-    this.gameOverText.setPosition(width / 2, height / 2);
-    this.gameOverText.setStyle({ fontSize: `${Math.round(Math.min(width, height) * 0.13)}px` });
+    this.gameOverText.setStyle({ fontSize: `${Math.round(Math.min(width, height) * 0.08)}px` });
+    this.setUIScreenPos(this.gameOverText, width / 2, height / 2 - 35 * DPR);
 
     // Кнопка перезапуска — под надписью; видна только на проигрыше.
-    this.restartButton.setPosition(width / 2, height / 2 + Math.min(width, height) * 0.16);
-    this.restartButton.setStyle({ fontSize: `${Math.round(Math.min(width, height) * 0.05)}px` });
+    this.restartButton.setStyle({ fontSize: `${Math.round(uiSize * 1.05)}px` });
+    this.setUIScreenPos(this.restartButton, width / 2, height / 2 + 25 * DPR);
     this.restartButton.setVisible(this.isGameOver);
 
     // Кнопка «Меню» на экране поражения.
-    this.gameOverMenuButton.setPosition(width / 2, height / 2 + Math.min(width, height) * 0.26);
-    this.gameOverMenuButton.setStyle({
-      fontSize: `${Math.round(Math.min(width, height) * 0.05)}px`,
-    });
+    this.gameOverMenuButton.setStyle({ fontSize: `${Math.round(uiSize * 0.95)}px` });
+    this.setUIScreenPos(this.gameOverMenuButton, width / 2, height / 2 + 75 * DPR);
     this.gameOverMenuButton.setVisible(this.isGameOver);
 
     // Если меню башни открыто — пересчитываем позицию и кольцо под новый размер.
