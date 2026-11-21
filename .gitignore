@@ -11,4 +11,7 @@ __pycache__/
 *~
 assets/*~
 
+# Unity WebGL uncompressed WASM binaries (>100MB exceed GitHub limit)
+unity/Build/*.wasm
+
 start-local.bat

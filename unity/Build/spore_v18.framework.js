@@ -8981,6 +8981,12 @@ function dbg(text) {
       }
     }
 
+  function _SporeTD_AddToHomeScreen() {
+      if (typeof window !== 'undefined' && window.SporeLayout && window.SporeLayout.addToHomeScreen) {
+        window.SporeLayout.addToHomeScreen();
+      }
+    }
+
   function _SporeTD_IsWindowPortrait() {
       if (typeof window !== 'undefined') {
         var winW = window.innerWidth || (window.screen ? window.screen.width : 0);
@@ -8988,6 +8994,12 @@ function dbg(text) {
         return (winW < winH) ? 1 : 0;
       }
       return 0;
+    }
+
+  function _SporeTD_RequestFullscreen() {
+      if (typeof window !== 'undefined' && window.SporeLayout && window.SporeLayout.requestFullscreen) {
+        window.SporeLayout.requestFullscreen();
+      }
     }
 
   function _SporeTD_RequestRotateLandscape() {
@@ -17857,7 +17869,9 @@ var wasmImports = {
   "JS_WebRequest_SetRequestHeader": _JS_WebRequest_SetRequestHeader,
   "JS_WebRequest_SetTimeout": _JS_WebRequest_SetTimeout,
   "OnUnityGameReady": _OnUnityGameReady,
+  "SporeTD_AddToHomeScreen": _SporeTD_AddToHomeScreen,
   "SporeTD_IsWindowPortrait": _SporeTD_IsWindowPortrait,
+  "SporeTD_RequestFullscreen": _SporeTD_RequestFullscreen,
   "SporeTD_RequestRotateLandscape": _SporeTD_RequestRotateLandscape,
   "SporeTD_SetOrientationLock": _SporeTD_SetOrientationLock,
   "__assert_fail": ___assert_fail,
