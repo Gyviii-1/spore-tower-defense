@@ -4,6 +4,7 @@ bot/service-account.json
 bot/*service-account*.json
 bot/moderation_data.json
 bot/__pycache__/
+__pycache__/
 *.log
 
 # Служебные бэкапы Krita и прочих редакторов.
