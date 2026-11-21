@@ -7,7 +7,10 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
   />
-  <title>Spore Tower Defense</title>
+  <title>Spore Tower Defense // S.A.M. Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <!-- Telegram Mini App SDK: даёт доступ к данным пользователя и нативному Fullscreen -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -39,7 +42,8 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000000;
+      background: #020703;
+      font-family: 'Share Tech Mono', 'Courier New', Consolas, Lucida Console, monospace;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
@@ -54,15 +58,105 @@
     #game {
       width: 100%;
       height: 100%;
+      position: relative;
     }
 
     #game canvas {
       display: block;
+      filter: drop-shadow(0 0 2px rgba(51, 255, 102, 0.22));
+    }
+
+    /* Ретро-терминал: кинескопный CRT-оверлей (скан-линии, виньетка, свечение люминофора) */
+    .crt-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 99998;
+      overflow: hidden;
+      animation: crt-flicker 0.16s infinite;
+    }
+
+    /* Горизонтальные строки растра (скан-линии) */
+    .crt-scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(
+        rgba(10, 20, 10, 0) 50%,
+        rgba(0, 0, 0, 0.32) 50%
+      );
+      background-size: 100% 3px;
+      opacity: 0.85;
+    }
+
+    /* Затемнение по краям (кривизна кинескопа) и зеленоватый ореол */
+    .crt-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      box-shadow: inset 0 0 80px rgba(0, 20, 5, 0.82),
+                  inset 0 0 20px rgba(0, 255, 102, 0.14);
+      border: 1px solid rgba(0, 255, 102, 0.22);
+    }
+
+    /* Угловые прицельные рамки терминала */
+    .crt-corner {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(51, 255, 102, 0.45);
+      pointer-events: none;
+    }
+    .crt-corner.top-left { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    .crt-corner.top-right { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+    .crt-corner.bottom-left { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+    .crt-corner.bottom-right { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+    /* Верхняя статусная строка терминала S.A.M. */
+    .crt-terminal-header {
+      position: fixed;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: rgba(51, 255, 102, 0.45);
+      pointer-events: none;
+      z-index: 99997;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Легчайшее дрожание кинескопа */
+    @keyframes crt-flicker {
+      0% { opacity: 0.985; }
+      50% { opacity: 1; }
+      100% { opacity: 0.988; }
     }
   </style>
 </head>
 <body>
   <div id="game"></div>
+
+  <!-- Ретро-терминал: кинескопный CRT-оверлей (скан-линии, виньетка, угловые рамки) -->
+  <div class="crt-overlay" aria-hidden="true">
+    <div class="crt-scanlines"></div>
+    <div class="crt-vignette"></div>
+    <div class="crt-corner top-left"></div>
+    <div class="crt-corner top-right"></div>
+    <div class="crt-corner bottom-left"></div>
+    <div class="crt-corner bottom-right"></div>
+  </div>
+  <div class="crt-terminal-header">[ S.A.M. OS v2.84 // ТАКТИЧЕСКИЙ ТЕРМИНАЛ // КЛАСС «ОМЕГА» ]</div>
 
   <!-- Экран загрузки / заставка (видео) -->
   <div id="splash-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000000;z-index:999999;display:flex;align-items:center;justify-content:center;transition:opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);overflow:hidden;">

@@ -17,7 +17,7 @@ const API_BASE = location.hostname.endsWith('vercel.app')
   ? ''
   : 'https://telegram-tower-defense.vercel.app';
 
-const UI_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const UI_FONT = "'Share Tech Mono', 'Courier New', 'Consolas', 'Lucida Console', monospace";
 
 // Флаг сборки / ветки:
 // В ветке beta = true (тестовая ветка с чит-меню).
@@ -84,12 +84,12 @@ if (typeof Phaser !== 'undefined' && Phaser.GameObjects) {
 }
 
 const GRID_SIZE = 10;             // размер сетки: 10 на 10 клеток
-const BG_COLOR = 0x000000;        // цвет фона сцены (тёмный графит лаборатории)
-const CELL_COLOR = 0x1a1a1a;      // заливка обычной (свободной) клетки
-const ROAD_COLOR = 0x666666;      // заливка дороги (серый)
-const GRID_LINE_COLOR = 0x333333; // цвет линий сетки
+const BG_COLOR = 0x020703;        // цвет фона сцены (тёмный кинескопный люминофор)
+const CELL_COLOR = 0x06170a;      // заливка обычной (свободной) клетки
+const ROAD_COLOR = 0x103a19;      // заливка дороги (зелёный растр трека)
+const GRID_LINE_COLOR = 0x0b2510; // цвет линий сетки
 
-const TOWER_COLOR = 0xe63946;     // акцентный цвет интерфейса башен
+const TOWER_COLOR = 0x22c55e;     // акцентный цвет интерфейса башен (зелёный люминофор)
 const TOWER_MAX_LEVEL = 5;        // максимальный уровень башни
 const TOWER_SELL_RATIO = 0.7;     // возврат золота при продаже (70% вложенного)
 // Размер спрайта (size) и радиус для коллизий/кликов (radius) задаются
@@ -430,10 +430,10 @@ const WAVE_TABLE = [
 const GAME_DIFFICULTIES = {
   easy: {
     id: 'easy',
-    name: 'Лёгкий',
-    badge: 'ЛЕГКИЙ',
-    color: '#2ecc71',
-    colorHex: 0x2ecc71,
+    name: '[ НИЗКИЙ ]',
+    badge: 'НИЗКИЙ',
+    color: '#33ff66',
+    colorHex: 0x166534,
     startGold: 200,
     baseHp: 1500,
     hpMultiplier: 0.85,
@@ -445,10 +445,10 @@ const GAME_DIFFICULTIES = {
   },
   medium: {
     id: 'medium',
-    name: 'Средний',
+    name: '[ СРЕДНИЙ ]',
     badge: 'СРЕДНИЙ',
-    color: '#3498db',
-    colorHex: 0x3498db,
+    color: '#22c55e',
+    colorHex: 0x15803d,
     startGold: 140,
     baseHp: 1000,
     hpMultiplier: 1.0,
@@ -456,14 +456,14 @@ const GAME_DIFFICULTIES = {
     rewardMultiplier: 1.0,
     totalWaves: 25,
     passXpPerWave: 40,
-    desc: 'Стандартный протокол лаборатории. Сбалансированный натиск (25 волн).'
+    desc: 'Стандартный протокол лаборатории S.A.M. Сбалансированный натиск (25 волн).'
   },
   hard: {
     id: 'hard',
-    name: 'Трудный',
-    badge: 'ТРУДНЫЙ',
-    color: '#e74c3c',
-    colorHex: 0xe74c3c,
+    name: '[ КРИТИЧЕСКИЙ ]',
+    badge: 'КРИТИЧЕСКИЙ',
+    color: '#ff3333',
+    colorHex: 0x991b1b,
     startGold: 100,
     baseHp: 650,
     hpMultiplier: 1.25,
@@ -484,13 +484,13 @@ const GAME_MAPS = {
     badge: 'ЛАБОРАТОРИЯ',
     desc: 'Герметичные шлюзы и центральный лабораторный коридор.',
     theme: {
-      cellColor: 0x161a24,
-      roadColor: 0x475569,
-      gridColor: 0x263044,
-      accentColor: 0x38bdf8,
-      elevationTop: 0x2b3954,
-      elevationSide: 0x182234,
-      elevationBorder: 0x4ea8de,
+      cellColor: 0x051408,
+      roadColor: 0x0e3216,
+      gridColor: 0x0a220f,
+      accentColor: 0x33ff66,
+      elevationTop: 0x0e2f15,
+      elevationSide: 0x071b0b,
+      elevationBorder: 0x22c55e,
     },
     waypoints: [
       { x: 0.5, y: 0.5 },
@@ -516,13 +516,13 @@ const GAME_MAPS = {
     badge: 'РЕАКТОР',
     desc: 'Обходные мостки вокруг реактора с охладительным контуром.',
     theme: {
-      cellColor: 0x1c172a,
-      roadColor: 0x5b4778,
-      gridColor: 0x2d2244,
-      accentColor: 0xa855f7,
-      elevationTop: 0x3b2a59,
-      elevationSide: 0x221736,
-      elevationBorder: 0xc084fc,
+      cellColor: 0x120d04,
+      roadColor: 0x382a08,
+      gridColor: 0x221a05,
+      accentColor: 0xffb000,
+      elevationTop: 0x2e2207,
+      elevationSide: 0x161003,
+      elevationBorder: 0xf59e0b,
     },
     waypoints: [
       { x: 0.5, y: 1.5 },
@@ -546,13 +546,13 @@ const GAME_MAPS = {
     badge: 'КАТАКОМБЫ',
     desc: 'Подземные коллекторы под комплексом. Гнездовье спор.',
     theme: {
-      cellColor: 0x12221b,
-      roadColor: 0x365345,
-      gridColor: 0x1f382c,
-      accentColor: 0x22c55e,
-      elevationTop: 0x1f3d30,
-      elevationSide: 0x13271f,
-      elevationBorder: 0x4ade80,
+      cellColor: 0x06160b,
+      roadColor: 0x143c1c,
+      gridColor: 0x0b2511,
+      accentColor: 0x4ade80,
+      elevationTop: 0x123619,
+      elevationSide: 0x081c0c,
+      elevationBorder: 0x33ff66,
     },
     waypoints: [
       { x: 0.5, y: 2.5 },
@@ -1245,16 +1245,18 @@ function roundTarget(scene, obj, opts) {
   }
 
   scene._roundBgs = scene._roundBgs || [];
+  const defaultRadius = 2 * DPR;
+  const radius = opts.radius !== undefined ? Math.min(opts.radius, 3 * DPR) : defaultRadius;
   const item = {
     g: g,
     obj: obj,
     kind: kind,
-    color: opts.color,
+    color: opts.color !== undefined ? opts.color : 0x051408,
     alpha: opts.alpha === undefined ? 1 : opts.alpha,
-    radius: opts.radius,
-    strokeColor: opts.strokeColor,
+    radius: radius,
+    strokeColor: opts.strokeColor !== undefined ? opts.strokeColor : 0x166534,
     strokeAlpha: opts.strokeAlpha === undefined ? 1 : opts.strokeAlpha,
-    strokeWidth: opts.strokeWidth || 0,
+    strokeWidth: opts.strokeWidth !== undefined ? opts.strokeWidth : 1 * DPR,
   };
   scene._roundBgs.push(item);
   obj._roundItem = item;
@@ -1300,7 +1302,7 @@ function updateRoundBgs(scene) {
       it.g.setVisible(false);
       continue;
     }
-    const r = Math.min(it.radius, w / 2, h / 2);
+    const r = Math.min(it.radius, 3 * DPR, w / 2, h / 2);
     it.g.setVisible(true);
     it.g.fillStyle(it.color, it.alpha);
     it.g.fillRoundedRect(x - w / 2, y - h / 2, w, h, r);
@@ -2287,12 +2289,12 @@ class MenuScene extends Phaser.Scene {
     this.background = this.add.rectangle(0, 0, 1, 1, 0x000000, 1).setOrigin(0, 0).setDepth(-1000);
 
     this.title = this.add
-      .text(0, 0, 'SPORE TOWER DEFENSE', {
+      .text(0, 0, '[ SPORE TD // S.A.M. ТЕРМИНАЛ ]', {
         fontFamily: UI_FONT,
-        fontSize: '36px',
-        color: '#ffffff',
-        stroke: '#e63946',
-        strokeThickness: 2 * DPR,
+        fontSize: '28px',
+        color: '#33ff66',
+        stroke: '#031407',
+        strokeThickness: 3 * DPR,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -2343,10 +2345,10 @@ class MenuScene extends Phaser.Scene {
 
     // Никнейм по центру карточки
     this.playerNick = this.add
-      .text(0, 0, 'Гость', {
+      .text(0, 0, '[ ОПЕРАТОР: Гость ]', {
         fontFamily: UI_FONT,
-        fontSize: '18px',
-        color: '#ffffff',
+        fontSize: '17px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -2356,77 +2358,77 @@ class MenuScene extends Phaser.Scene {
 
     // 3 блока показателей: РЕКОРД, ЗОЛОТО, ТОП
     this.statWaveLabel = this.add
-      .text(0, 0, 'РЕКОРД', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, '> РЕКОРД', { fontFamily: UI_FONT, fontSize: '11px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.statWaveVal = this.add
-      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#ff4d5e', fontStyle: 'bold' })
+      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#33ff66', fontStyle: 'bold' })
       .setOrigin(0.5);
 
     this.statGoldLabel = this.add
-      .text(0, 0, 'ЗОЛОТО', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, '> ЗОЛОТО', { fontFamily: UI_FONT, fontSize: '11px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.statGoldVal = this.add
-      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#f1c40f', fontStyle: 'bold' })
+      .text(0, 0, '0', { fontFamily: UI_FONT, fontSize: '22px', color: '#ffb000', fontStyle: 'bold' })
       .setOrigin(0.5);
 
     this.statRankLabel = this.add
-      .text(0, 0, 'ТОП', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, '> ТОП', { fontFamily: UI_FONT, fontSize: '11px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.statRankVal = this.add
-      .text(0, 0, '—', { fontFamily: UI_FONT, fontSize: '22px', color: '#4ea8de', fontStyle: 'bold' })
+      .text(0, 0, '—', { fontFamily: UI_FONT, fontSize: '22px', color: '#33ff66', fontStyle: 'bold' })
       .setOrigin(0.5);
 
     // Селектор карты
     this.mapBoxBg = this.add.graphics();
     this.mapPreviewGfx = this.add.graphics();
     this.mapLabel = this.add
-      .text(0, 0, 'КАРТА', { fontFamily: UI_FONT, fontSize: '12px', color: '#8e9eb5', fontStyle: 'bold' })
+      .text(0, 0, '> СЕКТОР ОБОРОНЫ', { fontFamily: UI_FONT, fontSize: '12px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapPrevBtn = this.add
       .text(0, 0, '‹', {
         fontFamily: UI_FONT,
         fontSize: '26px',
-        color: '#38bdf8',
-        backgroundColor: '#1b2234',
+        color: '#33ff66',
+        backgroundColor: '#051408',
         padding: { x: 12 * DPR, y: 6 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
     roundTarget(this, this.mapPrevBtn, {
-      color: 0x1b2234,
-      radius: 12 * DPR,
-      strokeColor: 0x2e3d5b,
+      color: 0x051408,
+      radius: 3 * DPR,
+      strokeColor: 0x166534,
       strokeWidth: 1.2 * DPR,
     });
 
     this.mapTitle = this.add
-      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold' })
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '18px', color: '#33ff66', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.mapNextBtn = this.add
       .text(0, 0, '›', {
         fontFamily: UI_FONT,
         fontSize: '26px',
-        color: '#38bdf8',
-        backgroundColor: '#1b2234',
+        color: '#33ff66',
+        backgroundColor: '#051408',
         padding: { x: 12 * DPR, y: 6 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
     roundTarget(this, this.mapNextBtn, {
-      color: 0x1b2234,
-      radius: 12 * DPR,
-      strokeColor: 0x2e3d5b,
+      color: 0x051408,
+      radius: 3 * DPR,
+      strokeColor: 0x166534,
       strokeWidth: 1.2 * DPR,
     });
 
     this.mapStatsText = this.add
-      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#38bdf8', fontStyle: 'bold' })
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
 
     this.mapDesc = this.add
-      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#94a3b8', align: 'center' })
+      .text(0, 0, '', { fontFamily: UI_FONT, fontSize: '12px', color: '#86efac', align: 'center' })
       .setOrigin(0.5);
 
     this.mapPrevBtn.on('pointerdown', (p, x, y, ev) => {
@@ -2440,7 +2442,7 @@ class MenuScene extends Phaser.Scene {
 
     // Селектор сложности
     this.diffLabel = this.add
-      .text(0, 0, 'РЕЖИМ СЛОЖНОСТИ', { fontFamily: UI_FONT, fontSize: '11px', color: '#707e94', fontStyle: 'bold' })
+      .text(0, 0, '> УРОВЕНЬ УГРОЗЫ', { fontFamily: UI_FONT, fontSize: '11px', color: '#4ade80', fontStyle: 'bold' })
       .setOrigin(0.5);
 
     this.diffButtons = {};
@@ -2451,8 +2453,8 @@ class MenuScene extends Phaser.Scene {
         .text(0, 0, def.name, {
           fontFamily: UI_FONT,
           fontSize: '13px',
-          color: '#ffffff',
-          backgroundColor: '#161a26',
+          color: '#33ff66',
+          backgroundColor: '#051408',
           padding: { x: 12 * DPR, y: 7 * DPR },
           fontStyle: 'bold',
         })
@@ -2460,10 +2462,10 @@ class MenuScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, btn, {
-        color: 0x161a26,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 8 * DPR,
-        strokeColor: 0x252d40,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
         strokeWidth: 1 * DPR,
       });
 
@@ -2484,11 +2486,11 @@ class MenuScene extends Phaser.Scene {
 
     // Главная кнопка запуска игры
     this.playButton = this.add
-      .text(0, 0, 'В БОЙ', {
+      .text(0, 0, '[ > В БОЙ < ]', {
         fontFamily: UI_FONT,
         fontSize: '24px',
-        color: '#ffffff',
-        backgroundColor: '#e63946',
+        color: '#020d04',
+        backgroundColor: '#22c55e',
         padding: { x: 42 * DPR, y: 13 * DPR },
         fontStyle: 'bold',
       })
@@ -2513,12 +2515,12 @@ class MenuScene extends Phaser.Scene {
     });
 
     roundTarget(this, this.playButton, {
-      color: 0xe63946,
+      color: 0x22c55e,
       alpha: 1,
-      radius: 13 * DPR,
-      strokeColor: 0xff6b7a,
+      radius: 3 * DPR,
+      strokeColor: 0x33ff66,
       strokeAlpha: 0.9,
-      strokeWidth: 1.5 * DPR,
+      strokeWidth: 2 * DPR,
     });
 
     this.lobbyPage.add([
@@ -2587,10 +2589,10 @@ class MenuScene extends Phaser.Scene {
 
     if (this.mapBoxBg && this.mapBoxW && this.mapBoxH) {
       this.mapBoxBg.clear();
-      this.mapBoxBg.fillStyle(0x131722, 0.95);
-      this.mapBoxBg.fillRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 14 * DPR);
-      this.mapBoxBg.lineStyle(1.6 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
-      this.mapBoxBg.strokeRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 14 * DPR);
+      this.mapBoxBg.fillStyle(0x051408, 0.95);
+      this.mapBoxBg.fillRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 3 * DPR);
+      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x166534, 1);
+      this.mapBoxBg.strokeRoundedRect(this.mapBoxX, this.mapBoxY, this.mapBoxW, this.mapBoxH, 3 * DPR);
 
       const previewCy = this.mapBoxY + 86 * DPR;
       this.renderMapPreview(mapDef, this.mapBoxX + this.mapBoxW / 2, previewCy, this.mapBoxW * 0.72, 68 * DPR);
@@ -2604,10 +2606,10 @@ class MenuScene extends Phaser.Scene {
         const btn = this.diffButtons[k];
         const active = k === this.selectedDifficulty;
         const curDef = GAME_DIFFICULTIES[k];
-        btn.setColor(active ? '#ffffff' : '#707e94');
+        btn.setColor(active ? '#030e06' : '#33ff66');
         if (btn._roundItem) {
-          btn._roundItem.color = active ? curDef.colorHex : 0x161a26;
-          btn._roundItem.strokeColor = active ? 0xffffff : 0x252d40;
+          btn._roundItem.color = active ? (curDef.colorHex || 0x22c55e) : 0x051408;
+          btn._roundItem.strokeColor = active ? 0x33ff66 : 0x166534;
           btn._roundItem.strokeWidth = (active ? 1.5 : 1) * DPR;
         }
       }
@@ -2630,7 +2632,9 @@ class MenuScene extends Phaser.Scene {
       elevationBorder: 0x4ea8de,
     };
 
-    const tileW = Math.min(22 * DPR, (maxW * 0.8) / 10);
+    const depth = 6 * DPR;
+    const maxHAvailable = Math.max(30 * DPR, (maxH || 60 * DPR) - depth);
+    const tileW = Math.min(13 * DPR, (maxW * 0.8) / 10, maxHAvailable / 5.2);
     const tileH = tileW * 0.52;
 
     const project = (gx, gy, elevationLift = 0) => {
@@ -2646,7 +2650,6 @@ class MenuScene extends Phaser.Scene {
     const botPt = project(10, 10);
     const leftPt = project(0, 10);
 
-    const depth = 8 * DPR;
     gfx.fillStyle(Phaser.Display.Color.IntegerToColor(theme.cellColor).darken(40).color, 0.9);
     gfx.beginPath();
     gfx.moveTo(leftPt.x, leftPt.y);
@@ -2776,10 +2779,10 @@ class MenuScene extends Phaser.Scene {
     this.inventoryPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.inventoryTitle = this.add
-      .text(0, 0, 'БОЕВОЙ НАБОР', {
+      .text(0, 0, '[ АРСЕНАЛ ОБОРОННОГО КОМПЛЕКСА ]', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
-        color: '#ffffff',
+        fontSize: '20px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -2788,7 +2791,7 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, '', {
         fontFamily: UI_FONT,
         fontSize: '13px',
-        color: '#707e94',
+        color: '#4ade80',
       })
       .setOrigin(0.5);
 
@@ -2843,16 +2846,16 @@ class MenuScene extends Phaser.Scene {
       const row = this.add.container(0, 0);
 
       const bg = this.add
-        .rectangle(0, 0, 320, 76, 0x131722, 0.95)
-        .setStrokeStyle(1.5 * DPR, inDeck ? 0x2ecc71 : 0x272f44, 1);
+        .rectangle(0, 0, 320, 76, 0x051408, 0.95)
+        .setStrokeStyle(1.5 * DPR, inDeck ? 0x33ff66 : 0x166534, 1);
 
-      const iconTile = this.add.rectangle(-120, 0, 52, 52, 0x1b2030, 0.9);
+      const iconTile = this.add.rectangle(-120, 0, 52, 52, 0x081f0d, 0.9);
       roundTarget(this, iconTile, {
         kind: 'rect',
-        color: 0x1b2030,
+        color: 0x081f0d,
         alpha: 0.9,
-        radius: 10,
-        strokeColor: 0x2e384e,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
         strokeWidth: 1,
       });
 
@@ -2863,10 +2866,10 @@ class MenuScene extends Phaser.Scene {
       if (weaponKey) icon.add(this.add.image(0, 0, weaponKey).setDisplaySize(44, 44));
 
       const name = this.add
-        .text(-82, -13, type.name, {
+        .text(-82, -13, `[ ${type.name.toUpperCase()} ]`, {
           fontFamily: UI_FONT,
-          fontSize: '16.5px',
-          color: '#ffffff',
+          fontSize: '15px',
+          color: '#33ff66',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
@@ -2878,28 +2881,28 @@ class MenuScene extends Phaser.Scene {
         .text(-82, 14, infoText, {
           fontFamily: UI_FONT,
           fontSize: '12px',
-          color: '#8b98aa',
+          color: '#4ade80',
         })
         .setOrigin(0, 0.5);
 
       const deckBtn = this.add
-        .text(118, 0, inDeck ? '✓ В БОЮ' : '+ ВЗЯТЬ', {
+        .text(118, 0, inDeck ? '[✓ В СЛОТЕ]' : '[+ ВЫБРАТЬ]', {
           fontFamily: UI_FONT,
-          fontSize: '12px',
-          color: inDeck ? '#4ade80' : '#94a3b8',
-          backgroundColor: inDeck ? '#142b20' : '#1a2232',
-          padding: { x: 8, y: 5 },
+          fontSize: '11px',
+          color: inDeck ? '#020d04' : '#33ff66',
+          backgroundColor: inDeck ? '#22c55e' : '#051408',
+          padding: { x: 7, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, deckBtn, {
-        color: inDeck ? 0x142b20 : 0x1a2232,
+        color: inDeck ? 0x22c55e : 0x051408,
         alpha: 0.95,
-        radius: 7,
-        strokeColor: inDeck ? 0x22c55e : 0x334155,
-        strokeWidth: 1,
+        radius: 3 * DPR,
+        strokeColor: inDeck ? 0x33ff66 : 0x166534,
+        strokeWidth: 1.2 * DPR,
       });
 
       deckBtn.on('pointerdown', (pointer, lx, ly, event) => {
@@ -2912,10 +2915,10 @@ class MenuScene extends Phaser.Scene {
       row.add([bg, iconTile, icon, name, info, deckBtn, hitZone]);
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x131722,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 14 * DPR,
-        strokeColor: inDeck ? 0x2ecc71 : 0x252d40,
+        radius: 3 * DPR,
+        strokeColor: inDeck ? 0x33ff66 : 0x166534,
         strokeAlpha: 1,
         strokeWidth: (inDeck ? 1.8 : 1.2) * DPR,
       });
@@ -3304,10 +3307,10 @@ class MenuScene extends Phaser.Scene {
     this.topPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.topTitle = this.add
-      .text(0, 0, 'ТОП ИГРОКОВ', {
+      .text(0, 0, '[ БАЗА ДАННЫХ: РЕКОРДЫ ОПЕРАТОРОВ ]', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
-        color: '#ffffff',
+        fontSize: '18px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -3315,11 +3318,11 @@ class MenuScene extends Phaser.Scene {
     this.statsText = this.add
       .text(0, 0, '', {
         fontFamily: UI_FONT,
-        fontSize: '13px',
-        color: '#ff4d5e',
+        fontSize: '12px',
+        color: '#33ff66',
         align: 'center',
         lineSpacing: 4 * DPR,
-        backgroundColor: '#141824',
+        backgroundColor: '#051408',
         padding: { x: 14 * DPR, y: 7 * DPR },
       })
       .setOrigin(0.5);
@@ -3495,10 +3498,10 @@ class MenuScene extends Phaser.Scene {
 
     // Заголовок: ЗАДАНИЯ И КВЕСТЫ
     this.passTitle = this.add
-      .text(0, 0, 'БОЕВЫЕ ЗАДАНИЯ', {
+      .text(0, 0, '[ ЖУРНАЛ СПЕЦИАЛЬНЫХ ОПЕРАЦИЙ ]', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
-        color: '#ffffff',
+        fontSize: '20px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -3506,29 +3509,29 @@ class MenuScene extends Phaser.Scene {
     this.passSubtitle = this.add
       .text(0, 0, '', {
         fontFamily: UI_FONT,
-        fontSize: '15px',
-        color: '#38bdf8',
+        fontSize: '14px',
+        color: '#4ade80',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
 
     // Баннер-заглушка: БОЕВОЙ ПАСС ВРЕМЕННО ЗАКРЫТ (СКОРО)
     this.passLockBanner = this.add.container(0, 0);
-    this.passLockBg = this.add.rectangle(0, 0, 320, 52, 0x131722, 0.95);
+    this.passLockBg = this.add.rectangle(0, 0, 320, 52, 0x051408, 0.95);
     roundTarget(this, this.passLockBg, {
       kind: 'rect',
-      color: 0x131722,
+      color: 0x051408,
       alpha: 0.95,
-      radius: 10 * DPR,
-      strokeColor: 0xe63946,
+      radius: 3 * DPR,
+      strokeColor: 0xffb000,
       strokeWidth: 1.2 * DPR,
     });
     this.passLockIcon = this.add.text(-120, 0, '🔒', { fontSize: '20px' }).setOrigin(0.5);
     this.passLockTitle = this.add
-      .text(-96, 0, 'БОЕВОЙ ПАСС · ЗАКРЫТ (СКОРО)', {
+      .text(-96, 0, '[ ПРОТОКОЛ ДОСТУПА ВРЕМЕННО ОГРАНИЧЕН ]', {
         fontFamily: UI_FONT,
-        fontSize: '13px',
-        color: '#ff4d5e',
+        fontSize: '12px',
+        color: '#ffb000',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
@@ -3757,10 +3760,10 @@ class MenuScene extends Phaser.Scene {
     this.shopPage = this.add.container(0, 0).setVisible(false).setDepth(10);
 
     this.shopTitle = this.add
-      .text(0, 0, 'МАГАЗИН И СНАБЖЕНИЕ', {
+      .text(0, 0, '[ ЦЕНТР СНАБЖЕНИЯ И РЕЗЕРВА S.A.M. ]', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
-        color: '#ffffff',
+        fontSize: '20px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -3769,7 +3772,7 @@ class MenuScene extends Phaser.Scene {
       .text(0, 0, '', {
         fontFamily: UI_FONT,
         fontSize: '15px',
-        color: '#707e94',
+        color: '#4ade80',
       })
       .setOrigin(0.5);
 
@@ -3788,10 +3791,10 @@ class MenuScene extends Phaser.Scene {
 
     // Раздел 1: Поддержка & Донат (СТРОГО "Скоро")
     const sec1Title = this.add
-      .text(0, 0, '─── НАБОРЫ ЗОЛОТА ───', {
+      .text(0, 0, '[ === РЕЗЕРВ БИО-РЕСУРСОВ === ]', {
         fontFamily: UI_FONT,
-        fontSize: '16px',
-        color: '#ff6b7a',
+        fontSize: '15px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -3807,21 +3810,21 @@ class MenuScene extends Phaser.Scene {
 
     for (const pack of donationPacks) {
       const row = this.add.container(0, 0);
-      const bg = this.add.rectangle(0, 0, 320, 68, 0x131722, 0.95);
+      const bg = this.add.rectangle(0, 0, 320, 68, 0x051408, 0.95);
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x131722,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 10 * DPR,
-        strokeColor: 0x272f44,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
         strokeWidth: 1 * DPR,
       });
 
       const title = this.add
         .text(-142, -14, pack.name, {
           fontFamily: UI_FONT,
-          fontSize: '14.5px',
-          color: '#ffffff',
+          fontSize: '14px',
+          color: '#33ff66',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
@@ -3830,29 +3833,29 @@ class MenuScene extends Phaser.Scene {
         .text(-142, 14, `${pack.gold} · ${pack.price}`, {
           fontFamily: UI_FONT,
           fontSize: '12px',
-          color: '#94a3b8',
+          color: '#86efac',
           wordWrap: { width: 195 },
         })
         .setOrigin(0, 0.5);
 
       // Кнопка доната СТРОГО "Скоро"
       const buyBtn = this.add
-        .text(120, 0, 'Скоро', {
+        .text(120, 0, '[СКОРО]', {
           fontFamily: UI_FONT,
           fontSize: '12px',
-          color: '#94a3b8',
-          backgroundColor: '#1e2433',
-          padding: { x: 10, y: 5 },
+          color: '#4ade80',
+          backgroundColor: '#051408',
+          padding: { x: 8, y: 5 },
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, buyBtn, {
-        color: 0x1a2130,
+        color: 0x051408,
         alpha: 0.95,
-        radius: 7,
-        strokeColor: 0x334155,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
         strokeWidth: 1,
       });
 
@@ -3868,10 +3871,10 @@ class MenuScene extends Phaser.Scene {
 
     // Раздел 2: Тактические ящики (СТРОГО "Скоро")
     const sec2Title = this.add
-      .text(0, 0, '─── ТАКТИЧЕСКИЕ ЯЩИКИ ───', {
+      .text(0, 0, '[ === ТАКТИЧЕСКИЕ КОНТЕЙНЕРЫ === ]', {
         fontFamily: UI_FONT,
-        fontSize: '16px',
-        color: '#ff6b7a',
+        fontSize: '15px',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -4061,11 +4064,11 @@ class MenuScene extends Phaser.Scene {
 
   createTabs() {
     this.tabBar = this.add.container(0, 0).setDepth(10);
-    this.tabInventory = this.makeTab('Инвентарь', 'inventory');
-    this.tabLobby = this.makeTab('Меню', 'lobby');
-    this.tabPass = this.makeTab('Пасс', 'pass');
-    this.tabTop = this.makeTab('Топ', 'top');
-    this.tabShop = this.makeTab('Магазин', 'shop');
+    this.tabInventory = this.makeTab('[ ИНВЕНТАРЬ ]', 'inventory');
+    this.tabLobby = this.makeTab('[ ТЕРМИНАЛ ]', 'lobby');
+    this.tabPass = this.makeTab('[ ПАСС ]', 'pass');
+    this.tabTop = this.makeTab('[ ТОП ]', 'top');
+    this.tabShop = this.makeTab('[ МАГАЗИН ]', 'shop');
     this.tabBar.add([this.tabInventory, this.tabLobby, this.tabPass, this.tabTop, this.tabShop]);
   }
 
@@ -4073,10 +4076,10 @@ class MenuScene extends Phaser.Scene {
     const tab = this.add
       .text(0, 0, label, {
         fontFamily: UI_FONT,
-        fontSize: '13px',
-        color: '#707e94',
-        backgroundColor: '#161a26',
-        padding: { x: 8 * DPR, y: 7 * DPR },
+        fontSize: '12px',
+        color: '#33ff66',
+        backgroundColor: '#051408',
+        padding: { x: 7 * DPR, y: 6 * DPR },
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -4088,10 +4091,10 @@ class MenuScene extends Phaser.Scene {
       this.selectTab(key);
     });
     roundTarget(this, tab, {
-      color: 0x161a26,
+      color: 0x051408,
       alpha: 0.95,
-      radius: 9 * DPR,
-      strokeColor: 0x252d40,
+      radius: 2 * DPR,
+      strokeColor: 0x166534,
       strokeAlpha: 1,
       strokeWidth: 1 * DPR,
     });
@@ -4131,10 +4134,10 @@ class MenuScene extends Phaser.Scene {
       if (!tab) continue;
       const active = tab.tabKey === key;
       tab.setBackgroundColor('rgba(0,0,0,0)');
-      tab.setColor(active ? '#ffffff' : '#707e94');
+      tab.setColor(active ? '#020d04' : '#33ff66');
       if (tab._roundItem) {
-        tab._roundItem.color = active ? 0xe63946 : 0x161a26;
-        tab._roundItem.strokeColor = active ? 0xff6b7a : 0x252d40;
+        tab._roundItem.color = active ? 0x22c55e : 0x051408;
+        tab._roundItem.strokeColor = active ? 0x33ff66 : 0x166534;
         tab._roundItem.strokeWidth = (active ? 1.5 : 1) * DPR;
       }
     }
@@ -4326,10 +4329,10 @@ class MenuScene extends Phaser.Scene {
 
     if (this.cardBg) {
       this.cardBg.clear();
-      this.cardBg.fillStyle(0x131722, 0.95);
-      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
-      this.cardBg.lineStyle(1.5 * DPR, 0x242d40, 1);
-      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 14 * DPR);
+      this.cardBg.fillStyle(0x051408, 0.95);
+      this.cardBg.fillRoundedRect(cardX, cardTop, cardWidth, cardHeight, 3 * DPR);
+      this.cardBg.lineStyle(1.5 * DPR, 0x166534, 1);
+      this.cardBg.strokeRoundedRect(cardX, cardTop, cardWidth, cardHeight, 3 * DPR);
     }
 
     const nickSize = `${Math.round(Math.min(22 * DPR, Math.max(17 * DPR, size * 0.040)))}px`;
@@ -4349,11 +4352,11 @@ class MenuScene extends Phaser.Scene {
     if (this.cardDivider) {
       this.cardDivider.clear();
       // Горизонтальный разделитель под ником
-      this.cardDivider.lineStyle(1 * DPR, 0x1f2738, 0.8);
+      this.cardDivider.lineStyle(1 * DPR, 0x14532d, 0.8);
       this.cardDivider.lineBetween(cardX + 16 * DPR, dividerY, cardX + cardWidth - 16 * DPR, dividerY);
       // Вертикальные разделители колонок
       const colStep = cardWidth * 0.32;
-      this.cardDivider.lineStyle(1 * DPR, 0x1a2130, 0.6);
+      this.cardDivider.lineStyle(1 * DPR, 0x14532d, 0.6);
       this.cardDivider.lineBetween(width / 2 - colStep / 2, dividerY + 6 * DPR, width / 2 - colStep / 2, cardTop + cardHeight - 6 * DPR);
       this.cardDivider.lineBetween(width / 2 + colStep / 2, dividerY + 6 * DPR, width / 2 + colStep / 2, cardTop + cardHeight - 6 * DPR);
     }
@@ -4390,15 +4393,15 @@ class MenuScene extends Phaser.Scene {
     const mapDef = GAME_MAPS[this.selectedMap] || GAME_MAPS.lab;
     if (this.mapBoxBg) {
       this.mapBoxBg.clear();
-      this.mapBoxBg.fillStyle(0x131722, 0.95);
-      this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
-      this.mapBoxBg.lineStyle(1.6 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x242d40, 1);
-      this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 14 * DPR);
+      this.mapBoxBg.fillStyle(0x051408, 0.95);
+      this.mapBoxBg.fillRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3 * DPR);
+      this.mapBoxBg.lineStyle(1.5 * DPR, (mapDef.theme && mapDef.theme.accentColor) || 0x166534, 1);
+      this.mapBoxBg.strokeRoundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3 * DPR);
     }
 
     if (this.mapLabel) {
       this.mapLabel.setPosition(width / 2, mapBoxY + 14 * DPR);
-      this.mapLabel.setText(`КАРТА · ${mapDef.badge || ''}`);
+      this.mapLabel.setText(`> СЕКТОР · ${mapDef.badge || ''}`);
       this.mapLabel.setStyle({ fontSize: `${Math.round(11 * DPR)}px` });
     }
     const mapTitleFont = Math.min(15 * DPR, Math.round(mapBoxW * 0.038));
@@ -4659,8 +4662,8 @@ class MenuScene extends Phaser.Scene {
       if (r.isHeader) {
         r.item.setPosition(width / 2, curY + 16 * DPR);
         r.item.setStyle({
-          fontSize: `${Math.round(Math.max(16 * DPR, size * 0.038))}px`,
-          color: "#ff6b7a",
+          fontSize: `${Math.round(Math.min(14 * DPR, Math.max(12 * DPR, shopCardW * 0.034)))}px`,
+          color: "#33ff66",
           fontStyle: "bold",
         });
         curY += 38 * DPR;
@@ -5010,25 +5013,27 @@ class GameScene extends Phaser.Scene {
     // Панель с золотом и жизнями в правом верхнем углу.
     this.uiText = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#ffffff',
+        fontFamily: UI_FONT,
+        fontSize: '18px',
+        color: '#33ff66',
         align: 'right',
         lineSpacing: 6 * DPR,
-        stroke: '#000000',
-        strokeThickness: 4 * DPR,
+        stroke: '#031407',
+        strokeThickness: 3 * DPR,
       })
       .setOrigin(1, 0) // якорим к правому верхнему углу
       .setDepth(100);
 
     // Кнопка запуска следующей волны (левый верхний угол).
     this.startButton = this.add
-      .text(0, 0, 'СТАРТ', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#e63946',
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+      .text(0, 0, '[ > СТАРТ ВОЛНЫ < ]', {
+        fontFamily: UI_FONT,
+        fontSize: '18px',
+        color: '#020d04',
+        backgroundColor: '#22c55e',
+        padding: { x: 14 * DPR, y: 7 * DPR },
+        stroke: '#33ff66',
+        strokeThickness: 1.5 * DPR,
         fontStyle: 'bold',
       })
       .setOrigin(0.5, 0) // верх по центру
@@ -5044,14 +5049,14 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка возврата в меню.
     this.menuButton = this.add
-      .text(0, 0, '☰ Меню', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#00000088',
+      .text(0, 0, '[ < ТЕРМИНАЛ ]', {
+        fontFamily: UI_FONT,
+        fontSize: '15px',
+        color: '#33ff66',
+        backgroundColor: '#051408',
         padding: { x: 10 * DPR, y: 6 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+        stroke: '#166534',
+        strokeThickness: 1 * DPR,
       })
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true })
@@ -5066,11 +5071,12 @@ class GameScene extends Phaser.Scene {
     // Всплывающее предупреждение (например, "не хватает золота").
     this.messageText = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#e63946',
-        stroke: '#000000',
-        strokeThickness: 5 * DPR,
+        fontFamily: UI_FONT,
+        fontSize: '18px',
+        color: '#ffb000',
+        stroke: '#031407',
+        strokeThickness: 4 * DPR,
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setDepth(100)
@@ -5078,19 +5084,19 @@ class GameScene extends Phaser.Scene {
 
     // Затемнение экрана для Game Over.
     this.overlay = this.add
-      .rectangle(0, 0, 1, 1, 0x000000, 0.6)
+      .rectangle(0, 0, 1, 1, 0x000000, 0.75)
       .setOrigin(0, 0)
       .setDepth(90)
       .setVisible(false);
 
     // Крупный текст поражения.
     this.gameOverText = this.add
-      .text(0, 0, 'ТЫ ПРОИГРАЛ', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '64px',
-        color: '#e74c3c',
-        stroke: '#000000',
-        strokeThickness: 8 * DPR,
+      .text(0, 0, '[ ! КРИТИЧЕСКИЙ ПРОРЫВ ! ]', {
+        fontFamily: UI_FONT,
+        fontSize: '36px',
+        color: '#ff3333',
+        stroke: '#030804',
+        strokeThickness: 6 * DPR,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -5099,14 +5105,14 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка перезапуска игры (появляется только на экране Game Over).
     this.restartButton = this.add
-      .text(0, 0, 'ЗАНОВО', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+      .text(0, 0, '[ ПОВТОРИТЬ ОБОРОНУ ]', {
+        fontFamily: UI_FONT,
+        fontSize: '22px',
         color: '#ffffff',
-        backgroundColor: '#e63946',
-        padding: { x: 24 * DPR, y: 12 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+        backgroundColor: '#991b1b',
+        padding: { x: 22 * DPR, y: 12 * DPR },
+        stroke: '#ff3333',
+        strokeThickness: 1.5 * DPR,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -5122,14 +5128,14 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка выхода в меню на экране поражения.
     this.gameOverMenuButton = this.add
-      .text(0, 0, 'МЕНЮ', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
-        color: '#ffffff',
-        backgroundColor: '#3a3a3a',
-        padding: { x: 24 * DPR, y: 12 * DPR },
-        stroke: '#000000',
-        strokeThickness: 3 * DPR,
+      .text(0, 0, '[ ВЫХОД В ТЕРМИНАЛ ]', {
+        fontFamily: UI_FONT,
+        fontSize: '22px',
+        color: '#33ff66',
+        backgroundColor: '#051408',
+        padding: { x: 22 * DPR, y: 12 * DPR },
+        stroke: '#166534',
+        strokeThickness: 1.5 * DPR,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
@@ -5174,9 +5180,9 @@ class GameScene extends Phaser.Scene {
     // Заголовок: Lv. X и название оружия
     this.towerMenuHeader = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${14 * DPR}px`,
-        color: '#ffffff',
+        color: '#33ff66',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5)
@@ -5186,10 +5192,10 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка закрытия окна (крестик в правом верхнем углу)
     this.towerMenuClose = this.add
-      .text(0, 0, '✖', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, '[✕]', {
+        fontFamily: UI_FONT,
         fontSize: `${13 * DPR}px`,
-        color: '#8a94a6',
+        color: '#4ade80',
         padding: { x: 6 * DPR, y: 3 * DPR },
       })
       .setOrigin(0.5)
@@ -5205,9 +5211,9 @@ class GameScene extends Phaser.Scene {
     // Зелёная кнопка улучшения
     this.towerMenuUpgrade = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${12 * DPR}px`,
-        color: '#ffffff',
+        color: '#020d04',
         fontStyle: 'bold',
         padding: { x: 8 * DPR, y: 5 * DPR },
       })
@@ -5224,9 +5230,9 @@ class GameScene extends Phaser.Scene {
     // Карточка с характеристиками
     this.towerMenuStats = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${11.5 * DPR}px`,
-        color: '#c8d1dc',
+        color: '#4ade80',
         lineSpacing: 3 * DPR,
       })
       .setOrigin(0, 0)
@@ -5236,10 +5242,10 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка поворота (для стационарных установок)
     this.towerMenuRotate = this.add
-      .text(0, 0, '🔄 Повернуть', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, '[ ⟳ ПОВОРОТ ]', {
+        fontFamily: UI_FONT,
         fontSize: `${11 * DPR}px`,
-        color: '#f39c12',
+        color: '#ffb000',
         fontStyle: 'bold',
         padding: { x: 7 * DPR, y: 4 * DPR },
       })
@@ -5255,10 +5261,10 @@ class GameScene extends Phaser.Scene {
 
     // Кнопки подтверждения / отмены поворота
     this.towerMenuConfirmRotate = this.add
-      .text(0, 0, '✅ Зафиксировать', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, '[ ✓ ЗАФИКСИРОВАТЬ ]', {
+        fontFamily: UI_FONT,
         fontSize: `${12 * DPR}px`,
-        color: '#2ecc71',
+        color: '#33ff66',
         fontStyle: 'bold',
         padding: { x: 10 * DPR, y: 5 * DPR },
       })
@@ -5273,10 +5279,10 @@ class GameScene extends Phaser.Scene {
     });
 
     this.towerMenuCancelRotate = this.add
-      .text(0, 0, '✖ Отмена', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, '[ ✕ ОТМЕНА ]', {
+        fontFamily: UI_FONT,
         fontSize: `${12 * DPR}px`,
-        color: '#95a5a6',
+        color: '#ff3333',
         fontStyle: 'bold',
         padding: { x: 10 * DPR, y: 5 * DPR },
       })
@@ -5292,10 +5298,10 @@ class GameScene extends Phaser.Scene {
 
     // Кнопка режима просмотра
     this.towerMenuView = this.add
-      .text(0, 0, '👁 Просмотр', {
-        fontFamily: 'Arial, sans-serif',
+      .text(0, 0, '[ ◉ ОБЗОР ]', {
+        fontFamily: UI_FONT,
         fontSize: `${11 * DPR}px`,
-        color: '#48dbfb',
+        color: '#33ff66',
         fontStyle: 'bold',
         padding: { x: 7 * DPR, y: 4 * DPR },
       })
@@ -5312,9 +5318,9 @@ class GameScene extends Phaser.Scene {
     // Кнопка продажи башни
     this.towerMenuSell = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${11 * DPR}px`,
-        color: '#e74c3c',
+        color: '#ff3333',
         fontStyle: 'bold',
         padding: { x: 7 * DPR, y: 4 * DPR },
       })
@@ -5331,9 +5337,9 @@ class GameScene extends Phaser.Scene {
     // Плашка режима просмотра (когда окно скрыто, а круг оставлен)
     this.towerViewPill = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${13 * DPR}px`,
-        color: '#ffffff',
+        color: '#33ff66',
         padding: { x: 14 * DPR, y: 7 * DPR },
       })
       .setOrigin(0.5)
@@ -5383,10 +5389,10 @@ class GameScene extends Phaser.Scene {
     this.cheatOpen = false;
     this.cheatButton = this.add
       .text(0, 0, '🛠', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: UI_FONT,
         fontSize: `${20 * DPR}px`,
-        color: '#ffffff',
-        backgroundColor: '#00000088',
+        color: '#33ff66',
+        backgroundColor: '#051408',
         padding: { x: 10 * DPR, y: 6 * DPR },
         stroke: '#000000',
         strokeThickness: 3 * DPR,
@@ -5404,10 +5410,10 @@ class GameScene extends Phaser.Scene {
     const makeCheatButton = (label, handler) => {
       const t = this.add
         .text(0, 0, label, {
-          fontFamily: 'Arial, sans-serif',
+          fontFamily: UI_FONT,
           fontSize: `${14 * DPR}px`,
-          color: '#ffffff',
-          backgroundColor: '#262626',
+          color: '#33ff66',
+          backgroundColor: '#051408',
           padding: { x: 10 * DPR, y: 6 * DPR },
         })
         .setOrigin(0, 0)
@@ -5441,16 +5447,16 @@ class GameScene extends Phaser.Scene {
 
     // Окошко с HP врага (наведение на ПК / тап по врагу на телефоне).
     this.enemyInfoBg = this.add
-      .rectangle(0, 0, 170 * DPR, 74 * DPR, 0x000000, 0.85)
-      .setStrokeStyle(2 * DPR, 0xffffff, 0.85)
+      .rectangle(0, 0, 170 * DPR, 74 * DPR, 0x051408, 0.95)
+      .setStrokeStyle(1.5 * DPR, 0x33ff66, 0.9)
       .setDepth(104)
       .setScrollFactor(0)
       .setVisible(false);
     this.enemyInfoText = this.add
       .text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${14 * DPR}px`,
-        color: '#ffffff',
+        fontFamily: UI_FONT,
+        fontSize: `${13 * DPR}px`,
+        color: '#33ff66',
         align: 'center',
         lineSpacing: 3 * DPR,
       })
@@ -5491,76 +5497,77 @@ class GameScene extends Phaser.Scene {
     }
 
     // Скруглённые фоны кнопок/окон.
-    roundTarget(this, this.menuButton, { color: 0x2e2e2e, alpha: 1, radius: 12 * DPR });
-    roundTarget(this, this.restartButton, { color: 0xe63946, alpha: 1, radius: 14 * DPR });
-    roundTarget(this, this.gameOverMenuButton, { color: 0x2e2e2e, alpha: 1, radius: 14 * DPR });
-    roundTarget(this, this.cheatButton, { color: 0x2e2e2e, alpha: 1, radius: 10 * DPR });
+    roundTarget(this, this.startButton, { color: 0x22c55e, alpha: 1, radius: 3 * DPR, strokeColor: 0x33ff66, strokeWidth: 2 * DPR });
+    roundTarget(this, this.menuButton, { color: 0x051408, alpha: 1, radius: 3 * DPR, strokeColor: 0x166534, strokeWidth: 1.5 * DPR });
+    roundTarget(this, this.restartButton, { color: 0x991b1b, alpha: 1, radius: 3 * DPR, strokeColor: 0xff3333, strokeWidth: 2 * DPR });
+    roundTarget(this, this.gameOverMenuButton, { color: 0x051408, alpha: 1, radius: 3 * DPR, strokeColor: 0x166534, strokeWidth: 1.5 * DPR });
+    roundTarget(this, this.cheatButton, { color: 0x051408, alpha: 1, radius: 3 * DPR, strokeColor: 0x166534, strokeWidth: 1 * DPR });
     for (const part of this.cheatParts) {
       roundTarget(this, part, { color: 0x3a3a3a, alpha: 1, radius: 10 * DPR });
     }
     // Скруглённые стилизованные кнопки окна прокачки
     roundTarget(this, this.towerMenuUpgrade, {
-      color: 0x27ae60,
+      color: 0x22c55e,
       alpha: 1,
-      radius: 8 * DPR,
-      strokeColor: 0x4cd137,
+      radius: 3 * DPR,
+      strokeColor: 0x33ff66,
       strokeAlpha: 0.9,
       strokeWidth: 1.5 * DPR,
     });
     roundTarget(this, this.towerMenuClose, {
-      color: 0x1a1f2b,
+      color: 0x051408,
       alpha: 1,
-      radius: 6 * DPR,
-      strokeColor: 0x2f384a,
+      radius: 3 * DPR,
+      strokeColor: 0x166534,
       strokeAlpha: 0.9,
       strokeWidth: 1 * DPR,
     });
     roundTarget(this, this.towerMenuView, {
-      color: 0x131a24,
+      color: 0x051408,
       alpha: 1,
-      radius: 7 * DPR,
-      strokeColor: 0x48dbfb,
+      radius: 3 * DPR,
+      strokeColor: 0x166534,
       strokeAlpha: 0.8,
       strokeWidth: 1 * DPR,
     });
     roundTarget(this, this.towerMenuSell, {
-      color: 0x221417,
+      color: 0x2a0c0c,
       alpha: 1,
-      radius: 7 * DPR,
-      strokeColor: 0xe74c3c,
+      radius: 3 * DPR,
+      strokeColor: 0xef4444,
       strokeAlpha: 0.8,
       strokeWidth: 1 * DPR,
     });
     roundTarget(this, this.towerMenuRotate, {
-      color: 0x241a10,
+      color: 0x261a06,
       alpha: 1,
-      radius: 7 * DPR,
-      strokeColor: 0xf39c12,
+      radius: 3 * DPR,
+      strokeColor: 0xffb000,
       strokeAlpha: 0.8,
       strokeWidth: 1 * DPR,
     });
     roundTarget(this, this.towerMenuConfirmRotate, {
-      color: 0x14281a,
+      color: 0x143c1c,
       alpha: 1,
-      radius: 7 * DPR,
-      strokeColor: 0x2ecc71,
+      radius: 3 * DPR,
+      strokeColor: 0x33ff66,
       strokeAlpha: 0.9,
       strokeWidth: 1.5 * DPR,
     });
     roundTarget(this, this.towerMenuCancelRotate, {
-      color: 0x1e222a,
+      color: 0x2a0c0c,
       alpha: 1,
-      radius: 7 * DPR,
-      strokeColor: 0x95a5a6,
+      radius: 3 * DPR,
+      strokeColor: 0xef4444,
       strokeAlpha: 0.8,
       strokeWidth: 1 * DPR,
     });
-    // Плашка режима просмотра — скруглённая с голубой обводкой.
+    // Плашка режима просмотра — скруглённая с зелёной люминофорной обводкой.
     roundTarget(this, this.towerViewPill, {
-      color: 0x151515,
+      color: 0x051408,
       alpha: 0.95,
-      radius: 12 * DPR,
-      strokeColor: 0x48dbfb,
+      radius: 3 * DPR,
+      strokeColor: 0x33ff66,
       strokeAlpha: 0.9,
       strokeWidth: 1.5 * DPR,
     });
@@ -5568,14 +5575,14 @@ class GameScene extends Phaser.Scene {
 
   // Обновляем текст панели при изменении волны/здоровья базы/золота.
   updateUI() {
-    const nick = this.playerInfo ? this.playerInfo.nick : 'Игрок';
+    const nick = this.playerInfo ? this.playerInfo.nick : 'Оператор';
     const prefix = this.roleLabel(this.playerRole);
-    const nameLine = prefix ? `${nick} · ${prefix}` : nick;
+    const nameLine = prefix ? `[ ОПЕРАТОР: ${nick} · ${prefix} ]` : `[ ОПЕРАТОР: ${nick} ]`;
     const baseText = this.infiniteLives ? '∞' : `${this.lives} HP`;
     const maxWaves = (this.diffDef && this.diffDef.totalWaves) || 20;
 
     this.uiText.setText(
-      `${nameLine}\nВолна: ${this.currentWave}/${maxWaves}\nБаза: ${baseText}\nЗолото: ${this.gold}`
+      `${nameLine}\n[ ВОЛНА: ${this.currentWave}/${maxWaves} ]\n[ ЯДРО: ${baseText} ]\n[ РЕСУРС: ${this.gold} ]`
     );
   }
 
@@ -6477,20 +6484,20 @@ class GameScene extends Phaser.Scene {
       if (!type) return;
 
       const bg = this.add
-        .rectangle(0, 0, buttonWidth, 86 * DPR, 0x232323, 1)
-        .setStrokeStyle(2, TOWER_COLOR, 0.9)
+        .rectangle(0, 0, buttonWidth, 86 * DPR, 0x051408, 1)
+        .setStrokeStyle(1.5 * DPR, 0x166534, 0.9)
         .setDepth(100)
         .setScrollFactor(0)
         .setInteractive({ useHandCursor: true });
 
       roundTarget(this, bg, {
         kind: 'rect',
-        color: 0x232323,
+        color: 0x051408,
         alpha: 1,
-        radius: 12 * DPR,
-        strokeColor: TOWER_COLOR,
+        radius: 3 * DPR,
+        strokeColor: 0x166534,
         strokeAlpha: 0.9,
-        strokeWidth: 2 * DPR,
+        strokeWidth: 1.5 * DPR,
       });
 
       bg.on('pointerdown', (pointer, localX, localY, event) => {
@@ -6513,10 +6520,10 @@ class GameScene extends Phaser.Scene {
 
       // Название башни
       const nameLabel = this.add
-        .text(0, 0, type.name, {
-          fontFamily: 'Arial, sans-serif',
+        .text(0, 0, `[ ${type.name.toUpperCase()} ]`, {
+          fontFamily: UI_FONT,
           fontSize: `${10 * DPR}px`,
-          color: '#ffffff',
+          color: '#33ff66',
           fontStyle: 'bold',
           align: 'center',
         })
@@ -6526,10 +6533,10 @@ class GameScene extends Phaser.Scene {
 
       // Стоимость башни отдельной строкой золотистым цветом
       const costLabel = this.add
-        .text(0, 0, `${type.cost} 🟡`, {
-          fontFamily: 'Arial, sans-serif',
+        .text(0, 0, `${type.cost} CR`, {
+          fontFamily: UI_FONT,
           fontSize: `${10.5 * DPR}px`,
-          color: '#f1c40f',
+          color: '#ffb000',
           fontStyle: 'bold',
           align: 'center',
         })
@@ -6578,9 +6585,10 @@ class GameScene extends Phaser.Scene {
       const selected = key === this.selectedTowerType;
       const bg = this.buildButtons[key].bg;
       if (bg._roundItem) {
-        bg._roundItem.strokeColor = selected ? TOWER_COLOR : 0xffffff;
-        bg._roundItem.strokeAlpha = selected ? 1 : 0.4;
-        bg._roundItem.strokeWidth = (selected ? 3 : 2) * DPR;
+        bg._roundItem.color = selected ? 0x0e3816 : 0x051408;
+        bg._roundItem.strokeColor = selected ? 0x33ff66 : 0x166534;
+        bg._roundItem.strokeAlpha = selected ? 1 : 0.8;
+        bg._roundItem.strokeWidth = (selected ? 2 : 1.2) * DPR;
       }
     }
     updateRoundBgs(this);
