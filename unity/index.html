@@ -77,6 +77,7 @@
         top: 0;
         left: 0;
         background: #020703;
+        overflow: hidden;
       }
       #unity-canvas {
         width: 100% !important;
@@ -88,7 +89,7 @@
 
       /* Ретро-терминал: кинескопный CRT-оверлей (скан-линии, виньетка, свечение люминофора) */
       .crt-overlay {
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -109,10 +110,10 @@
         pointer-events: none;
         background: linear-gradient(
           rgba(10, 20, 10, 0) 50%,
-          rgba(0, 0, 0, 0.32) 50%
+          rgba(0, 0, 0, 0.42) 50%
         );
         background-size: 100% 3px;
-        opacity: 0.85;
+        opacity: 0.9;
       }
 
       /* Затемнение по краям (кривизна кинескопа) и зеленоватый ореол */
@@ -123,17 +124,18 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
-        box-shadow: inset 0 0 80px rgba(0, 20, 5, 0.82),
-                    inset 0 0 20px rgba(0, 255, 102, 0.14);
-        border: 1px solid rgba(0, 255, 102, 0.22);
+        box-shadow: inset 0 0 80px rgba(0, 20, 5, 0.85),
+                    inset 0 0 22px rgba(0, 255, 102, 0.18);
+        border: 1px solid rgba(0, 255, 102, 0.28);
       }
 
       /* Угловые прицельные рамки терминала */
       .crt-corner {
         position: absolute;
-        width: 12px;
-        height: 12px;
-        border: 2px solid rgba(51, 255, 102, 0.45);
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(51, 255, 102, 0.65);
+        box-shadow: 0 0 5px rgba(51, 255, 102, 0.35);
         pointer-events: none;
       }
       .crt-corner.top-left { top: 8px; left: 8px; border-right: none; border-bottom: none; }
@@ -143,15 +145,17 @@
 
       /* Верхняя статусная строка терминала S.A.M. */
       .crt-terminal-header {
-        position: fixed;
+        position: absolute;
         top: 4px;
         left: 50%;
         transform: translateX(-50%);
         font-size: 10px;
         letter-spacing: 2px;
-        color: rgba(51, 255, 102, 0.45);
+        color: #33FF66;
+        text-shadow: 0 0 5px rgba(51, 255, 102, 0.6);
+        opacity: 0.75;
         pointer-events: none;
-        z-index: 99997;
+        z-index: 99999;
         text-transform: uppercase;
         white-space: nowrap;
         font-family: 'Share Tech Mono', 'Courier New', Consolas, monospace;
@@ -363,17 +367,6 @@
     </style>
   </head>
   <body>
-    <!-- Ретро-терминал: кинескопный CRT-оверлей (скан-линии, виньетка, угловые рамки) -->
-    <div class="crt-overlay" aria-hidden="true">
-      <div class="crt-scanlines"></div>
-      <div class="crt-vignette"></div>
-      <div class="crt-corner top-left"></div>
-      <div class="crt-corner top-right"></div>
-      <div class="crt-corner bottom-left"></div>
-      <div class="crt-corner bottom-right"></div>
-    </div>
-    <div class="crt-terminal-header">[ S.A.M. OS v2.84 // ТАКТИЧЕСКИЙ ТЕРМИНАЛ // КЛАСС «ОМЕГА» ]</div>
-
     <!-- Fullscreen Splash Overlay -->
     <div id="splash-screen">
       <div id="splash-hero">
@@ -394,16 +387,28 @@
       <div id="splash-prompt">Нажмите, чтобы продолжить</div>
     </div>
 
-      <div id="unity-container" class="unity-desktop">
-        <canvas id="unity-canvas" tabindex="-1"></canvas>
-        <div id="unity-loading-bar" style="display:none !important;"></div>
-        <div id="unity-warning"> </div>
-        <div id="unity-footer" style="display:none !important;">
-          <div id="unity-logo-title-footer"></div>
-          <div id="unity-fullscreen-button"></div>
-          <div id="unity-build-title">SporeTD</div>
-        </div>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      
+      <!-- Ретро-терминал: кинескопный CRT-оверлей (скан-линии, виньетка, угловые рамки) -->
+      <div class="crt-overlay" aria-hidden="true">
+        <div class="crt-scanlines"></div>
+        <div class="crt-vignette"></div>
+        <div class="crt-corner top-left"></div>
+        <div class="crt-corner top-right"></div>
+        <div class="crt-corner bottom-left"></div>
+        <div class="crt-corner bottom-right"></div>
       </div>
+      <div class="crt-terminal-header">[ S.A.M. OS v2.84 // ТАКТИЧЕСКИЙ ТЕРМИНАЛ // КЛАСС «ОМЕГА» ]</div>
+
+      <div id="unity-loading-bar" style="display:none !important;"></div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer" style="display:none !important;">
+        <div id="unity-logo-title-footer"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">SporeTD</div>
+      </div>
+    </div>
 
     <!-- Rotate Device Overlay (iOS / unsupported orientation lock fallback) -->
     <div id="rotate-prompt-overlay" style="display:none;">
