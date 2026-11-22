@@ -13,16 +13,19 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  display: block;
+  font-family: 'Share Tech Mono', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
 #unity-container {
   width: 100%;
   height: 100%;
   position: absolute;
-  top: 0;
   left: 0;
-  background: #020703;
+  top: 0;
   overflow: hidden;
+  background: #020703;
 }
 
 #unity-canvas {
@@ -32,9 +35,112 @@ html, body {
   background: #020703;
 }
 
-#unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none }
-#unity-logo { width: 154px; height: 130px; background: url('unity-logo-dark.png') no-repeat center }
-#unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; margin-left: 6.5px; background: url('progress-bar-empty-dark.png') no-repeat center }
-#unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('progress-bar-full-dark.png') no-repeat center }
-#unity-footer { display: none !important; }
-#unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+#unity-loading-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  z-index: 20;
+}
+
+#unity-logo {
+  width: 154px;
+  height: 130px;
+  background: url('unity-logo-dark.png') no-repeat center;
+}
+
+#unity-progress-bar-empty {
+  width: 141px;
+  height: 18px;
+  margin-top: 10px;
+  margin-left: 6.5px;
+  background: url('progress-bar-empty-dark.png') no-repeat center;
+}
+
+#unity-progress-bar-full {
+  width: 0%;
+  height: 18px;
+  margin-top: 10px;
+  background: url('progress-bar-full-dark.png') no-repeat center;
+}
+
+#unity-footer {
+  display: none !important;
+}
+
+#unity-warning {
+  position: absolute;
+  left: 50%;
+  top: 5%;
+  transform: translate(-50%);
+  background: white;
+  padding: 10px;
+  display: none;
+  z-index: 30;
+}
+
+/* Fallback Overlay for Portrait / Rotate Device Prompt */
+#rotate-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(12, 10, 16, 0.94);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.rotate-prompt-box {
+  background: #221C2B;
+  border: 2px solid #382D48;
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+}
+
+.rotate-icon {
+  font-size: 40px;
+  margin-bottom: 14px;
+}
+
+.rotate-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #F6F1E7;
+  margin-bottom: 8px;
+}
+
+.rotate-desc {
+  font-size: 15px;
+  color: #C9BFC8;
+  line-height: 1.4;
+  margin-bottom: 20px;
+}
+
+.rotate-dismiss-btn {
+  background: #6EE7B7;
+  color: #0C0A10;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.rotate-dismiss-btn:hover {
+  background: #A7F3D0;
+  transform: scale(1.03);
+}
+
+.rotate-dismiss-btn:active {
+  transform: scale(0.96);
+}
